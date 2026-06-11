@@ -61,6 +61,9 @@ class EventController extends Controller
             'areas.shifts' => fn ($query) => $query
                 ->withCount(['signups as assigned_count' => fn ($q) => $q->where('status', SignupStatus::Assigned)])
                 ->orderBy('starts_at'),
+            'areas.shifts.signups' => fn ($query) => $query
+                ->with(['person' => fn ($q) => $q->withTrashed()])
+                ->orderBy('created_at'),
         ]);
 
         return Inertia::render('Events/Show', [
@@ -84,6 +87,12 @@ class EventController extends Controller
                         'needed_people' => $shift->needed_people,
                         'assigned_count' => $shift->assigned_count,
                         'notes' => $shift->notes,
+                        'signups' => $shift->signups->map(fn ($signup) => [
+                            'id' => $signup->id,
+                            'personName' => $signup->person->name,
+                            'status' => $signup->status->value,
+                            'substitutionRequested' => $signup->substitution_requested_at !== null,
+                        ]),
                     ]),
                 ]),
             ],

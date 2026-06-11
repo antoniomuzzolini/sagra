@@ -4,6 +4,7 @@ use App\Http\Controllers\AreaController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\PersonController;
 use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\SignupController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -21,4 +22,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('areas/{area}/shifts', [ShiftController::class, 'store'])->name('shifts.store');
     Route::delete('shifts/{shift}', [ShiftController::class, 'destroy'])->name('shifts.destroy');
+
+    Route::put('signups/{signup}', [SignupController::class, 'update'])->name('signups.update');
+    Route::delete('signups/{signup}', [SignupController::class, 'destroy'])->name('signups.destroy');
 });

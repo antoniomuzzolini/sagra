@@ -20,6 +20,8 @@ class ShiftSignup extends Model
         'status',
         'assigned_at',
         'assigned_by',
+        'substitution_requested_at',
+        'reminded_at',
     ];
 
     protected function casts(): array
@@ -27,6 +29,8 @@ class ShiftSignup extends Model
         return [
             'status' => SignupStatus::class,
             'assigned_at' => 'datetime',
+            'substitution_requested_at' => 'datetime',
+            'reminded_at' => 'datetime',
         ];
     }
 

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 
 class Person extends Authenticatable
@@ -17,6 +18,7 @@ class Person extends Authenticatable
     /** @use HasFactory<PersonFactory> */
     use HasFactory;
 
+    use Notifiable;
     use SoftDeletes;
 
     protected $table = 'people';

@@ -37,6 +37,7 @@ class HomeController extends Controller
                 'assigned_count' => $shift->assigned_count,
                 'notes' => $shift->notes,
                 'myStatus' => $shift->signups->first()?->status?->value,
+                'mySubstitutionRequested' => $shift->signups->first()?->substitution_requested_at !== null,
             ]),
         ]);
     }

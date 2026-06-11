@@ -15,6 +15,7 @@ interface VolunteerShift {
     assigned_count: number;
     notes: string | null;
     myStatus: 'available' | 'assigned' | 'declined' | null;
+    mySubstitutionRequested: boolean;
 }
 
 const props = defineProps<{
@@ -47,6 +48,14 @@ function signUp(shift: VolunteerShift) {
 function withdraw(shift: VolunteerShift) {
     router.delete(route('volunteer.signup.withdraw', shift.id), { preserveScroll: true });
 }
+
+function requestSubstitution(shift: VolunteerShift) {
+    router.post(route('volunteer.substitution', shift.id), {}, { preserveScroll: true });
+}
+
+function cancelSubstitution(shift: VolunteerShift) {
+    router.delete(route('volunteer.substitution.cancel', shift.id), { preserveScroll: true });
+}
 </script>
 
 <template>
@@ -69,6 +78,15 @@ function withdraw(shift: VolunteerShift) {
                 <p class="font-medium text-foreground">{{ shift.area }} · {{ dayLabel(shift.starts_at) }}</p>
                 <p class="text-sm text-muted-foreground">{{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }} · {{ shift.event }}</p>
                 <p v-if="shift.notes" class="text-sm text-muted-foreground">{{ shift.notes }}</p>
+                <div class="mt-2">
+                    <Button v-if="!shift.mySubstitutionRequested" variant="outline" size="sm" @click="requestSubstitution(shift)">
+                        Non posso più: chiedi un sostituto
+                    </Button>
+                    <p v-else class="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400">
+                        Stiamo cercando un sostituto.
+                        <Button variant="ghost" size="sm" @click="cancelSubstitution(shift)">Posso di nuovo</Button>
+                    </p>
+                </div>
             </div>
         </section>
 
@@ -94,9 +112,7 @@ function withdraw(shift: VolunteerShift) {
                     <div class="min-w-0 flex-1">
                         <p class="font-medium text-foreground">{{ shift.area }}</p>
                         <p class="text-sm text-muted-foreground">
-                            {{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }} · {{ shift.assigned_count }}/{{
-                                shift.needed_people
-                            }}
+                            {{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }} · {{ shift.assigned_count }}/{{ shift.needed_people }}
                             coperti
                         </p>
                         <p v-if="shift.notes" class="text-sm text-muted-foreground">{{ shift.notes }}</p>

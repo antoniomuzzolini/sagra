@@ -49,4 +49,34 @@ class SignupController extends Controller
 
         return back();
     }
+
+    /**
+     * Ask the organizer to find a substitute for an assigned shift.
+     */
+    public function requestSubstitution(Request $request, Shift $shift): RedirectResponse
+    {
+        $person = $request->user('volunteer');
+
+        abort_unless($shift->tenant_id === $person->tenant_id, 404);
+
+        $person->signups()
+            ->where('shift_id', $shift->id)
+            ->where('status', SignupStatus::Assigned)
+            ->update(['substitution_requested_at' => now()]);
+
+        return back();
+    }
+
+    public function cancelSubstitution(Request $request, Shift $shift): RedirectResponse
+    {
+        $person = $request->user('volunteer');
+
+        abort_unless($shift->tenant_id === $person->tenant_id, 404);
+
+        $person->signups()
+            ->where('shift_id', $shift->id)
+            ->update(['substitution_requested_at' => null]);
+
+        return back();
+    }
 }

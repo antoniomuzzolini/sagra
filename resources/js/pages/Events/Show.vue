@@ -8,9 +8,16 @@ import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { areaFamilyLabels, formatDate, formatTime, phaseTypeLabels } from '@/lib/event-helpers';
 import { type BreadcrumbItem } from '@/types';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, router, useForm } from '@inertiajs/vue3';
 import { Plus, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
+
+interface SignupRow {
+    id: number;
+    personName: string;
+    status: 'available' | 'assigned' | 'declined';
+    substitutionRequested: boolean;
+}
 
 interface ShiftRow {
     id: number;
@@ -19,6 +26,7 @@ interface ShiftRow {
     needed_people: number;
     assigned_count: number;
     notes: string | null;
+    signups: SignupRow[];
 }
 
 interface AreaRow {
@@ -98,6 +106,17 @@ function submitShift(area: AreaRow) {
 
 function destroyShift(shift: ShiftRow) {
     useForm({}).delete(route('shifts.destroy', shift.id), { preserveScroll: true });
+}
+
+// Signup moderation
+function setSignupStatus(signup: SignupRow, status: SignupRow['status']) {
+    router.put(route('signups.update', signup.id), { status }, { preserveScroll: true });
+}
+
+function removeSignup(signup: SignupRow) {
+    if (confirm(`Togliere ${signup.personName} da questo turno?`)) {
+        router.delete(route('signups.destroy', signup.id), { preserveScroll: true });
+    }
 }
 </script>
 
@@ -179,6 +198,29 @@ function destroyShift(shift: ShiftRow) {
                             <Button variant="ghost" size="icon" @click="destroyShift(shift)" aria-label="Elimina turno">
                                 <Trash2 class="h-4 w-4" />
                             </Button>
+
+                            <div v-if="shift.signups.length > 0" class="grid w-full gap-1 border-t pt-2">
+                                <div v-for="signup in shift.signups" :key="signup.id" class="flex items-center gap-2">
+                                    <span class="min-w-0 flex-1 truncate">
+                                        {{ signup.personName }}
+                                        <span
+                                            v-if="signup.substitutionRequested"
+                                            class="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800 dark:bg-amber-900 dark:text-amber-100"
+                                        >
+                                            cerca un sostituto
+                                        </span>
+                                    </span>
+                                    <template v-if="signup.status === 'available'">
+                                        <Button size="sm" @click="setSignupStatus(signup, 'assigned')">Conferma</Button>
+                                        <Button size="sm" variant="ghost" @click="setSignupStatus(signup, 'declined')"> Rifiuta </Button>
+                                    </template>
+                                    <template v-else-if="signup.status === 'assigned'">
+                                        <span class="text-xs font-medium text-green-700 dark:text-green-400">confermato</span>
+                                        <Button size="sm" variant="ghost" @click="removeSignup(signup)">Rimuovi</Button>
+                                    </template>
+                                    <span v-else class="text-xs text-muted-foreground">rifiutato</span>
+                                </div>
+                            </div>
                         </div>
 
                         <form
