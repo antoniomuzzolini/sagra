@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\Person;
+use App\Models\User;
+
 return [
 
     /*
@@ -40,6 +43,12 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // Volunteers authenticate via magic link (D6), never via password.
+        'volunteer' => [
+            'driver' => 'session',
+            'provider' => 'people',
+        ],
     ],
 
     /*
@@ -62,7 +71,12 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', App\Models\User::class),
+            'model' => env('AUTH_MODEL', User::class),
+        ],
+
+        'people' => [
+            'driver' => 'eloquent',
+            'model' => Person::class,
         ],
 
         // 'users' => [
