@@ -1,7 +1,8 @@
 <?php
 
+use App\Http\Controllers\Volunteer\HomeController;
 use App\Http\Controllers\Volunteer\MagicLinkController;
-use Illuminate\Http\Request;
+use App\Http\Controllers\Volunteer\SignupController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -13,12 +14,7 @@ Route::get('link-invalid', function () {
 })->name('magic-link.invalid');
 
 Route::middleware('auth:volunteer')->group(function () {
-    Route::get('me', function (Request $request) {
-        $person = $request->user('volunteer');
-
-        return Inertia::render('Volunteer/Home', [
-            'person' => ['name' => $person->name],
-            'tenant' => ['name' => $person->tenant->name],
-        ]);
-    })->name('volunteer.home');
+    Route::get('me', HomeController::class)->name('volunteer.home');
+    Route::post('me/shifts/{shift}/signup', [SignupController::class, 'store'])->name('volunteer.signup');
+    Route::delete('me/shifts/{shift}/signup', [SignupController::class, 'destroy'])->name('volunteer.signup.withdraw');
 });
