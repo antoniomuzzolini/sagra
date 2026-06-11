@@ -6,7 +6,8 @@ con offerta SaaS (open core). Sviluppatore singolo. Rispondi in italiano.
 ## Contesto obbligatorio
 
 Leggi @docs/dominio-e-decisioni.md prima di lavorare: contiene visione,
-glossario delle entità, decisioni prese (D1–D12) e domande aperte.
+glossario delle entità, decisioni prese (D1–D14) e domande aperte.
+Lo schema dati del core è documentato in @docs/schema-core.md.
 È la fonte di verità — se il codice e il documento divergono, segnalalo.
 
 ## Stack

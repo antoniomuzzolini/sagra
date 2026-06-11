@@ -1,7 +1,7 @@
 # Schema dati del core — proposta
 
-> Bozza in revisione. Quando approvata, diventa la base delle migrazioni
-> e va tenuta allineata a `dominio-e-decisioni.md`.
+> Approvato (giugno 2026, decisione D14): è la base delle migrazioni in
+> `database/migrations` e va tenuto allineato a `dominio-e-decisioni.md`.
 
 ## Convenzioni generali
 

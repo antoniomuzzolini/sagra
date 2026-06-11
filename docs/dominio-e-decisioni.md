@@ -33,6 +33,8 @@ prodotto, non un dettaglio.
 | D10 | Frontend PWA mobile-first; notifiche base via push web | I volontari usano lo smartphone; WhatsApp Business API rimandata per costi e vincoli |
 | D11 | Deploy: VPS economico + Docker; stessa immagine per SaaS e self-hosting | Costi minimi; l'immagine Docker è anche il prodotto open source installabile |
 | D12 | Futuro livello AI/MCP come servizio Python separato che consuma l'API del core | Usa ogni linguaggio dove rende; valida i confini dell'architettura |
+| D13 | Per l'MVP il core usa la struttura Laravel standard (`app/Models`, `app/Enums`...); niente cartella `Modules/` né convenzioni di confine finché non esiste il primo modulo verticale | Evita architettura speculativa; il confine core/moduli si disegna sul primo caso reale |
+| D14 | Schema dati del core come da `docs/schema-core.md`: `tenant_id` su ogni tabella, disponibilità+assegnazione in un'unica `shift_signups` con stato, volontari in `people` distinti dagli `users` con password | Vedi motivazioni nel documento di schema |
 
 ## 3. Glossario ed entità di dominio
 
@@ -138,8 +140,6 @@ pagamenti, qualsiasi integrazione hardware.
   trattamento in capo all'associazione, da gestire nel design.
 - Canali notifiche oltre il push web (e-mail di servizio? Telegram?
   WhatsApp Business API più avanti?).
-- Struttura interna del monolite modulare (convenzioni per i confini
-  core/moduli nel codice Laravel: namespace, package, eventi?).
 - Nome del progetto.
 
 ## 7. Catalogo delle aree tipiche
