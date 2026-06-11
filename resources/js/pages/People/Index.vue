@@ -1,0 +1,188 @@
+<script setup lang="ts">
+import InputError from '@/components/InputError.vue';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import AppLayout from '@/layouts/AppLayout.vue';
+import { type BreadcrumbItem, type MagicLinkFlash, type SharedData } from '@/types';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { Check, Copy, Link2, Pencil, Trash2 } from 'lucide-vue-next';
+import { computed, ref, watch } from 'vue';
+
+interface PersonRow {
+    id: number;
+    name: string;
+    phone: string | null;
+    email: string | null;
+    hasLink: boolean;
+    linkLastUsedAt: string | null;
+}
+
+const props = defineProps<{ people: PersonRow[] }>();
+
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Volontari', href: '/people' }];
+
+const page = usePage<SharedData>();
+
+// Create / edit dialog
+const editing = ref<PersonRow | null>(null);
+const formOpen = ref(false);
+const form = useForm({ name: '', phone: '', email: '' });
+
+function openCreate() {
+    editing.value = null;
+    form.reset();
+    form.clearErrors();
+    formOpen.value = true;
+}
+
+function openEdit(person: PersonRow) {
+    editing.value = person;
+    form.name = person.name;
+    form.phone = person.phone ?? '';
+    form.email = person.email ?? '';
+    form.clearErrors();
+    formOpen.value = true;
+}
+
+function submit() {
+    const options = { preserveScroll: true, onSuccess: () => (formOpen.value = false) };
+    if (editing.value) {
+        form.put(route('people.update', editing.value.id), options);
+    } else {
+        form.post(route('people.store'), options);
+    }
+}
+
+function destroy(person: PersonRow) {
+    if (confirm(`Eliminare ${person.name}? Il suo link d'accesso smetterà di funzionare.`)) {
+        useForm({}).delete(route('people.destroy', person.id), { preserveScroll: true });
+    }
+}
+
+// Magic link dialog
+const magicLink = ref<MagicLinkFlash | null>(null);
+const copied = ref(false);
+
+watch(
+    () => page.props.flash.magicLink,
+    (value) => {
+        if (value) {
+            magicLink.value = value;
+            copied.value = false;
+        }
+    },
+    { immediate: true },
+);
+
+function requestLink(person: PersonRow) {
+    useForm({}).post(route('people.magic-link', person.id), { preserveScroll: true });
+}
+
+async function copyLink() {
+    if (magicLink.value) {
+        await navigator.clipboard.writeText(magicLink.value.url);
+        copied.value = true;
+    }
+}
+
+const whatsappUrl = computed(() => {
+    if (!magicLink.value) return '#';
+    const text = encodeURIComponent(`Ciao ${magicLink.value.personName}! Ecco il tuo link personale per i turni: ${magicLink.value.url}`);
+    const phone = magicLink.value.personPhone?.replace(/[^0-9]/g, '');
+    return phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`;
+});
+</script>
+
+<template>
+    <Head title="Volontari" />
+
+    <AppLayout :breadcrumbs="breadcrumbs">
+        <div class="flex h-full flex-1 flex-col gap-4 p-4">
+            <div class="flex items-center justify-between">
+                <h1 class="text-xl font-semibold">Volontari</h1>
+                <Button @click="openCreate">Nuovo volontario</Button>
+            </div>
+
+            <p v-if="props.people.length === 0" class="text-muted-foreground">
+                Nessun volontario ancora. Aggiungi il primo: bastano nome e telefono.
+            </p>
+
+            <ul class="divide-y rounded-xl border">
+                <li v-for="person in props.people" :key="person.id" class="flex flex-wrap items-center gap-2 p-3">
+                    <div class="min-w-0 flex-1">
+                        <p class="font-medium">{{ person.name }}</p>
+                        <p class="truncate text-sm text-muted-foreground">
+                            {{ [person.phone, person.email].filter(Boolean).join(' · ') || '—' }}
+                        </p>
+                    </div>
+                    <span v-if="person.hasLink" class="text-xs text-muted-foreground">
+                        {{ person.linkLastUsedAt ? 'link usato' : 'link mai usato' }}
+                    </span>
+                    <Button variant="outline" size="sm" @click="requestLink(person)">
+                        <Link2 class="h-4 w-4" />
+                        {{ person.hasLink ? 'Nuovo link' : 'Crea link' }}
+                    </Button>
+                    <Button variant="ghost" size="icon" @click="openEdit(person)" aria-label="Modifica">
+                        <Pencil class="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" @click="destroy(person)" aria-label="Elimina">
+                        <Trash2 class="h-4 w-4" />
+                    </Button>
+                </li>
+            </ul>
+        </div>
+
+        <Dialog v-model:open="formOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{{ editing ? 'Modifica volontario' : 'Nuovo volontario' }}</DialogTitle>
+                    <DialogDescription>Serve almeno un contatto: telefono o email.</DialogDescription>
+                </DialogHeader>
+                <form class="grid gap-4" @submit.prevent="submit">
+                    <div class="grid gap-2">
+                        <Label for="person-name">Nome</Label>
+                        <Input id="person-name" v-model="form.name" required placeholder="Nome e cognome" />
+                        <InputError :message="form.errors.name" />
+                    </div>
+                    <div class="grid gap-2">
+                        <Label for="person-phone">Telefono</Label>
+                        <Input id="person-phone" v-model="form.phone" type="tel" placeholder="+39 333 1234567" />
+                        <InputError :message="form.errors.phone" />
+                    </div>
+                    <div class="grid gap-2">
+                        <Label for="person-email">Email</Label>
+                        <Input id="person-email" v-model="form.email" type="email" placeholder="nome@esempio.it" />
+                        <InputError :message="form.errors.email" />
+                    </div>
+                    <DialogFooter>
+                        <Button type="submit" :disabled="form.processing">Salva</Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog :open="magicLink !== null" @update:open="magicLink = null">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Link d'accesso per {{ magicLink?.personName }}</DialogTitle>
+                    <DialogDescription>
+                        Invia questo link al volontario: toccandolo entra nei suoi turni, senza password. Generarne uno nuovo disattiva il precedente.
+                    </DialogDescription>
+                </DialogHeader>
+                <p class="break-all rounded-md bg-muted p-3 font-mono text-sm">{{ magicLink?.url }}</p>
+                <DialogFooter class="gap-2">
+                    <Button variant="outline" @click="copyLink">
+                        <Check v-if="copied" class="h-4 w-4" />
+                        <Copy v-else class="h-4 w-4" />
+                        {{ copied ? 'Copiato!' : 'Copia' }}
+                    </Button>
+                    <Button as-child>
+                        <a :href="whatsappUrl" target="_blank" rel="noopener">Invia su WhatsApp</a>
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    </AppLayout>
+</template>

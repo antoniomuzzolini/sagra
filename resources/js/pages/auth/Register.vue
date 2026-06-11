@@ -10,6 +10,7 @@ import { LoaderCircle } from 'lucide-vue-next';
 
 const form = useForm({
     name: '',
+    association: '',
     email: '',
     password: '',
     password_confirmation: '',
@@ -32,6 +33,19 @@ const submit = () => {
                     <Label for="name">Name</Label>
                     <Input id="name" type="text" required autofocus tabindex="1" autocomplete="name" v-model="form.name" placeholder="Full name" />
                     <InputError :message="form.errors.name" />
+                </div>
+
+                <div class="grid gap-2">
+                    <Label for="association">Associazione</Label>
+                    <Input
+                        id="association"
+                        type="text"
+                        required
+                        tabindex="2"
+                        v-model="form.association"
+                        placeholder="Nome dell'associazione o pro loco"
+                    />
+                    <InputError :message="form.errors.association" />
                 </div>
 
                 <div class="grid gap-2">

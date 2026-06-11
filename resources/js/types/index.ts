@@ -16,10 +16,20 @@ export interface NavItem {
     isActive?: boolean;
 }
 
+export interface MagicLinkFlash {
+    personId: number;
+    personName: string;
+    personPhone: string | null;
+    url: string;
+}
+
 export interface SharedData {
     name: string;
     quote: { message: string; author: string };
     auth: Auth;
+    flash: {
+        magicLink: MagicLinkFlash | null;
+    };
     ziggy: {
         location: string;
         url: string;

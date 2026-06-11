@@ -45,6 +45,9 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'flash' => [
+                'magicLink' => fn () => $request->session()->get('magicLink'),
+            ],
         ]);
     }
 }
