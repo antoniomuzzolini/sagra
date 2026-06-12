@@ -4,6 +4,7 @@ namespace Tests\Feature\Manage;
 
 use App\Models\Area;
 use App\Models\Event;
+use App\Models\Shift;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -159,6 +160,27 @@ class ManageEventsTest extends TestCase
         ])->assertSessionHasNoErrors();
 
         $this->assertSame(1, $area->shifts()->count());
+    }
+
+    public function test_an_organizer_can_update_a_shift()
+    {
+        $user = $this->organizer();
+        $event = Event::factory()->create(['tenant_id' => $user->tenant_id]);
+        $area = Area::factory()->for($event)->create(['tenant_id' => $user->tenant_id]);
+        $shift = Shift::factory()->for($area)->create(['tenant_id' => $user->tenant_id]);
+
+        $this->actingAs($user)->put("/shifts/{$shift->id}", [
+            'date' => '2026-07-05',
+            'start_time' => '19:00',
+            'end_time' => '23:00',
+            'needed_people' => 6,
+            'notes' => 'Portare i guanti',
+        ])->assertSessionHasNoErrors();
+
+        $shift->refresh();
+        $this->assertSame('2026-07-05 19:00', $shift->starts_at->format('Y-m-d H:i'));
+        $this->assertSame(6, $shift->needed_people);
+        $this->assertSame('Portare i guanti', $shift->notes);
     }
 
     public function test_a_shift_past_midnight_rolls_to_the_next_day()

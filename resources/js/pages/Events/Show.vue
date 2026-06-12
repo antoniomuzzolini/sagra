@@ -9,7 +9,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { areaFamilyLabels, formatDate, formatTime, phaseTypeLabels } from '@/lib/event-helpers';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { Plus, Trash2 } from 'lucide-vue-next';
+import { Pencil, Plus, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 
 interface SignupRow {
@@ -95,13 +95,26 @@ function destroyArea(area: AreaRow) {
     }
 }
 
-// New shift, one open form at a time
+// New or edited shift, one open form at a time
 const shiftFormArea = ref<number | null>(null);
+const editingShiftId = ref<number | null>(null);
 const shiftForm = useForm({ date: '', start_time: '', end_time: '', needed_people: 2, notes: '' });
 
 function openShiftForm(area: AreaRow) {
     shiftFormArea.value = area.id;
+    editingShiftId.value = null;
     shiftForm.reset();
+    shiftForm.clearErrors();
+}
+
+function openEditShift(shift: ShiftRow) {
+    shiftFormArea.value = null;
+    editingShiftId.value = shift.id;
+    shiftForm.date = shift.starts_at.slice(0, 10);
+    shiftForm.start_time = shift.starts_at.slice(11, 16);
+    shiftForm.end_time = shift.ends_at.slice(11, 16);
+    shiftForm.needed_people = shift.needed_people;
+    shiftForm.notes = shift.notes ?? '';
     shiftForm.clearErrors();
 }
 
@@ -109,6 +122,13 @@ function submitShift(area: AreaRow) {
     shiftForm.post(route('shifts.store', area.id), {
         preserveScroll: true,
         onSuccess: () => (shiftFormArea.value = null),
+    });
+}
+
+function submitShiftEdit() {
+    shiftForm.put(route('shifts.update', editingShiftId.value!), {
+        preserveScroll: true,
+        onSuccess: () => (editingShiftId.value = null),
     });
 }
 
@@ -245,9 +265,34 @@ function removeSignup(signup: SignupRow) {
                             >
                                 {{ shift.assigned_count }}/{{ shift.needed_people }}
                             </span>
+                            <Button variant="ghost" size="icon" @click="openEditShift(shift)" aria-label="Modifica turno">
+                                <Pencil class="h-4 w-4" />
+                            </Button>
                             <Button variant="ghost" size="icon" @click="destroyShift(shift)" aria-label="Elimina turno">
                                 <Trash2 class="h-4 w-4" />
                             </Button>
+
+                            <form v-if="editingShiftId === shift.id" class="grid w-full gap-2 border-t pt-2" @submit.prevent="submitShiftEdit">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <Input type="date" v-model="shiftForm.date" required class="w-auto" />
+                                    <Input type="time" v-model="shiftForm.start_time" required class="w-auto" />
+                                    <span class="text-muted-foreground">→</span>
+                                    <Input type="time" v-model="shiftForm.end_time" required class="w-auto" />
+                                    <div class="flex items-center gap-1">
+                                        <Input type="number" v-model.number="shiftForm.needed_people" min="1" required class="w-20" />
+                                        <span class="text-sm text-muted-foreground">persone</span>
+                                    </div>
+                                </div>
+                                <Input v-model="shiftForm.notes" placeholder="Note (opzionale)" />
+                                <InputError :message="shiftForm.errors.date" />
+                                <InputError :message="shiftForm.errors.start_time" />
+                                <InputError :message="shiftForm.errors.end_time" />
+                                <InputError :message="shiftForm.errors.needed_people" />
+                                <div class="flex gap-2">
+                                    <Button type="submit" size="sm" :disabled="shiftForm.processing">Salva modifiche</Button>
+                                    <Button type="button" size="sm" variant="ghost" @click="editingShiftId = null">Annulla</Button>
+                                </div>
+                            </form>
 
                             <div v-if="shift.signups.length > 0" class="grid w-full gap-1 border-t pt-2">
                                 <div v-for="signup in shift.signups" :key="signup.id" class="flex items-center gap-2">

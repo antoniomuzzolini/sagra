@@ -24,6 +24,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('areas/{area}', [AreaController::class, 'destroy'])->name('areas.destroy');
 
     Route::post('areas/{area}/shifts', [ShiftController::class, 'store'])->name('shifts.store');
+    Route::put('shifts/{shift}', [ShiftController::class, 'update'])->name('shifts.update');
     Route::delete('shifts/{shift}', [ShiftController::class, 'destroy'])->name('shifts.destroy');
 
     Route::put('signups/{signup}', [SignupController::class, 'update'])->name('signups.update');

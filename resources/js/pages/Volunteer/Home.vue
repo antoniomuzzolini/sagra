@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import ModeratedSignupList, { type ModeratedSignup } from '@/components/ModeratedSignupList.vue';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { formatTime } from '@/lib/event-helpers';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { CalendarCheck, Check, Copy, Hand, Trash2, Undo2, Wrench } from 'lucide-vue-next';
+import { CalendarCheck, Check, Copy, Hand, Pencil, Trash2, Undo2, Wrench } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 interface VolunteerShift {
@@ -63,6 +64,29 @@ function submitShift(areaId: number) {
 function destroyShift(shift: VolunteerShift) {
     if (confirm(`Eliminare il turno in ${shift.area} (${formatTime(shift.starts_at)}–${formatTime(shift.ends_at)})?`)) {
         router.delete(route('volunteer.shifts.destroy', shift.id), { preserveScroll: true });
+    }
+}
+
+// Editing works on any shift of a managed area, organizer-created too.
+const editingShift = ref<VolunteerShift | null>(null);
+const editForm = useForm({ date: '', start_time: '', end_time: '', needed_people: 2, notes: '' });
+
+function openEditShift(shift: VolunteerShift) {
+    editingShift.value = shift;
+    editForm.date = shift.starts_at.slice(0, 10);
+    editForm.start_time = shift.starts_at.slice(11, 16);
+    editForm.end_time = shift.ends_at.slice(11, 16);
+    editForm.needed_people = shift.needed_people;
+    editForm.notes = shift.notes ?? '';
+    editForm.clearErrors();
+}
+
+function submitEditShift() {
+    if (editingShift.value) {
+        editForm.put(route('volunteer.shifts.update', editingShift.value.id), {
+            preserveScroll: true,
+            onSuccess: () => (editingShift.value = null),
+        });
     }
 }
 
@@ -197,8 +221,22 @@ function cancelSubstitution(shift: VolunteerShift) {
                 :key="shift.id"
                 class="rounded-xl border border-green-200 bg-green-50 p-3 dark:border-green-900 dark:bg-green-950"
             >
-                <p class="font-medium text-foreground">{{ shift.area }} · {{ dayLabel(shift.starts_at) }}</p>
-                <p class="text-sm text-muted-foreground">{{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }} · {{ shift.event }}</p>
+                <div class="flex items-start gap-2">
+                    <div class="min-w-0 flex-1">
+                        <p class="font-medium text-foreground">{{ shift.area }} · {{ dayLabel(shift.starts_at) }}</p>
+                        <p class="text-sm text-muted-foreground">
+                            {{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }} · {{ shift.event }}
+                        </p>
+                    </div>
+                    <template v-if="shift.canModerate">
+                        <Button variant="ghost" size="icon" aria-label="Modifica turno" @click="openEditShift(shift)">
+                            <Pencil class="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" aria-label="Elimina turno" @click="destroyShift(shift)">
+                            <Trash2 class="h-4 w-4" />
+                        </Button>
+                    </template>
+                </div>
                 <p v-if="shift.notes" class="text-sm text-muted-foreground">{{ shift.notes }}</p>
                 <p v-if="shift.myOverlap" class="text-sm text-amber-700 dark:text-amber-400">⚠ Si sovrappone con {{ shift.myOverlap }}</p>
                 <div class="mt-2">
@@ -224,6 +262,14 @@ function cancelSubstitution(shift: VolunteerShift) {
                         <p class="text-sm text-muted-foreground">{{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }}</p>
                         <p v-if="shift.myOverlap" class="text-sm text-amber-700 dark:text-amber-400">⚠ Si sovrappone con {{ shift.myOverlap }}</p>
                     </div>
+                    <template v-if="shift.canModerate">
+                        <Button variant="ghost" size="icon" aria-label="Modifica turno" @click="openEditShift(shift)">
+                            <Pencil class="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" aria-label="Elimina turno" @click="destroyShift(shift)">
+                            <Trash2 class="h-4 w-4" />
+                        </Button>
+                    </template>
                     <Button variant="ghost" size="sm" @click="withdraw(shift)"><Undo2 class="h-4 w-4" /> Ritira</Button>
                 </div>
                 <ModeratedSignupList v-if="shift.canModerate" :signups="shift.signups" :shift-id="shift.id" :people="manager?.people" />
@@ -251,6 +297,9 @@ function cancelSubstitution(shift: VolunteerShift) {
                                 ⚠ Si sovrappone con {{ shift.myOverlap }}
                             </p>
                         </div>
+                        <Button v-if="shift.canModerate" variant="ghost" size="icon" aria-label="Modifica turno" @click="openEditShift(shift)">
+                            <Pencil class="h-4 w-4" />
+                        </Button>
                         <Button v-if="shift.canModerate" variant="ghost" size="icon" aria-label="Elimina turno" @click="destroyShift(shift)">
                             <Trash2 class="h-4 w-4" />
                         </Button>
@@ -288,5 +337,33 @@ function cancelSubstitution(shift: VolunteerShift) {
                 </div>
             </template>
         </section>
+
+        <!-- Shift edit dialog (managers) -->
+        <Dialog :open="editingShift !== null" @update:open="(open: boolean) => !open && (editingShift = null)">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Modifica turno · {{ editingShift?.area }}</DialogTitle>
+                </DialogHeader>
+                <form class="grid gap-2" @submit.prevent="submitEditShift">
+                    <Input v-model="editForm.date" type="date" required aria-label="Data" />
+                    <p v-if="editForm.errors.date" class="text-sm text-red-600">{{ editForm.errors.date }}</p>
+                    <div class="flex items-center gap-2">
+                        <Input v-model="editForm.start_time" type="time" required aria-label="Inizio" />
+                        <span class="text-muted-foreground">→</span>
+                        <Input v-model="editForm.end_time" type="time" required aria-label="Fine" />
+                    </div>
+                    <p v-if="editForm.errors.start_time || editForm.errors.end_time" class="text-sm text-red-600">
+                        {{ editForm.errors.start_time || editForm.errors.end_time }}
+                    </p>
+                    <div class="flex items-center gap-2">
+                        <Input v-model.number="editForm.needed_people" type="number" min="1" required class="w-20" aria-label="Persone" />
+                        <span class="text-sm text-muted-foreground">persone</span>
+                    </div>
+                    <p v-if="editForm.errors.needed_people" class="text-sm text-red-600">{{ editForm.errors.needed_people }}</p>
+                    <Input v-model="editForm.notes" placeholder="Note (facoltative)" aria-label="Note" />
+                    <Button type="submit" :disabled="editForm.processing">Salva modifiche</Button>
+                </form>
+            </DialogContent>
+        </Dialog>
     </div>
 </template>

@@ -27,6 +27,22 @@ class ShiftController extends Controller
         return back();
     }
 
+    public function update(StoreShiftRequest $request, Shift $shift): RedirectResponse
+    {
+        $this->authorizeTenant($request, $shift);
+
+        [$startsAt, $endsAt] = $request->times();
+
+        $shift->update([
+            'starts_at' => $startsAt,
+            'ends_at' => $endsAt,
+            'needed_people' => $request->validated('needed_people'),
+            'notes' => $request->validated('notes'),
+        ]);
+
+        return back();
+    }
+
     public function destroy(Request $request, Shift $shift): RedirectResponse
     {
         $this->authorizeTenant($request, $shift);

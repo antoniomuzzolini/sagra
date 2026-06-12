@@ -83,6 +83,36 @@ class ManagerPowersTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_a_manager_can_update_any_shift_of_their_area()
+    {
+        // Created by the organizer, but it lives in the managed area:
+        // the manager can reshape it.
+        $shift = Shift::factory()->for($this->area)->create(['tenant_id' => $this->area->tenant_id]);
+
+        $this->actingAs($this->manager, 'volunteer')->put("/me/shifts/{$shift->id}", [
+            'date' => '2026-07-05',
+            'start_time' => '19:00',
+            'end_time' => '23:00',
+            'needed_people' => 6,
+        ])->assertSessionHasNoErrors();
+
+        $shift->refresh();
+        $this->assertSame('2026-07-05 19:00', $shift->starts_at->format('Y-m-d H:i'));
+        $this->assertSame(6, $shift->needed_people);
+    }
+
+    public function test_a_manager_cannot_update_shifts_elsewhere()
+    {
+        $shift = Shift::factory()->for($this->otherArea)->create(['tenant_id' => $this->area->tenant_id]);
+
+        $this->actingAs($this->manager, 'volunteer')->put("/me/shifts/{$shift->id}", [
+            'date' => '2026-07-05',
+            'start_time' => '19:00',
+            'end_time' => '23:00',
+            'needed_people' => 6,
+        ])->assertNotFound();
+    }
+
     public function test_a_manager_can_delete_a_shift_in_their_area_only()
     {
         $own = Shift::factory()->for($this->area)->create(['tenant_id' => $this->area->tenant_id]);

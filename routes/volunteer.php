@@ -38,6 +38,7 @@ Route::middleware('auth:volunteer')->group(function () {
 
     // Area managers (D18): run your own area, still via magic link.
     Route::post('me/areas/{area}/shifts', [ManagerShiftController::class, 'store'])->name('volunteer.shifts.store');
+    Route::put('me/shifts/{shift}', [ManagerShiftController::class, 'update'])->name('volunteer.shifts.update');
     Route::delete('me/shifts/{shift}', [ManagerShiftController::class, 'destroy'])->name('volunteer.shifts.destroy');
     Route::post('me/shifts/{shift}/assign', [SignupController::class, 'assign'])->name('volunteer.signups.assign');
 });
