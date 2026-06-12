@@ -32,7 +32,9 @@ import { Head, Link } from '@inertiajs/vue3';
         </div>
 
         <p class="max-w-md text-center text-sm text-muted-foreground">
-            Sei un volontario? Non serve registrarsi: usa il link personale che ti è stato inviato.
+            Sei un volontario? Non serve registrarsi:
+            <Link :href="route('volunteer.home')" class="underline">vai ai tuoi turni</Link> se sei già entrato, oppure usa il link personale che ti è
+            stato inviato (<Link :href="route('volunteer.recover')" class="underline">l'hai perso?</Link>).
         </p>
     </div>
 </template>
