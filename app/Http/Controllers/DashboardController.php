@@ -1,0 +1,80 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Enums\SignupStatus;
+use App\Models\Event;
+use App\Models\Person;
+use App\Models\Shift;
+use App\Models\ShiftSignup;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+
+/**
+ * The organizer landing page: the next setup step when the event is
+ * not ready yet, the work queues once it is running.
+ */
+class DashboardController extends Controller
+{
+    public function __invoke(Request $request): Response
+    {
+        $tenantId = $request->user()->tenant_id;
+
+        $currentEvent = Event::query()
+            ->where('tenant_id', $tenantId)
+            ->with('phases')
+            ->withCount('areas')
+            ->get()
+            ->filter(fn (Event $event) => $event->endsOn() === null || $event->endsOn()->gte(today()))
+            ->sortBy(fn (Event $event) => $event->startsOn() ?? today())
+            ->first();
+
+        $upcomingShifts = Shift::query()
+            ->where('tenant_id', $tenantId)
+            ->where('starts_at', '>=', now())
+            ->with('area')
+            ->withCount(['signups as assigned_count' => fn ($q) => $q->where('status', SignupStatus::Assigned)])
+            ->orderBy('starts_at')
+            ->get();
+
+        $uncovered = $upcomingShifts->filter(fn (Shift $shift) => $shift->assigned_count < $shift->needed_people);
+
+        $nextStep = match (true) {
+            $currentEvent === null => 'event',
+            $currentEvent->areas_count === 0 => 'areas',
+            $upcomingShifts->isEmpty() => 'shifts',
+            default => null,
+        };
+
+        return Inertia::render('Dashboard', [
+            'nextStep' => $nextStep,
+            'event' => $currentEvent ? ['id' => $currentEvent->id, 'name' => $currentEvent->name] : null,
+            'uncoveredCount' => $uncovered->count(),
+            'uncoveredShifts' => $uncovered->take(10)->values()->map(fn (Shift $shift) => [
+                'id' => $shift->id,
+                'eventId' => $shift->area->event_id,
+                'area' => $shift->area->name,
+                'starts_at' => $shift->starts_at->toIso8601String(),
+                'ends_at' => $shift->ends_at->toIso8601String(),
+                'missing' => $shift->needed_people - $shift->assigned_count,
+            ]),
+            'pendingCount' => ShiftSignup::query()
+                ->where('tenant_id', $tenantId)
+                ->where('status', SignupStatus::Available)
+                ->whereHas('shift', fn ($q) => $q->where('starts_at', '>=', now()))
+                ->count(),
+            'substitutionCount' => ShiftSignup::query()
+                ->where('tenant_id', $tenantId)
+                ->where('status', SignupStatus::Assigned)
+                ->whereNotNull('substitution_requested_at')
+                ->whereHas('shift', fn ($q) => $q->where('starts_at', '>=', now()))
+                ->count(),
+            'linkRequestsCount' => Person::query()
+                ->where('tenant_id', $tenantId)
+                ->whereNotNull('link_requested_at')
+                ->count(),
+            'volunteersCount' => Person::query()->where('tenant_id', $tenantId)->count(),
+        ]);
+    }
+}
