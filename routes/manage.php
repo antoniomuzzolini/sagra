@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AreaController;
+use App\Http\Controllers\AreaManagerController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\PersonController;
 use App\Http\Controllers\ShiftController;
@@ -25,4 +26,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::put('signups/{signup}', [SignupController::class, 'update'])->name('signups.update');
     Route::delete('signups/{signup}', [SignupController::class, 'destroy'])->name('signups.destroy');
+
+    Route::post('areas/{area}/managers', [AreaManagerController::class, 'store'])->name('areas.managers.store');
+    Route::delete('person-roles/{personRole}', [AreaManagerController::class, 'destroy'])->name('person-roles.destroy');
 });

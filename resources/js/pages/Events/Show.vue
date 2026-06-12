@@ -29,10 +29,17 @@ interface ShiftRow {
     signups: SignupRow[];
 }
 
+interface ManagerRow {
+    id: number;
+    personId: number;
+    name: string;
+}
+
 interface AreaRow {
     id: number;
     name: string;
     family: string | null;
+    managers: ManagerRow[];
     shifts: ShiftRow[];
 }
 
@@ -44,6 +51,7 @@ interface PhaseRow {
 }
 
 const props = defineProps<{
+    people: { id: number; name: string }[];
     event: {
         id: number;
         name: string;
@@ -106,6 +114,19 @@ function submitShift(area: AreaRow) {
 
 function destroyShift(shift: ShiftRow) {
     useForm({}).delete(route('shifts.destroy', shift.id), { preserveScroll: true });
+}
+
+// Area managers
+function addManager(area: AreaRow, event_: Event) {
+    const select = event_.target as HTMLSelectElement;
+    if (select.value) {
+        router.post(route('areas.managers.store', area.id), { person_id: Number(select.value) }, { preserveScroll: true });
+        select.value = '';
+    }
+}
+
+function removeManager(manager: ManagerRow) {
+    router.delete(route('person-roles.destroy', manager.id), { preserveScroll: true });
 }
 
 // Signup moderation
@@ -174,6 +195,35 @@ function removeSignup(signup: SignupRow) {
                         </div>
                     </CardHeader>
                     <CardContent class="grid gap-2">
+                        <div class="flex flex-wrap items-center gap-2 text-sm">
+                            <span class="text-muted-foreground">Responsabili:</span>
+                            <span
+                                v-for="manager in area.managers"
+                                :key="manager.id"
+                                class="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5"
+                            >
+                                {{ manager.name }}
+                                <button
+                                    type="button"
+                                    class="text-muted-foreground hover:text-foreground"
+                                    @click="removeManager(manager)"
+                                    aria-label="Rimuovi responsabile"
+                                >
+                                    ×
+                                </button>
+                            </span>
+                            <select class="h-7 rounded-md border border-input bg-transparent px-2 text-xs" @change="addManager(area, $event)">
+                                <option value="">+ aggiungi…</option>
+                                <option
+                                    v-for="person in props.people.filter((p) => !area.managers.some((m) => m.personId === p.id))"
+                                    :key="person.id"
+                                    :value="person.id"
+                                >
+                                    {{ person.name }}
+                                </option>
+                            </select>
+                        </div>
+
                         <p v-if="area.shifts.length === 0 && shiftFormArea !== area.id" class="text-sm text-muted-foreground">
                             Nessun turno in quest'area.
                         </p>

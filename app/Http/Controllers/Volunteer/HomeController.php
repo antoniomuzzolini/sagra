@@ -14,31 +14,47 @@ class HomeController extends Controller
     public function __invoke(Request $request): Response
     {
         $person = $request->user('volunteer');
+        $managedAreaIds = $person->managedAreaIds();
 
         $shifts = Shift::query()
             ->where('tenant_id', $person->tenant_id)
             ->where('starts_at', '>=', now())
             ->with('area.event')
             ->withCount(['signups as assigned_count' => fn ($query) => $query->where('status', SignupStatus::Assigned)])
-            ->with(['signups' => fn ($query) => $query->where('person_id', $person->id)])
+            ->with(['signups.person' => fn ($query) => $query->withTrashed()])
             ->orderBy('starts_at')
             ->get();
 
         return Inertia::render('Volunteer/Home', [
             'person' => ['name' => $person->name],
             'tenant' => ['name' => $person->tenant->name],
-            'shifts' => $shifts->map(fn (Shift $shift) => [
-                'id' => $shift->id,
-                'event' => $shift->area->event->name,
-                'area' => $shift->area->name,
-                'starts_at' => $shift->starts_at->toIso8601String(),
-                'ends_at' => $shift->ends_at->toIso8601String(),
-                'needed_people' => $shift->needed_people,
-                'assigned_count' => $shift->assigned_count,
-                'notes' => $shift->notes,
-                'myStatus' => $shift->signups->first()?->status?->value,
-                'mySubstitutionRequested' => $shift->signups->first()?->substitution_requested_at !== null,
-            ]),
+            'shifts' => $shifts->map(function (Shift $shift) use ($person, $managedAreaIds) {
+                $mine = $shift->signups->firstWhere('person_id', $person->id);
+                $canModerate = $managedAreaIds->contains($shift->area_id);
+
+                return [
+                    'id' => $shift->id,
+                    'event' => $shift->area->event->name,
+                    'area' => $shift->area->name,
+                    'starts_at' => $shift->starts_at->toIso8601String(),
+                    'ends_at' => $shift->ends_at->toIso8601String(),
+                    'needed_people' => $shift->needed_people,
+                    'assigned_count' => $shift->assigned_count,
+                    'notes' => $shift->notes,
+                    'myStatus' => $mine?->status?->value,
+                    'mySubstitutionRequested' => $mine?->substitution_requested_at !== null,
+                    'canModerate' => $canModerate,
+                    // Signup details stay server-side unless the person manages the area.
+                    'signups' => $canModerate
+                        ? $shift->signups->map(fn ($signup) => [
+                            'id' => $signup->id,
+                            'personName' => $signup->person->name,
+                            'status' => $signup->status->value,
+                            'substitutionRequested' => $signup->substitution_requested_at !== null,
+                        ])
+                        : [],
+                ];
+            }),
         ]);
     }
 }

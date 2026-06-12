@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\PhaseType;
 use App\Enums\SignupStatus;
 use App\Models\Event;
+use App\Models\Person;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -58,6 +59,7 @@ class EventController extends Controller
         $event->load([
             'phases' => fn ($query) => $query->orderBy('starts_on'),
             'areas' => fn ($query) => $query->orderBy('name'),
+            'areas.managerRoles.person' => fn ($query) => $query->withTrashed(),
             'areas.shifts' => fn ($query) => $query
                 ->withCount(['signups as assigned_count' => fn ($q) => $q->where('status', SignupStatus::Assigned)])
                 ->orderBy('starts_at'),
@@ -67,6 +69,11 @@ class EventController extends Controller
         ]);
 
         return Inertia::render('Events/Show', [
+            'people' => Person::query()
+                ->where('tenant_id', $request->user()->tenant_id)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn ($person) => ['id' => $person->id, 'name' => $person->name]),
             'event' => [
                 'id' => $event->id,
                 'name' => $event->name,
@@ -80,6 +87,11 @@ class EventController extends Controller
                     'id' => $area->id,
                     'name' => $area->name,
                     'family' => $area->family?->value,
+                    'managers' => $area->managerRoles->map(fn ($role) => [
+                        'id' => $role->id,
+                        'personId' => $role->person_id,
+                        'name' => $role->person->name,
+                    ]),
                     'shifts' => $area->shifts->map(fn ($shift) => [
                         'id' => $shift->id,
                         'starts_at' => $shift->starts_at->toIso8601String(),

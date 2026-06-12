@@ -19,4 +19,6 @@ Route::middleware('auth:volunteer')->group(function () {
     Route::delete('me/shifts/{shift}/signup', [SignupController::class, 'destroy'])->name('volunteer.signup.withdraw');
     Route::post('me/shifts/{shift}/substitution', [SignupController::class, 'requestSubstitution'])->name('volunteer.substitution');
     Route::delete('me/shifts/{shift}/substitution', [SignupController::class, 'cancelSubstitution'])->name('volunteer.substitution.cancel');
+    Route::put('me/signups/{signup}', [SignupController::class, 'moderate'])->name('volunteer.signups.moderate');
+    Route::delete('me/signups/{signup}', [SignupController::class, 'remove'])->name('volunteer.signups.remove');
 });

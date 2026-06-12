@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\AreaFamily;
+use App\Enums\Role;
 use Database\Factories\AreaFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -41,5 +42,10 @@ class Area extends Model
     public function shifts(): HasMany
     {
         return $this->hasMany(Shift::class);
+    }
+
+    public function managerRoles(): HasMany
+    {
+        return $this->hasMany(PersonRole::class)->where('role', Role::AreaManager);
     }
 }

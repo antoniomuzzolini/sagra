@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Role;
 use Database\Factories\PersonFactory;
 use DateTimeInterface;
 use DomainException;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 class Person extends Authenticatable
@@ -58,6 +60,24 @@ class Person extends Authenticatable
     public function magicLinks(): HasMany
     {
         return $this->hasMany(MagicLink::class);
+    }
+
+    public function managesArea(int $areaId): bool
+    {
+        return $this->roles()
+            ->where('role', Role::AreaManager)
+            ->where('area_id', $areaId)
+            ->exists();
+    }
+
+    /**
+     * @return Collection<int, int>
+     */
+    public function managedAreaIds(): Collection
+    {
+        return $this->roles()
+            ->where('role', Role::AreaManager)
+            ->pluck('area_id');
     }
 
     /**

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ModeratedSignupList, { type ModeratedSignup } from '@/components/ModeratedSignupList.vue';
 import { Button } from '@/components/ui/button';
 import { formatTime } from '@/lib/event-helpers';
 import { Head, router } from '@inertiajs/vue3';
@@ -16,6 +17,8 @@ interface VolunteerShift {
     notes: string | null;
     myStatus: 'available' | 'assigned' | 'declined' | null;
     mySubstitutionRequested: boolean;
+    canModerate: boolean;
+    signups: ModeratedSignup[];
 }
 
 const props = defineProps<{
@@ -87,18 +90,22 @@ function cancelSubstitution(shift: VolunteerShift) {
                         <Button variant="ghost" size="sm" @click="cancelSubstitution(shift)">Posso di nuovo</Button>
                     </p>
                 </div>
+                <ModeratedSignupList v-if="shift.canModerate" :signups="shift.signups" />
             </div>
         </section>
 
         <!-- Waiting for confirmation -->
         <section v-if="pending.length > 0" class="grid gap-2">
             <h2 class="flex items-center gap-2 font-medium text-foreground"><Hand class="h-4 w-4 text-amber-600" /> In attesa di conferma</h2>
-            <div v-for="shift in pending" :key="shift.id" class="flex items-center gap-2 rounded-xl border p-3">
-                <div class="min-w-0 flex-1">
-                    <p class="font-medium text-foreground">{{ shift.area }} · {{ dayLabel(shift.starts_at) }}</p>
-                    <p class="text-sm text-muted-foreground">{{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }}</p>
+            <div v-for="shift in pending" :key="shift.id" class="rounded-xl border p-3">
+                <div class="flex items-center gap-2">
+                    <div class="min-w-0 flex-1">
+                        <p class="font-medium text-foreground">{{ shift.area }} · {{ dayLabel(shift.starts_at) }}</p>
+                        <p class="text-sm text-muted-foreground">{{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }}</p>
+                    </div>
+                    <Button variant="ghost" size="sm" @click="withdraw(shift)"><Undo2 class="h-4 w-4" /> Ritira</Button>
                 </div>
-                <Button variant="ghost" size="sm" @click="withdraw(shift)"><Undo2 class="h-4 w-4" /> Ritira</Button>
+                <ModeratedSignupList v-if="shift.canModerate" :signups="shift.signups" />
             </div>
         </section>
 
@@ -108,16 +115,21 @@ function cancelSubstitution(shift: VolunteerShift) {
             <p v-if="open.length === 0" class="text-sm text-muted-foreground">Niente turni aperti al momento. Torna a trovarci!</p>
             <div v-for="[day, dayShifts] in groupByDay(open)" :key="day" class="grid gap-2">
                 <h3 class="text-sm font-medium text-muted-foreground first-letter:uppercase">{{ day }}</h3>
-                <div v-for="shift in dayShifts" :key="shift.id" class="flex items-center gap-2 rounded-xl border p-3">
-                    <div class="min-w-0 flex-1">
-                        <p class="font-medium text-foreground">{{ shift.area }}</p>
-                        <p class="text-sm text-muted-foreground">
-                            {{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }} · {{ shift.assigned_count }}/{{ shift.needed_people }}
-                            coperti
-                        </p>
-                        <p v-if="shift.notes" class="text-sm text-muted-foreground">{{ shift.notes }}</p>
+                <div v-for="shift in dayShifts" :key="shift.id" class="rounded-xl border p-3">
+                    <div class="flex items-center gap-2">
+                        <div class="min-w-0 flex-1">
+                            <p class="font-medium text-foreground">{{ shift.area }}</p>
+                            <p class="text-sm text-muted-foreground">
+                                {{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }} · {{ shift.assigned_count }}/{{
+                                    shift.needed_people
+                                }}
+                                coperti
+                            </p>
+                            <p v-if="shift.notes" class="text-sm text-muted-foreground">{{ shift.notes }}</p>
+                        </div>
+                        <Button size="sm" @click="signUp(shift)">Ci sono!</Button>
                     </div>
-                    <Button size="sm" @click="signUp(shift)">Ci sono!</Button>
+                    <ModeratedSignupList v-if="shift.canModerate" :signups="shift.signups" />
                 </div>
             </div>
         </section>
