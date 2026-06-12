@@ -12,6 +12,7 @@ interface VolunteerShift {
     id: number;
     event: string;
     area: string;
+    areaId: number;
     starts_at: string;
     ends_at: string;
     needed_people: number;
@@ -26,7 +27,7 @@ interface VolunteerShift {
 }
 
 const props = defineProps<{
-    person: { name: string; needsContact: boolean };
+    person: { name: string; phone: string | null; email: string | null; needsContact: boolean };
     tenant: { name: string };
     manager: {
         areas: { id: number; name: string }[];
@@ -36,15 +37,24 @@ const props = defineProps<{
     shifts: VolunteerShift[];
 }>();
 
-// "Complete the registration": one contact unlocks reminders and recovery.
+// Profile: contacts are editable any time — they unlock reminders
+// and self-service recovery (D16).
 const contactFormOpen = ref(false);
-const contactForm = useForm({ phone: '', email: '' });
+const contactForm = useForm({ phone: props.person.phone ?? '', email: props.person.email ?? '' });
 
 function saveContact() {
-    contactForm.put(route('volunteer.contact'), { preserveScroll: true });
+    contactForm.put(route('volunteer.contact'), {
+        preserveScroll: true,
+        onSuccess: () => (contactFormOpen.value = false),
+    });
 }
 
-// Manager toolkit (D18): new shifts, invite sharing, shift removal.
+// Manager toolkit (D18): each managed area gets its own section with
+// every shift of the area, organizer-created ones included.
+function areaShifts(areaId: number): VolunteerShift[] {
+    return props.shifts.filter((s) => s.areaId === areaId);
+}
+
 const shiftFormArea = ref<number | null>(null);
 const shiftForm = useForm({ date: '', start_time: '', end_time: '', needed_people: 2, notes: '' });
 
@@ -67,7 +77,6 @@ function destroyShift(shift: VolunteerShift) {
     }
 }
 
-// Editing works on any shift of a managed area, organizer-created too.
 const editingShift = ref<VolunteerShift | null>(null);
 const editForm = useForm({ date: '', start_time: '', end_time: '', needed_people: 2, notes: '' });
 
@@ -105,9 +114,11 @@ const inviteWhatsappUrl = computed(() => {
     return 'https://wa.me/?text=' + encodeURIComponent(`Dai una mano anche tu a ${props.tenant.name}! Registrati qui: ${props.manager.inviteUrl}`);
 });
 
+// The personal view: my commitments anywhere, plus open shifts of the
+// areas I do not manage (managed ones live in their own section above).
 const mine = computed(() => props.shifts.filter((s) => s.myStatus === 'assigned'));
 const pending = computed(() => props.shifts.filter((s) => s.myStatus === 'available'));
-const open = computed(() => props.shifts.filter((s) => s.myStatus !== 'assigned' && s.myStatus !== 'available'));
+const open = computed(() => props.shifts.filter((s) => s.myStatus !== 'assigned' && s.myStatus !== 'available' && !s.canModerate));
 
 // Soft area membership (D18): your areas first, the rest stays visible
 // below — uncovered shifts elsewhere are everyone's problem.
@@ -119,6 +130,10 @@ const showOthers = ref(false);
 
 function dayLabel(datetime: string): string {
     return new Date(datetime).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+function shortDayLabel(datetime: string): string {
+    return new Date(datetime).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'numeric' });
 }
 
 function groupByDay(shifts: VolunteerShift[]): [string, VolunteerShift[]][] {
@@ -156,61 +171,106 @@ function cancelSubstitution(shift: VolunteerShift) {
             <p class="text-muted-foreground">{{ tenant.name }}</p>
         </header>
 
-        <section v-if="person.needsContact" class="rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950">
-            <p class="text-sm text-amber-900 dark:text-amber-100">
-                Lascia un recapito: ti ricordiamo i turni e, se perdi l'accesso, rientri da solo.
-            </p>
-            <Button v-if="!contactFormOpen" variant="outline" size="sm" class="mt-2" @click="contactFormOpen = true">Aggiungi un recapito</Button>
-            <form v-else class="mt-2 grid gap-2" @submit.prevent="saveContact">
+        <!-- Profile / contacts -->
+        <section
+            class="rounded-xl border p-3"
+            :class="person.needsContact ? 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950' : ''"
+        >
+            <div class="flex flex-wrap items-center gap-2">
+                <p class="min-w-0 flex-1 text-sm" :class="person.needsContact ? 'text-amber-900 dark:text-amber-100' : 'text-muted-foreground'">
+                    {{
+                        person.needsContact
+                            ? "Lascia un recapito: ti ricordiamo i turni e, se perdi l'accesso, rientri da solo."
+                            : [person.phone, person.email].filter(Boolean).join(' · ')
+                    }}
+                </p>
+                <Button v-if="!contactFormOpen" variant="outline" size="sm" @click="contactFormOpen = true">
+                    {{ person.needsContact ? 'Aggiungi un recapito' : 'Modifica' }}
+                </Button>
+            </div>
+            <form v-if="contactFormOpen" class="mt-2 grid gap-2" @submit.prevent="saveContact">
                 <Input v-model="contactForm.phone" type="tel" placeholder="Telefono: +39 333 1234567" aria-label="Telefono" />
                 <p v-if="contactForm.errors.phone" class="text-sm text-red-600">{{ contactForm.errors.phone }}</p>
                 <Input v-model="contactForm.email" type="email" placeholder="Email: nome@esempio.it" aria-label="Email" />
                 <p v-if="contactForm.errors.email" class="text-sm text-red-600">{{ contactForm.errors.email }}</p>
-                <Button type="submit" size="sm" :disabled="contactForm.processing">Salva</Button>
+                <div class="flex gap-2">
+                    <Button type="submit" size="sm" :disabled="contactForm.processing">Salva</Button>
+                    <Button type="button" size="sm" variant="ghost" @click="contactFormOpen = false">Annulla</Button>
+                </div>
             </form>
         </section>
 
-        <!-- Manager toolkit -->
-        <section v-if="manager" class="grid gap-2">
-            <h2 class="flex items-center gap-2 font-medium text-foreground">
-                <Wrench class="h-4 w-4 text-muted-foreground" /> {{ manager.areas.length === 1 ? 'Il tuo reparto' : 'I tuoi reparti' }}
-            </h2>
-            <div v-for="area in manager.areas" :key="area.id" class="grid gap-2 rounded-xl border p-3">
-                <div class="flex items-center justify-between gap-2">
-                    <p class="font-medium">{{ area.name }}</p>
-                    <Button variant="outline" size="sm" @click="toggleShiftForm(area.id)">Nuovo turno</Button>
+        <!-- One management section per managed area (D18) -->
+        <section v-for="area in manager?.areas ?? []" :key="area.id" class="grid gap-2">
+            <div class="flex items-center justify-between gap-2">
+                <h2 class="flex items-center gap-2 font-medium text-foreground">
+                    <Wrench class="h-4 w-4 text-muted-foreground" /> {{ area.name }} — gestione
+                </h2>
+                <Button variant="outline" size="sm" @click="toggleShiftForm(area.id)">Nuovo turno</Button>
+            </div>
+
+            <form v-if="shiftFormArea === area.id" class="grid gap-2 rounded-xl border border-dashed p-3" @submit.prevent="submitShift(area.id)">
+                <Input v-model="shiftForm.date" type="date" required aria-label="Data" />
+                <p v-if="shiftForm.errors.date" class="text-sm text-red-600">{{ shiftForm.errors.date }}</p>
+                <div class="flex items-center gap-2">
+                    <Input v-model="shiftForm.start_time" type="time" required aria-label="Inizio" />
+                    <span class="text-muted-foreground">→</span>
+                    <Input v-model="shiftForm.end_time" type="time" required aria-label="Fine" />
                 </div>
-                <form v-if="shiftFormArea === area.id" class="grid gap-2" @submit.prevent="submitShift(area.id)">
-                    <Input v-model="shiftForm.date" type="date" required aria-label="Data" />
-                    <p v-if="shiftForm.errors.date" class="text-sm text-red-600">{{ shiftForm.errors.date }}</p>
-                    <div class="flex items-center gap-2">
-                        <Input v-model="shiftForm.start_time" type="time" required aria-label="Inizio" />
-                        <span class="text-muted-foreground">→</span>
-                        <Input v-model="shiftForm.end_time" type="time" required aria-label="Fine" />
+                <p v-if="shiftForm.errors.start_time || shiftForm.errors.end_time" class="text-sm text-red-600">
+                    {{ shiftForm.errors.start_time || shiftForm.errors.end_time }}
+                </p>
+                <div class="flex items-center gap-2">
+                    <Input v-model.number="shiftForm.needed_people" type="number" min="1" required class="w-20" aria-label="Persone" />
+                    <span class="text-sm text-muted-foreground">persone</span>
+                </div>
+                <p v-if="shiftForm.errors.needed_people" class="text-sm text-red-600">{{ shiftForm.errors.needed_people }}</p>
+                <Input v-model="shiftForm.notes" placeholder="Note (facoltative)" aria-label="Note" />
+                <Button type="submit" size="sm" :disabled="shiftForm.processing">Crea turno</Button>
+            </form>
+
+            <p v-if="areaShifts(area.id).length === 0" class="text-sm text-muted-foreground">Nessun turno in programma. Creane uno!</p>
+
+            <div v-for="shift in areaShifts(area.id)" :key="shift.id" class="rounded-xl border p-3">
+                <div class="flex items-start gap-2">
+                    <div class="min-w-0 flex-1">
+                        <p class="font-medium text-foreground first-letter:uppercase">
+                            {{ shortDayLabel(shift.starts_at) }} · {{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }}
+                        </p>
+                        <p
+                            class="text-sm"
+                            :class="
+                                shift.assigned_count >= shift.needed_people
+                                    ? 'text-green-700 dark:text-green-400'
+                                    : 'text-amber-700 dark:text-amber-400'
+                            "
+                        >
+                            {{ shift.assigned_count }}/{{ shift.needed_people }} coperti
+                        </p>
+                        <p v-if="shift.notes" class="text-sm text-muted-foreground">{{ shift.notes }}</p>
                     </div>
-                    <p v-if="shiftForm.errors.start_time || shiftForm.errors.end_time" class="text-sm text-red-600">
-                        {{ shiftForm.errors.start_time || shiftForm.errors.end_time }}
-                    </p>
-                    <div class="flex items-center gap-2">
-                        <Input v-model.number="shiftForm.needed_people" type="number" min="1" required class="w-20" aria-label="Persone" />
-                        <span class="text-sm text-muted-foreground">persone</span>
-                    </div>
-                    <p v-if="shiftForm.errors.needed_people" class="text-sm text-red-600">{{ shiftForm.errors.needed_people }}</p>
-                    <Input v-model="shiftForm.notes" placeholder="Note (facoltative)" aria-label="Note" />
-                    <Button type="submit" size="sm" :disabled="shiftForm.processing">Crea turno</Button>
-                </form>
+                    <Button variant="ghost" size="icon" aria-label="Modifica turno" @click="openEditShift(shift)">
+                        <Pencil class="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" aria-label="Elimina turno" @click="destroyShift(shift)">
+                        <Trash2 class="h-4 w-4" />
+                    </Button>
+                </div>
+                <ModeratedSignupList :signups="shift.signups" :shift-id="shift.id" :people="manager?.people" />
             </div>
-            <div class="flex flex-wrap items-center gap-2 rounded-xl border p-3">
-                <p class="min-w-0 flex-1 text-sm text-muted-foreground">Serve gente? Condividi il link d'invito:</p>
-                <Button variant="outline" size="sm" @click="copyInvite">
-                    <Check v-if="inviteCopied" class="h-4 w-4" />
-                    <Copy v-else class="h-4 w-4" />
-                    {{ inviteCopied ? 'Copiato!' : 'Copia' }}
-                </Button>
-                <Button size="sm" as-child>
-                    <a :href="inviteWhatsappUrl" target="_blank" rel="noopener">WhatsApp</a>
-                </Button>
-            </div>
+        </section>
+
+        <!-- Invite sharing (managers) -->
+        <section v-if="manager" class="flex flex-wrap items-center gap-2 rounded-xl border p-3">
+            <p class="min-w-0 flex-1 text-sm text-muted-foreground">Serve gente? Condividi il link d'invito:</p>
+            <Button variant="outline" size="sm" @click="copyInvite">
+                <Check v-if="inviteCopied" class="h-4 w-4" />
+                <Copy v-else class="h-4 w-4" />
+                {{ inviteCopied ? 'Copiato!' : 'Copia' }}
+            </Button>
+            <Button size="sm" as-child>
+                <a :href="inviteWhatsappUrl" target="_blank" rel="noopener">WhatsApp</a>
+            </Button>
         </section>
 
         <!-- Confirmed shifts -->
@@ -221,22 +281,8 @@ function cancelSubstitution(shift: VolunteerShift) {
                 :key="shift.id"
                 class="rounded-xl border border-green-200 bg-green-50 p-3 dark:border-green-900 dark:bg-green-950"
             >
-                <div class="flex items-start gap-2">
-                    <div class="min-w-0 flex-1">
-                        <p class="font-medium text-foreground">{{ shift.area }} · {{ dayLabel(shift.starts_at) }}</p>
-                        <p class="text-sm text-muted-foreground">
-                            {{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }} · {{ shift.event }}
-                        </p>
-                    </div>
-                    <template v-if="shift.canModerate">
-                        <Button variant="ghost" size="icon" aria-label="Modifica turno" @click="openEditShift(shift)">
-                            <Pencil class="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" aria-label="Elimina turno" @click="destroyShift(shift)">
-                            <Trash2 class="h-4 w-4" />
-                        </Button>
-                    </template>
-                </div>
+                <p class="font-medium text-foreground">{{ shift.area }} · {{ dayLabel(shift.starts_at) }}</p>
+                <p class="text-sm text-muted-foreground">{{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }} · {{ shift.event }}</p>
                 <p v-if="shift.notes" class="text-sm text-muted-foreground">{{ shift.notes }}</p>
                 <p v-if="shift.myOverlap" class="text-sm text-amber-700 dark:text-amber-400">⚠ Si sovrappone con {{ shift.myOverlap }}</p>
                 <div class="mt-2">
@@ -248,42 +294,52 @@ function cancelSubstitution(shift: VolunteerShift) {
                         <Button variant="ghost" size="sm" @click="cancelSubstitution(shift)">Posso di nuovo</Button>
                     </p>
                 </div>
-                <ModeratedSignupList v-if="shift.canModerate" :signups="shift.signups" :shift-id="shift.id" :people="manager?.people" />
             </div>
         </section>
 
         <!-- Waiting for confirmation -->
         <section v-if="pending.length > 0" class="grid gap-2">
             <h2 class="flex items-center gap-2 font-medium text-foreground"><Hand class="h-4 w-4 text-amber-600" /> In attesa di conferma</h2>
-            <div v-for="shift in pending" :key="shift.id" class="rounded-xl border p-3">
-                <div class="flex items-center gap-2">
-                    <div class="min-w-0 flex-1">
-                        <p class="font-medium text-foreground">{{ shift.area }} · {{ dayLabel(shift.starts_at) }}</p>
-                        <p class="text-sm text-muted-foreground">{{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }}</p>
-                        <p v-if="shift.myOverlap" class="text-sm text-amber-700 dark:text-amber-400">⚠ Si sovrappone con {{ shift.myOverlap }}</p>
-                    </div>
-                    <template v-if="shift.canModerate">
-                        <Button variant="ghost" size="icon" aria-label="Modifica turno" @click="openEditShift(shift)">
-                            <Pencil class="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" aria-label="Elimina turno" @click="destroyShift(shift)">
-                            <Trash2 class="h-4 w-4" />
-                        </Button>
-                    </template>
-                    <Button variant="ghost" size="sm" @click="withdraw(shift)"><Undo2 class="h-4 w-4" /> Ritira</Button>
+            <div v-for="shift in pending" :key="shift.id" class="flex items-center gap-2 rounded-xl border p-3">
+                <div class="min-w-0 flex-1">
+                    <p class="font-medium text-foreground">{{ shift.area }} · {{ dayLabel(shift.starts_at) }}</p>
+                    <p class="text-sm text-muted-foreground">{{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }}</p>
+                    <p v-if="shift.myOverlap" class="text-sm text-amber-700 dark:text-amber-400">⚠ Si sovrappone con {{ shift.myOverlap }}</p>
                 </div>
-                <ModeratedSignupList v-if="shift.canModerate" :signups="shift.signups" :shift-id="shift.id" :people="manager?.people" />
+                <Button variant="ghost" size="sm" @click="withdraw(shift)"><Undo2 class="h-4 w-4" /> Ritira</Button>
             </div>
         </section>
 
-        <!-- Open shifts -->
+        <!-- Open shifts (areas I don't manage) -->
         <section class="grid gap-3">
             <h2 class="font-medium text-foreground">Turni aperti</h2>
-            <p v-if="open.length === 0" class="text-sm text-muted-foreground">Niente turni aperti al momento. Torna a trovarci!</p>
+            <p v-if="open.length === 0" class="text-sm text-muted-foreground">
+                {{ manager ? 'Niente turni aperti negli altri reparti.' : 'Niente turni aperti al momento. Torna a trovarci!' }}
+            </p>
             <div v-for="[day, dayShifts] in groupByDay(mainOpen)" :key="day" class="grid gap-2">
                 <h3 class="text-sm font-medium text-muted-foreground first-letter:uppercase">{{ day }}</h3>
-                <div v-for="shift in dayShifts" :key="shift.id" class="rounded-xl border p-3">
-                    <div class="flex items-center gap-2">
+                <div v-for="shift in dayShifts" :key="shift.id" class="flex items-center gap-2 rounded-xl border p-3">
+                    <div class="min-w-0 flex-1">
+                        <p class="font-medium text-foreground">{{ shift.area }}</p>
+                        <p class="text-sm text-muted-foreground">
+                            {{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }} · {{ shift.assigned_count }}/{{ shift.needed_people }}
+                            coperti
+                        </p>
+                        <p v-if="shift.notes" class="text-sm text-muted-foreground">{{ shift.notes }}</p>
+                        <p v-if="shift.myOverlap" class="text-sm text-amber-700 dark:text-amber-400">⚠ Si sovrappone con {{ shift.myOverlap }}</p>
+                    </div>
+                    <Button size="sm" @click="signUp(shift)">Ci sono!</Button>
+                </div>
+            </div>
+
+            <!-- Other areas stay reachable: uncovered shifts are everyone's problem -->
+            <template v-if="splitByArea">
+                <Button variant="outline" size="sm" class="justify-self-start" @click="showOthers = !showOthers">
+                    {{ showOthers ? 'Nascondi gli altri reparti' : `Altri reparti (${openOthers.length} turni)` }}
+                </Button>
+                <div v-for="[day, dayShifts] in showOthers ? groupByDay(openOthers) : []" :key="`other-${day}`" class="grid gap-2">
+                    <h3 class="text-sm font-medium text-muted-foreground first-letter:uppercase">{{ day }}</h3>
+                    <div v-for="shift in dayShifts" :key="shift.id" class="flex items-center gap-2 rounded-xl border p-3">
                         <div class="min-w-0 flex-1">
                             <p class="font-medium text-foreground">{{ shift.area }}</p>
                             <p class="text-sm text-muted-foreground">
@@ -297,42 +353,7 @@ function cancelSubstitution(shift: VolunteerShift) {
                                 ⚠ Si sovrappone con {{ shift.myOverlap }}
                             </p>
                         </div>
-                        <Button v-if="shift.canModerate" variant="ghost" size="icon" aria-label="Modifica turno" @click="openEditShift(shift)">
-                            <Pencil class="h-4 w-4" />
-                        </Button>
-                        <Button v-if="shift.canModerate" variant="ghost" size="icon" aria-label="Elimina turno" @click="destroyShift(shift)">
-                            <Trash2 class="h-4 w-4" />
-                        </Button>
                         <Button size="sm" @click="signUp(shift)">Ci sono!</Button>
-                    </div>
-                    <ModeratedSignupList v-if="shift.canModerate" :signups="shift.signups" :shift-id="shift.id" :people="manager?.people" />
-                </div>
-            </div>
-
-            <!-- Other areas stay reachable: uncovered shifts are everyone's problem -->
-            <template v-if="splitByArea">
-                <Button variant="outline" size="sm" class="justify-self-start" @click="showOthers = !showOthers">
-                    {{ showOthers ? 'Nascondi gli altri reparti' : `Altri reparti (${openOthers.length} turni)` }}
-                </Button>
-                <div v-for="[day, dayShifts] in showOthers ? groupByDay(openOthers) : []" :key="`other-${day}`" class="grid gap-2">
-                    <h3 class="text-sm font-medium text-muted-foreground first-letter:uppercase">{{ day }}</h3>
-                    <div v-for="shift in dayShifts" :key="shift.id" class="rounded-xl border p-3">
-                        <div class="flex items-center gap-2">
-                            <div class="min-w-0 flex-1">
-                                <p class="font-medium text-foreground">{{ shift.area }}</p>
-                                <p class="text-sm text-muted-foreground">
-                                    {{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }} · {{ shift.assigned_count }}/{{
-                                        shift.needed_people
-                                    }}
-                                    coperti
-                                </p>
-                                <p v-if="shift.notes" class="text-sm text-muted-foreground">{{ shift.notes }}</p>
-                                <p v-if="shift.myOverlap" class="text-sm text-amber-700 dark:text-amber-400">
-                                    ⚠ Si sovrappone con {{ shift.myOverlap }}
-                                </p>
-                            </div>
-                            <Button size="sm" @click="signUp(shift)">Ci sono!</Button>
-                        </div>
                     </div>
                 </div>
             </template>

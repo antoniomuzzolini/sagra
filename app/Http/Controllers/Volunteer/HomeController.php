@@ -28,10 +28,13 @@ class HomeController extends Controller
             ->get();
 
         // "Your areas" are derived from signup history (D18: soft
-        // membership, nothing to declare or administer).
+        // membership, nothing to declare or administer) — and the areas
+        // you run are yours by definition.
         $myAreaIds = $person->signups()->with('shift')->get()
+            ->toBase()
             ->map(fn ($signup) => $signup->shift?->area_id)
             ->filter()
+            ->merge($managedAreaIds)
             ->unique();
 
         // Time intervals each person is (possibly) committed to, for
@@ -58,6 +61,8 @@ class HomeController extends Controller
         return Inertia::render('Volunteer/Home', [
             'person' => [
                 'name' => $person->name,
+                'phone' => $person->phone,
+                'email' => $person->email,
                 // Nudge to "complete the registration" (D16): a contact
                 // unlocks reminders and self-service recovery.
                 'needsContact' => blank($person->phone) && blank($person->email),
@@ -85,6 +90,7 @@ class HomeController extends Controller
                     'id' => $shift->id,
                     'event' => $shift->area->event->name,
                     'area' => $shift->area->name,
+                    'areaId' => $shift->area_id,
                     'starts_at' => $shift->starts_at->toIso8601String(),
                     'ends_at' => $shift->ends_at->toIso8601String(),
                     'needed_people' => $shift->needed_people,

@@ -102,6 +102,23 @@ class OverlapAndMembershipTest extends TestCase
         $this->assertFalse($shifts->firstWhere('id', $parkingShift->id)['isMyArea']);
     }
 
+    public function test_managed_areas_are_my_areas_even_without_signups()
+    {
+        PersonRole::factory()->for($this->person)->for($this->parking->event)->create([
+            'tenant_id' => $this->parking->tenant_id,
+            'role' => Role::AreaManager,
+            'area_id' => $this->parking->id,
+        ]);
+        $parkingShift = $this->shift($this->parking, '18:00', '22:00');
+        $kitchenShift = $this->shift($this->kitchen, '18:00', '22:00');
+
+        $response = $this->actingAs($this->person, 'volunteer')->get('/me');
+
+        $shifts = collect($response->inertiaPage()['props']['shifts']);
+        $this->assertTrue($shifts->firstWhere('id', $parkingShift->id)['isMyArea']);
+        $this->assertFalse($shifts->firstWhere('id', $kitchenShift->id)['isMyArea']);
+    }
+
     public function test_a_newcomer_has_no_preferred_areas_yet()
     {
         $this->shift($this->kitchen, '18:00', '22:00');

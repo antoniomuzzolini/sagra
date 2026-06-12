@@ -49,6 +49,19 @@ class ContactTest extends TestCase
             ->assertInertia(fn ($page) => $page->where('person.needsContact', true));
 
         $this->actingAs($with, 'volunteer')->get('/me')
-            ->assertInertia(fn ($page) => $page->where('person.needsContact', false));
+            ->assertInertia(fn ($page) => $page->where('person.needsContact', false)->where('person.phone', '+39 333 1234567'));
+    }
+
+    public function test_existing_contacts_can_be_changed()
+    {
+        $person = Person::factory()->create(['phone' => '+39 333 1234567', 'email' => null]);
+
+        $this->actingAs($person, 'volunteer')
+            ->put('/me/contact', ['phone' => '+39 333 7654321', 'email' => 'mario@example.com'])
+            ->assertSessionHasNoErrors();
+
+        $person->refresh();
+        $this->assertSame('+39 333 7654321', $person->phone);
+        $this->assertSame('mario@example.com', $person->email);
     }
 }
