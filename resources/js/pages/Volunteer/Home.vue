@@ -7,7 +7,7 @@ import { formatTime } from '@/lib/event-helpers';
 import { enablePush, pushDenied, pushSupported } from '@/lib/push';
 import { type MagicLinkFlash, type SharedData } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { Bell, CalendarCheck, Check, Copy, Hand, Pencil, Plus, Trash2, Undo2, UserPlus } from 'lucide-vue-next';
+import { Bell, CalendarCheck, Check, Copy, Hand, Pencil, Plus, Trash2, Undo2, UserPlus, UserRound } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 interface VolunteerShift {
@@ -176,13 +176,11 @@ const mine = computed(() => props.shifts.filter((s) => s.myStatus === 'assigned'
 const pending = computed(() => props.shifts.filter((s) => s.myStatus === 'available'));
 const open = computed(() => props.shifts.filter((s) => s.myStatus !== 'assigned' && s.myStatus !== 'available' && !s.canModerate));
 
-// Push nudge: asked at the moment it becomes useful — once the person
-// has at least one shift worth being reminded of (D10).
+// Push: one tap on the bell next to the name (D10). Once enabled —
+// or denied — the bell disappears.
 const pushBusy = ref(false);
 const pushFailed = ref(false);
-const showPushNudge = computed(
-    () => pushSupported() && !pushDenied() && !props.person.hasPush && !pushFailed.value && (mine.value.length > 0 || pending.value.length > 0),
-);
+const showPushBell = computed(() => pushSupported() && !pushDenied() && !props.person.hasPush && !pushFailed.value);
 
 async function activatePush() {
     pushBusy.value = true;
@@ -237,9 +235,18 @@ function cancelSubstitution(shift: VolunteerShift) {
     <Head title="I miei turni" />
 
     <div class="mx-auto flex min-h-screen max-w-lg flex-col gap-4 bg-background p-4 pb-16">
-        <header class="pt-2">
-            <h1 class="text-2xl font-semibold text-foreground">Ciao, {{ person.name }}!</h1>
-            <p class="text-muted-foreground">{{ tenant.name }}</p>
+        <header class="flex items-start gap-2 pt-2">
+            <div class="min-w-0 flex-1">
+                <h1 class="text-2xl font-semibold text-foreground">Ciao, {{ person.name }}!</h1>
+                <p class="text-muted-foreground">{{ tenant.name }}</p>
+            </div>
+            <Button v-if="showPushBell" variant="ghost" size="icon" aria-label="Attiva le notifiche" :disabled="pushBusy" @click="activatePush">
+                <Bell class="h-5 w-5" />
+            </Button>
+            <Button variant="ghost" size="icon" class="relative" aria-label="I tuoi dati" @click="contactFormOpen = true">
+                <UserRound class="h-5 w-5" />
+                <span v-if="person.needsContact" class="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-amber-500" aria-hidden="true"></span>
+            </Button>
         </header>
 
         <!-- Tab bar, managers only -->
@@ -337,47 +344,6 @@ function cancelSubstitution(shift: VolunteerShift) {
 
         <!-- Personal view -->
         <div v-if="activeTab === 'me'" class="grid gap-4">
-            <!-- Profile / contacts -->
-            <section
-                class="rounded-xl border p-3"
-                :class="person.needsContact ? 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950' : ''"
-            >
-                <div class="flex flex-wrap items-center gap-2">
-                    <p class="min-w-0 flex-1 text-sm" :class="person.needsContact ? 'text-amber-900 dark:text-amber-100' : 'text-muted-foreground'">
-                        {{
-                            person.needsContact
-                                ? "Lascia un recapito: ti ricordiamo i turni e, se perdi l'accesso, rientri da solo."
-                                : [person.phone, person.email].filter(Boolean).join(' · ')
-                        }}
-                    </p>
-                    <Button v-if="!contactFormOpen" variant="outline" size="sm" @click="contactFormOpen = true">
-                        {{ person.needsContact ? 'Aggiungi un recapito' : 'Modifica' }}
-                    </Button>
-                </div>
-                <form v-if="contactFormOpen" class="mt-2 grid gap-2" @submit.prevent="saveContact">
-                    <Input v-model="contactForm.phone" type="tel" placeholder="Telefono: +39 333 1234567" aria-label="Telefono" />
-                    <p v-if="contactForm.errors.phone" class="text-sm text-red-600">{{ contactForm.errors.phone }}</p>
-                    <Input v-model="contactForm.email" type="email" placeholder="Email: nome@esempio.it" aria-label="Email" />
-                    <p v-if="contactForm.errors.email" class="text-sm text-red-600">{{ contactForm.errors.email }}</p>
-                    <div class="flex gap-2">
-                        <Button type="submit" size="sm" :disabled="contactForm.processing">Salva</Button>
-                        <Button type="button" size="sm" variant="ghost" @click="contactFormOpen = false">Annulla</Button>
-                    </div>
-                </form>
-            </section>
-
-            <!-- Push nudge: one tap, nothing to type -->
-            <section v-if="showPushNudge" class="flex flex-wrap items-center gap-2 rounded-xl border p-3">
-                <Bell class="h-4 w-4 text-muted-foreground" />
-                <p class="min-w-0 flex-1 text-sm text-muted-foreground">Vuoi un promemoria prima dei tuoi turni?</p>
-                <Button size="sm" :disabled="pushBusy" @click="activatePush">Attiva le notifiche</Button>
-            </section>
-            <section v-else-if="pushFailed" class="rounded-xl border p-3">
-                <p class="text-sm text-muted-foreground">
-                    Notifiche non attivate. Nessun problema: se lasci un'email qui sopra, i promemoria arrivano lì.
-                </p>
-            </section>
-
             <!-- Confirmed shifts -->
             <section v-if="mine.length > 0" class="grid gap-2">
                 <h2 class="flex items-center gap-2 font-medium text-foreground"><CalendarCheck class="h-4 w-4 text-green-600" /> I tuoi turni</h2>
@@ -468,6 +434,23 @@ function cancelSubstitution(shift: VolunteerShift) {
                 </template>
             </section>
         </div>
+
+        <!-- Profile / contacts dialog -->
+        <Dialog v-model:open="contactFormOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>I tuoi dati</DialogTitle>
+                    <DialogDescription> Un recapito serve per i promemoria e per recuperare l'accesso da solo se cambi telefono. </DialogDescription>
+                </DialogHeader>
+                <form class="grid gap-2" @submit.prevent="saveContact">
+                    <Input v-model="contactForm.phone" type="tel" placeholder="Telefono: +39 333 1234567" aria-label="Telefono" />
+                    <p v-if="contactForm.errors.phone" class="text-sm text-red-600">{{ contactForm.errors.phone }}</p>
+                    <Input v-model="contactForm.email" type="email" placeholder="Email: nome@esempio.it" aria-label="Email" />
+                    <p v-if="contactForm.errors.email" class="text-sm text-red-600">{{ contactForm.errors.email }}</p>
+                    <Button type="submit" :disabled="contactForm.processing">Salva</Button>
+                </form>
+            </DialogContent>
+        </Dialog>
 
         <!-- Magic link of a freshly added volunteer -->
         <Dialog :open="magicLink !== null" @update:open="magicLink = null">
