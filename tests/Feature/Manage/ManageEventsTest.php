@@ -18,6 +18,62 @@ class ManageEventsTest extends TestCase
         return User::factory()->for(Tenant::factory())->create();
     }
 
+    private function eventInYear(User $user, int $year, string $name): Event
+    {
+        $event = Event::factory()->create(['tenant_id' => $user->tenant_id, 'name' => $name]);
+        $event->phases()->create([
+            'tenant_id' => $user->tenant_id,
+            'type' => 'service',
+            'starts_on' => "{$year}-07-04",
+            'ends_on' => "{$year}-07-06",
+        ]);
+
+        return $event;
+    }
+
+    public function test_the_event_list_defaults_to_the_closest_year()
+    {
+        $user = $this->organizer();
+        $current = $this->eventInYear($user, now()->year, 'Sagra di adesso');
+        $this->eventInYear($user, now()->year - 2, 'Sagra di una volta');
+
+        $this->actingAs($user)->get('/events')->assertInertia(
+            fn ($page) => $page
+                ->component('Events/Index')
+                ->where('selectedYear', now()->year)
+                ->where('years', [now()->year, now()->year - 2])
+                ->has('events', 1)
+                ->where('events.0.id', $current->id)
+        );
+    }
+
+    public function test_the_event_list_can_show_a_past_year()
+    {
+        $user = $this->organizer();
+        $this->eventInYear($user, now()->year, 'Sagra di adesso');
+        $past = $this->eventInYear($user, now()->year - 2, 'Sagra di una volta');
+
+        $this->actingAs($user)->get('/events?year='.(now()->year - 2))->assertInertia(
+            fn ($page) => $page
+                ->where('selectedYear', now()->year - 2)
+                ->has('events', 1)
+                ->where('events.0.id', $past->id)
+        );
+    }
+
+    public function test_an_unknown_year_falls_back_to_the_default()
+    {
+        $user = $this->organizer();
+        $current = $this->eventInYear($user, now()->year, 'Sagra di adesso');
+
+        $this->actingAs($user)->get('/events?year=1999')->assertInertia(
+            fn ($page) => $page
+                ->where('selectedYear', now()->year)
+                ->has('events', 1)
+                ->where('events.0.id', $current->id)
+        );
+    }
+
     public function test_an_organizer_can_create_an_event_with_phases()
     {
         $user = $this->organizer();

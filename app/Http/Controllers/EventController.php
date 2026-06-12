@@ -23,16 +23,35 @@ class EventController extends Controller
             ->with('phases')
             ->withCount('areas')
             ->latest('id')
-            ->get()
-            ->map(fn (Event $event) => [
-                'id' => $event->id,
-                'name' => $event->name,
-                'startsOn' => $event->startsOn()?->toDateString(),
-                'endsOn' => $event->endsOn()?->toDateString(),
-                'areasCount' => $event->areas_count,
-            ]);
+            ->get();
 
-        return Inertia::render('Events/Index', ['events' => $events]);
+        $years = $events->map(fn (Event $event) => $event->year())
+            ->filter()
+            ->unique()
+            ->sortDesc()
+            ->values();
+
+        $requested = $request->integer('year');
+        $selectedYear = $years->contains($requested)
+            ? $requested
+            // Closest edition to today; ties go to the upcoming one.
+            : $years->sortBy(fn (int $year) => [abs($year - now()->year), -$year])->first();
+
+        return Inertia::render('Events/Index', [
+            'events' => $events
+                // Events without phases have no year yet: keep them visible.
+                ->filter(fn (Event $event) => $event->year() === $selectedYear || $event->year() === null)
+                ->values()
+                ->map(fn (Event $event) => [
+                    'id' => $event->id,
+                    'name' => $event->name,
+                    'startsOn' => $event->startsOn()?->toDateString(),
+                    'endsOn' => $event->endsOn()?->toDateString(),
+                    'areasCount' => $event->areas_count,
+                ]),
+            'years' => $years,
+            'selectedYear' => $selectedYear,
+        ]);
     }
 
     public function store(Request $request): RedirectResponse

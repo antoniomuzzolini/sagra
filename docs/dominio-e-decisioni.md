@@ -35,6 +35,7 @@ prodotto, non un dettaglio.
 | D12 | Futuro livello AI/MCP come servizio Python separato che consuma l'API del core | Usa ogni linguaggio dove rende; valida i confini dell'architettura |
 | D13 | Per l'MVP il core usa la struttura Laravel standard (`app/Models`, `app/Enums`...); niente cartella `Modules/` né convenzioni di confine finché non esiste il primo modulo verticale | Evita architettura speculativa; il confine core/moduli si disegna sul primo caso reale |
 | D14 | Schema dati del core come da `docs/schema-core.md`: `tenant_id` su ogni tabella, disponibilità+assegnazione in un'unica `shift_signups` con stato, volontari in `people` distinti dagli `users` con password | Vedi motivazioni nel documento di schema |
+| D15 | L'anno di un'edizione è **derivato** dalle date delle fasi, mai dichiarato; le viste di gestione sono filtrate per anno (default: l'anno più vicino a oggi); niente entità "manifestazione" che raggruppa le edizioni finché un caso d'uso concreto non la richiede | Stesso principio della fase derivata dalla data; la replica delle edizioni (post-MVP) avverrà per duplicazione di un evento esistente |
 
 ## 3. Glossario ed entità di dominio
 
@@ -131,13 +132,19 @@ WhatsApp e rincorre i buchi).
 - Promemoria e notifiche automatiche.
 
 **Fuori dall'MVP (esplicitamente):** tutti i moduli verticali, AI/agenti,
-pagamenti, qualsiasi integrazione hardware.
+pagamenti, qualsiasi integrazione hardware, la duplicazione di edizioni
+precedenti ("replica la sagra dell'anno scorso": copia aree e responsabili,
+rimappa i turni sulle nuove date in modo relativo, mai le disponibilità).
 
 ## 6. Domande aperte
 
 - Modello di prezzo SaaS (per evento? per associazione? freemium?).
 - Privacy/GDPR: l'anagrafica volontari è dato personale; titolarità del
   trattamento in capo all'associazione, da gestire nel design.
+- Conservazione delle edizioni passate: disponibilità e assegnazioni
+  restano consultabili per anno (D15), ma sono dati personali — serve una
+  politica di retention (es. dopo N anni anonimizzare le iscrizioni
+  conservando i numeri aggregati).
 - Canali notifiche oltre il push web (e-mail di servizio? Telegram?
   WhatsApp Business API più avanti?).
 - Nome del progetto.

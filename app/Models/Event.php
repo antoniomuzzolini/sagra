@@ -48,6 +48,14 @@ class Event extends Model
     }
 
     /**
+     * The edition year, derived from the event dates like everything else.
+     */
+    public function year(): ?int
+    {
+        return $this->startsOn()?->year;
+    }
+
+    /**
      * The phase containing the given date, if any.
      */
     public function phaseOn(Carbon $date): ?Phase

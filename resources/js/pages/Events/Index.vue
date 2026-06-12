@@ -19,7 +19,7 @@ interface EventRow {
     areasCount: number;
 }
 
-const props = defineProps<{ events: EventRow[] }>();
+const props = defineProps<{ events: EventRow[]; years: number[]; selectedYear: number | null }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Eventi', href: '/events' }];
 
@@ -52,11 +52,18 @@ function submit() {
                 <Button @click="createOpen = true">Nuovo evento</Button>
             </div>
 
-            <p v-if="props.events.length === 0" class="text-muted-foreground">
+            <div v-if="props.years.length > 1" class="flex flex-wrap gap-1">
+                <Button v-for="year in props.years" :key="year" :variant="year === props.selectedYear ? 'secondary' : 'ghost'" size="sm" as-child>
+                    <Link :href="route('events.index', { year })" preserve-scroll>{{ year }}</Link>
+                </Button>
+            </div>
+
+            <p v-if="props.years.length === 0 && props.events.length === 0" class="text-muted-foreground">
                 Nessun evento ancora. Crea il primo: nome e date delle fasi, al resto pensiamo dopo.
             </p>
+            <p v-else-if="props.events.length === 0" class="text-muted-foreground">Nessun evento nel {{ props.selectedYear }}.</p>
 
-            <ul class="divide-y rounded-xl border">
+            <ul v-if="props.events.length > 0" class="divide-y rounded-xl border">
                 <li v-for="event in props.events" :key="event.id">
                     <Link :href="route('events.show', event.id)" class="flex items-center gap-2 p-3 hover:bg-muted/50">
                         <div class="min-w-0 flex-1">
