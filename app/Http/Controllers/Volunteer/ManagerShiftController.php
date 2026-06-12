@@ -1,18 +1,23 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Volunteer;
 
+use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreShiftRequest;
 use App\Models\Area;
 use App\Models\Shift;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
-class ShiftController extends Controller
+/**
+ * Area managers run their own area from the volunteer interface
+ * (D18): same magic link access, no password account needed.
+ */
+class ManagerShiftController extends Controller
 {
     public function store(StoreShiftRequest $request, Area $area): RedirectResponse
     {
-        $this->authorizeTenant($request, $area);
+        $this->authorizeAreaManager($request, $area->tenant_id, $area->id);
 
         [$startsAt, $endsAt] = $request->times();
 
@@ -29,10 +34,20 @@ class ShiftController extends Controller
 
     public function destroy(Request $request, Shift $shift): RedirectResponse
     {
-        $this->authorizeTenant($request, $shift);
+        $this->authorizeAreaManager($request, $shift->tenant_id, $shift->area_id);
 
         $shift->delete();
 
         return back();
+    }
+
+    private function authorizeAreaManager(Request $request, int $tenantId, int $areaId): void
+    {
+        $person = $request->user('volunteer');
+
+        abort_unless(
+            $tenantId === $person->tenant_id && $person->managesArea($areaId),
+            404,
+        );
     }
 }

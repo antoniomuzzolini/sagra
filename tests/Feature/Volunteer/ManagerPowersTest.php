@@ -1,0 +1,158 @@
+<?php
+
+namespace Tests\Feature\Volunteer;
+
+use App\Enums\Role;
+use App\Enums\SignupStatus;
+use App\Models\Area;
+use App\Models\Event;
+use App\Models\Person;
+use App\Models\PersonRole;
+use App\Models\Shift;
+use App\Models\ShiftSignup;
+use App\Models\Tenant;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class ManagerPowersTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private Person $manager;
+
+    private Area $area;
+
+    private Area $otherArea;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $tenant = Tenant::factory()->create();
+        $event = Event::factory()->create(['tenant_id' => $tenant->id]);
+        $this->area = Area::factory()->for($event)->create(['tenant_id' => $tenant->id]);
+        $this->otherArea = Area::factory()->for($event)->create(['tenant_id' => $tenant->id]);
+
+        $this->manager = Person::factory()->create(['tenant_id' => $tenant->id]);
+        PersonRole::factory()->for($this->manager)->for($event)->create([
+            'tenant_id' => $tenant->id,
+            'role' => Role::AreaManager,
+            'area_id' => $this->area->id,
+        ]);
+    }
+
+    public function test_a_manager_can_create_a_shift_in_their_area()
+    {
+        $this->actingAs($this->manager, 'volunteer')
+            ->post("/me/areas/{$this->area->id}/shifts", [
+                'date' => '2026-07-04',
+                'start_time' => '18:00',
+                'end_time' => '22:00',
+                'needed_people' => 4,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(1, $this->area->shifts()->count());
+    }
+
+    public function test_a_manager_cannot_create_shifts_elsewhere()
+    {
+        $this->actingAs($this->manager, 'volunteer')
+            ->post("/me/areas/{$this->otherArea->id}/shifts", [
+                'date' => '2026-07-04',
+                'start_time' => '18:00',
+                'end_time' => '22:00',
+                'needed_people' => 4,
+            ])
+            ->assertNotFound();
+
+        $this->assertSame(0, Shift::count());
+    }
+
+    public function test_a_plain_volunteer_cannot_create_shifts()
+    {
+        $volunteer = Person::factory()->create(['tenant_id' => $this->area->tenant_id]);
+
+        $this->actingAs($volunteer, 'volunteer')
+            ->post("/me/areas/{$this->area->id}/shifts", [
+                'date' => '2026-07-04',
+                'start_time' => '18:00',
+                'end_time' => '22:00',
+                'needed_people' => 4,
+            ])
+            ->assertNotFound();
+    }
+
+    public function test_a_manager_can_delete_a_shift_in_their_area_only()
+    {
+        $own = Shift::factory()->for($this->area)->create(['tenant_id' => $this->area->tenant_id]);
+        $foreign = Shift::factory()->for($this->otherArea)->create(['tenant_id' => $this->area->tenant_id]);
+
+        $this->actingAs($this->manager, 'volunteer')->delete("/me/shifts/{$own->id}")->assertRedirect();
+        $this->actingAs($this->manager, 'volunteer')->delete("/me/shifts/{$foreign->id}")->assertNotFound();
+
+        $this->assertDatabaseMissing('shifts', ['id' => $own->id]);
+        $this->assertDatabaseHas('shifts', ['id' => $foreign->id]);
+    }
+
+    public function test_a_manager_can_put_a_person_straight_onto_a_shift()
+    {
+        $shift = Shift::factory()->for($this->area)->create(['tenant_id' => $this->area->tenant_id]);
+        $volunteer = Person::factory()->create(['tenant_id' => $this->area->tenant_id]);
+
+        $this->actingAs($this->manager, 'volunteer')
+            ->post("/me/shifts/{$shift->id}/assign", ['person_id' => $volunteer->id])
+            ->assertRedirect();
+
+        $signup = ShiftSignup::where('shift_id', $shift->id)->where('person_id', $volunteer->id)->first();
+        $this->assertSame(SignupStatus::Assigned, $signup->status);
+        $this->assertNull($signup->assigned_by);
+    }
+
+    public function test_assigning_promotes_an_existing_availability()
+    {
+        $shift = Shift::factory()->for($this->area)->create(['tenant_id' => $this->area->tenant_id]);
+        $volunteer = Person::factory()->create(['tenant_id' => $this->area->tenant_id]);
+        ShiftSignup::factory()->for($shift)->for($volunteer)->create(['status' => SignupStatus::Available]);
+
+        $this->actingAs($this->manager, 'volunteer')
+            ->post("/me/shifts/{$shift->id}/assign", ['person_id' => $volunteer->id]);
+
+        $this->assertSame(1, ShiftSignup::count());
+        $this->assertSame(SignupStatus::Assigned, ShiftSignup::first()->status);
+    }
+
+    public function test_a_manager_cannot_assign_on_other_areas_or_other_tenants_people()
+    {
+        $foreignShift = Shift::factory()->for($this->otherArea)->create(['tenant_id' => $this->area->tenant_id]);
+        $ownShift = Shift::factory()->for($this->area)->create(['tenant_id' => $this->area->tenant_id]);
+        $volunteer = Person::factory()->create(['tenant_id' => $this->area->tenant_id]);
+        $foreignPerson = Person::factory()->create();
+
+        $this->actingAs($this->manager, 'volunteer')
+            ->post("/me/shifts/{$foreignShift->id}/assign", ['person_id' => $volunteer->id])
+            ->assertNotFound();
+        $this->actingAs($this->manager, 'volunteer')
+            ->post("/me/shifts/{$ownShift->id}/assign", ['person_id' => $foreignPerson->id])
+            ->assertNotFound();
+
+        $this->assertSame(0, ShiftSignup::count());
+    }
+
+    public function test_the_home_ships_the_manager_toolkit_only_to_managers()
+    {
+        $volunteer = Person::factory()->create(['tenant_id' => $this->area->tenant_id]);
+
+        $this->actingAs($this->manager, 'volunteer')->get('/me')->assertInertia(
+            fn ($page) => $page
+                ->has('manager.areas', 1)
+                ->where('manager.areas.0.id', $this->area->id)
+                ->has('manager.people')
+                ->has('manager.inviteUrl')
+        );
+
+        $this->actingAs($volunteer, 'volunteer')->get('/me')->assertInertia(
+            fn ($page) => $page->where('manager', null)
+        );
+    }
+}

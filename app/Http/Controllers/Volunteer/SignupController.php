@@ -116,6 +116,40 @@ class SignupController extends Controller
         return back();
     }
 
+    /**
+     * An area manager puts a person straight onto a shift of their
+     * area ("ti metto io"): the everyday workflow at a sagra.
+     */
+    public function assign(Request $request, Shift $shift): RedirectResponse
+    {
+        $manager = $request->user('volunteer');
+
+        abort_unless(
+            $shift->tenant_id === $manager->tenant_id
+                && $manager->managesArea($shift->area_id),
+            404,
+        );
+
+        $data = $request->validate(['person_id' => ['required', 'integer']]);
+
+        $person = Person::query()
+            ->where('tenant_id', $shift->tenant_id)
+            ->findOrFail($data['person_id']);
+
+        ShiftSignup::updateOrCreate(
+            ['shift_id' => $shift->id, 'person_id' => $person->id],
+            [
+                'tenant_id' => $shift->tenant_id,
+                'status' => SignupStatus::Assigned,
+                'assigned_at' => now(),
+                'assigned_by' => null,
+                'substitution_requested_at' => null,
+            ],
+        );
+
+        return back();
+    }
+
     private function authorizeManager(Request $request, ShiftSignup $signup): Person
     {
         $person = $request->user('volunteer');

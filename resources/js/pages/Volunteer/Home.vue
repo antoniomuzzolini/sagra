@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatTime } from '@/lib/event-helpers';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { CalendarCheck, Hand, Undo2 } from 'lucide-vue-next';
+import { CalendarCheck, Check, Copy, Hand, Trash2, Undo2, Wrench } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 interface VolunteerShift {
@@ -25,6 +25,11 @@ interface VolunteerShift {
 const props = defineProps<{
     person: { name: string; needsContact: boolean };
     tenant: { name: string };
+    manager: {
+        areas: { id: number; name: string }[];
+        people: { id: number; name: string }[];
+        inviteUrl: string;
+    } | null;
     shifts: VolunteerShift[];
 }>();
 
@@ -35,6 +40,44 @@ const contactForm = useForm({ phone: '', email: '' });
 function saveContact() {
     contactForm.put(route('volunteer.contact'), { preserveScroll: true });
 }
+
+// Manager toolkit (D18): new shifts, invite sharing, shift removal.
+const shiftFormArea = ref<number | null>(null);
+const shiftForm = useForm({ date: '', start_time: '', end_time: '', needed_people: 2, notes: '' });
+
+function toggleShiftForm(areaId: number) {
+    shiftFormArea.value = shiftFormArea.value === areaId ? null : areaId;
+    shiftForm.reset();
+    shiftForm.clearErrors();
+}
+
+function submitShift(areaId: number) {
+    shiftForm.post(route('volunteer.shifts.store', areaId), {
+        preserveScroll: true,
+        onSuccess: () => (shiftFormArea.value = null),
+    });
+}
+
+function destroyShift(shift: VolunteerShift) {
+    if (confirm(`Eliminare il turno in ${shift.area} (${formatTime(shift.starts_at)}–${formatTime(shift.ends_at)})?`)) {
+        router.delete(route('volunteer.shifts.destroy', shift.id), { preserveScroll: true });
+    }
+}
+
+const inviteCopied = ref(false);
+
+async function copyInvite() {
+    if (props.manager) {
+        await navigator.clipboard.writeText(props.manager.inviteUrl);
+        inviteCopied.value = true;
+        setTimeout(() => (inviteCopied.value = false), 2000);
+    }
+}
+
+const inviteWhatsappUrl = computed(() => {
+    if (!props.manager) return '#';
+    return 'https://wa.me/?text=' + encodeURIComponent(`Dai una mano anche tu a ${props.tenant.name}! Registrati qui: ${props.manager.inviteUrl}`);
+});
 
 const mine = computed(() => props.shifts.filter((s) => s.myStatus === 'assigned'));
 const pending = computed(() => props.shifts.filter((s) => s.myStatus === 'available'));
@@ -93,6 +136,49 @@ function cancelSubstitution(shift: VolunteerShift) {
             </form>
         </section>
 
+        <!-- Manager toolkit -->
+        <section v-if="manager" class="grid gap-2">
+            <h2 class="flex items-center gap-2 font-medium text-foreground">
+                <Wrench class="h-4 w-4 text-muted-foreground" /> {{ manager.areas.length === 1 ? 'Il tuo reparto' : 'I tuoi reparti' }}
+            </h2>
+            <div v-for="area in manager.areas" :key="area.id" class="grid gap-2 rounded-xl border p-3">
+                <div class="flex items-center justify-between gap-2">
+                    <p class="font-medium">{{ area.name }}</p>
+                    <Button variant="outline" size="sm" @click="toggleShiftForm(area.id)">Nuovo turno</Button>
+                </div>
+                <form v-if="shiftFormArea === area.id" class="grid gap-2" @submit.prevent="submitShift(area.id)">
+                    <Input v-model="shiftForm.date" type="date" required aria-label="Data" />
+                    <p v-if="shiftForm.errors.date" class="text-sm text-red-600">{{ shiftForm.errors.date }}</p>
+                    <div class="flex items-center gap-2">
+                        <Input v-model="shiftForm.start_time" type="time" required aria-label="Inizio" />
+                        <span class="text-muted-foreground">→</span>
+                        <Input v-model="shiftForm.end_time" type="time" required aria-label="Fine" />
+                    </div>
+                    <p v-if="shiftForm.errors.start_time || shiftForm.errors.end_time" class="text-sm text-red-600">
+                        {{ shiftForm.errors.start_time || shiftForm.errors.end_time }}
+                    </p>
+                    <div class="flex items-center gap-2">
+                        <Input v-model.number="shiftForm.needed_people" type="number" min="1" required class="w-20" aria-label="Persone" />
+                        <span class="text-sm text-muted-foreground">persone</span>
+                    </div>
+                    <p v-if="shiftForm.errors.needed_people" class="text-sm text-red-600">{{ shiftForm.errors.needed_people }}</p>
+                    <Input v-model="shiftForm.notes" placeholder="Note (facoltative)" aria-label="Note" />
+                    <Button type="submit" size="sm" :disabled="shiftForm.processing">Crea turno</Button>
+                </form>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 rounded-xl border p-3">
+                <p class="min-w-0 flex-1 text-sm text-muted-foreground">Serve gente? Condividi il link d'invito:</p>
+                <Button variant="outline" size="sm" @click="copyInvite">
+                    <Check v-if="inviteCopied" class="h-4 w-4" />
+                    <Copy v-else class="h-4 w-4" />
+                    {{ inviteCopied ? 'Copiato!' : 'Copia' }}
+                </Button>
+                <Button size="sm" as-child>
+                    <a :href="inviteWhatsappUrl" target="_blank" rel="noopener">WhatsApp</a>
+                </Button>
+            </div>
+        </section>
+
         <!-- Confirmed shifts -->
         <section v-if="mine.length > 0" class="grid gap-2">
             <h2 class="flex items-center gap-2 font-medium text-foreground"><CalendarCheck class="h-4 w-4 text-green-600" /> I tuoi turni</h2>
@@ -113,7 +199,7 @@ function cancelSubstitution(shift: VolunteerShift) {
                         <Button variant="ghost" size="sm" @click="cancelSubstitution(shift)">Posso di nuovo</Button>
                     </p>
                 </div>
-                <ModeratedSignupList v-if="shift.canModerate" :signups="shift.signups" />
+                <ModeratedSignupList v-if="shift.canModerate" :signups="shift.signups" :shift-id="shift.id" :people="manager?.people" />
             </div>
         </section>
 
@@ -128,7 +214,7 @@ function cancelSubstitution(shift: VolunteerShift) {
                     </div>
                     <Button variant="ghost" size="sm" @click="withdraw(shift)"><Undo2 class="h-4 w-4" /> Ritira</Button>
                 </div>
-                <ModeratedSignupList v-if="shift.canModerate" :signups="shift.signups" />
+                <ModeratedSignupList v-if="shift.canModerate" :signups="shift.signups" :shift-id="shift.id" :people="manager?.people" />
             </div>
         </section>
 
@@ -150,9 +236,12 @@ function cancelSubstitution(shift: VolunteerShift) {
                             </p>
                             <p v-if="shift.notes" class="text-sm text-muted-foreground">{{ shift.notes }}</p>
                         </div>
+                        <Button v-if="shift.canModerate" variant="ghost" size="icon" aria-label="Elimina turno" @click="destroyShift(shift)">
+                            <Trash2 class="h-4 w-4" />
+                        </Button>
                         <Button size="sm" @click="signUp(shift)">Ci sono!</Button>
                     </div>
-                    <ModeratedSignupList v-if="shift.canModerate" :signups="shift.signups" />
+                    <ModeratedSignupList v-if="shift.canModerate" :signups="shift.signups" :shift-id="shift.id" :people="manager?.people" />
                 </div>
             </div>
         </section>

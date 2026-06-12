@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Volunteer;
 
 use App\Enums\SignupStatus;
 use App\Http\Controllers\Controller;
+use App\Models\Area;
+use App\Models\Person;
 use App\Models\Shift;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -33,6 +35,20 @@ class HomeController extends Controller
                 'needsContact' => blank($person->phone) && blank($person->email),
             ],
             'tenant' => ['name' => $person->tenant->name],
+            // The manager toolkit (D18): only for people running areas.
+            'manager' => $managedAreaIds->isEmpty() ? null : [
+                'areas' => Area::query()
+                    ->whereIn('id', $managedAreaIds)
+                    ->orderBy('name')
+                    ->get(['id', 'name'])
+                    ->map(fn (Area $area) => ['id' => $area->id, 'name' => $area->name]),
+                'people' => Person::query()
+                    ->where('tenant_id', $person->tenant_id)
+                    ->orderBy('name')
+                    ->get(['id', 'name'])
+                    ->map(fn (Person $p) => ['id' => $p->id, 'name' => $p->name]),
+                'inviteUrl' => route('join.show', $person->tenant->inviteToken()),
+            ],
             'shifts' => $shifts->map(function (Shift $shift) use ($person, $managedAreaIds) {
                 $mine = $shift->signups->firstWhere('person_id', $person->id);
                 $canModerate = $managedAreaIds->contains($shift->area_id);
@@ -53,6 +69,7 @@ class HomeController extends Controller
                     'signups' => $canModerate
                         ? $shift->signups->map(fn ($signup) => [
                             'id' => $signup->id,
+                            'personId' => $signup->person_id,
                             'personName' => $signup->person->name,
                             'status' => $signup->status->value,
                             'substitutionRequested' => $signup->substitution_requested_at !== null,
