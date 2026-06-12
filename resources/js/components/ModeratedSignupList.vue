@@ -8,6 +8,7 @@ export interface ModeratedSignup {
     personName: string;
     status: 'available' | 'assigned' | 'declined';
     substitutionRequested: boolean;
+    overlapsWith: string | null;
 }
 
 const props = defineProps<{
@@ -46,6 +47,13 @@ function assign(event: Event) {
                     class="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800 dark:bg-amber-900 dark:text-amber-100"
                 >
                     cerca un sostituto
+                </span>
+                <span
+                    v-if="signup.overlapsWith"
+                    class="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800 dark:bg-amber-900 dark:text-amber-100"
+                    :title="`Si sovrappone con ${signup.overlapsWith}`"
+                >
+                    ⚠ anche su {{ signup.overlapsWith }}
                 </span>
             </span>
             <template v-if="signup.status === 'available'">

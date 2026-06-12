@@ -27,6 +27,34 @@ class HomeController extends Controller
             ->orderBy('starts_at')
             ->get();
 
+        // "Your areas" are derived from signup history (D18: soft
+        // membership, nothing to declare or administer).
+        $myAreaIds = $person->signups()->with('shift')->get()
+            ->map(fn ($signup) => $signup->shift?->area_id)
+            ->filter()
+            ->unique();
+
+        // Time intervals each person is (possibly) committed to, for
+        // overlap warnings (D18: allowed, but flagged).
+        $commitments = [];
+        foreach ($shifts as $shift) {
+            foreach ($shift->signups as $signup) {
+                if (in_array($signup->status, [SignupStatus::Available, SignupStatus::Assigned], true)) {
+                    $commitments[$signup->person_id][] = $shift;
+                }
+            }
+        }
+
+        $overlapFor = function (int $personId, Shift $shift) use ($commitments): ?string {
+            foreach ($commitments[$personId] ?? [] as $other) {
+                if ($other->id !== $shift->id && $other->starts_at < $shift->ends_at && $other->ends_at > $shift->starts_at) {
+                    return $other->area->name.' · '.$other->starts_at->locale('it')->isoFormat('ddd D/M HH:mm').'–'.$other->ends_at->format('H:i');
+                }
+            }
+
+            return null;
+        };
+
         return Inertia::render('Volunteer/Home', [
             'person' => [
                 'name' => $person->name,
@@ -49,7 +77,7 @@ class HomeController extends Controller
                     ->map(fn (Person $p) => ['id' => $p->id, 'name' => $p->name]),
                 'inviteUrl' => route('join.show', $person->tenant->inviteToken()),
             ],
-            'shifts' => $shifts->map(function (Shift $shift) use ($person, $managedAreaIds) {
+            'shifts' => $shifts->map(function (Shift $shift) use ($person, $managedAreaIds, $myAreaIds, $overlapFor) {
                 $mine = $shift->signups->firstWhere('person_id', $person->id);
                 $canModerate = $managedAreaIds->contains($shift->area_id);
 
@@ -64,6 +92,8 @@ class HomeController extends Controller
                     'notes' => $shift->notes,
                     'myStatus' => $mine?->status?->value,
                     'mySubstitutionRequested' => $mine?->substitution_requested_at !== null,
+                    'isMyArea' => $myAreaIds->contains($shift->area_id),
+                    'myOverlap' => $overlapFor($person->id, $shift),
                     'canModerate' => $canModerate,
                     // Signup details stay server-side unless the person manages the area.
                     'signups' => $canModerate
@@ -73,6 +103,7 @@ class HomeController extends Controller
                             'personName' => $signup->person->name,
                             'status' => $signup->status->value,
                             'substitutionRequested' => $signup->substitution_requested_at !== null,
+                            'overlapsWith' => $overlapFor($signup->person_id, $shift),
                         ])
                         : [],
                 ];
