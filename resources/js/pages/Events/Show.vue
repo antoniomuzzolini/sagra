@@ -10,7 +10,7 @@ import { areaFamilyLabels, formatDate, formatTime, phaseTypeLabels } from '@/lib
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { Pencil, Plus, Trash2 } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 interface SignupRow {
     id: number;
@@ -79,13 +79,27 @@ function submitEvent() {
     });
 }
 
+// One tab per area, plus the "new area" one. If the selected area
+// disappears (deleted), fall back to the first.
+const activeTab = ref<number | 'new'>(props.event.areas[0]?.id ?? 'new');
+const currentArea = computed(() =>
+    activeTab.value === 'new' ? null : (props.event.areas.find((a) => a.id === activeTab.value) ?? props.event.areas[0] ?? null),
+);
+
 // New area
 const areaForm = useForm({ name: '', family: '' });
 
 function submitArea() {
+    const createdName = areaForm.name;
     areaForm.post(route('areas.store', props.event.id), {
         preserveScroll: true,
-        onSuccess: () => areaForm.reset(),
+        onSuccess: () => {
+            areaForm.reset();
+            const created = props.event.areas.find((a) => a.name === createdName);
+            if (created) {
+                activeTab.value = created.id;
+            }
+        },
     });
 }
 
@@ -179,27 +193,44 @@ function removeSignup(signup: SignupRow) {
                 <Button variant="outline" @click="editOpen = true">Modifica</Button>
             </div>
 
+            <!-- Area tabs -->
+            <nav class="flex flex-wrap gap-1 border-b pb-2">
+                <Button
+                    v-for="area in event.areas"
+                    :key="area.id"
+                    :variant="activeTab !== 'new' && currentArea?.id === area.id ? 'secondary' : 'ghost'"
+                    size="sm"
+                    @click="activeTab = area.id"
+                >
+                    {{ area.name }}
+                </Button>
+                <Button :variant="activeTab === 'new' ? 'secondary' : 'ghost'" size="sm" @click="activeTab = 'new'">
+                    <Plus class="h-4 w-4" /> Area
+                </Button>
+            </nav>
+
             <!-- New area -->
-            <form class="flex flex-wrap items-end gap-2" @submit.prevent="submitArea">
-                <div class="grid gap-1">
-                    <Label for="area-name" class="text-xs">Nuova area</Label>
-                    <Input id="area-name" v-model="areaForm.name" required placeholder="Cucina, bar, parcheggi…" />
-                </div>
-                <select v-model="areaForm.family" class="h-9 rounded-md border border-input bg-transparent px-3 text-sm">
-                    <option value="">Famiglia (opzionale)</option>
-                    <option v-for="(label, value) in areaFamilyLabels" :key="value" :value="value">{{ label }}</option>
-                </select>
-                <Button type="submit" :disabled="areaForm.processing"><Plus class="h-4 w-4" /> Aggiungi</Button>
-                <InputError :message="areaForm.errors.name" class="w-full" />
-            </form>
+            <div v-if="activeTab === 'new' || !currentArea" class="grid gap-3">
+                <p v-if="event.areas.length === 0" class="text-muted-foreground">
+                    Nessuna area ancora. Le aree sono i posti dove si lavora: cucina, bar, cassa, pulizie…
+                </p>
+                <form class="flex flex-wrap items-end gap-2" @submit.prevent="submitArea">
+                    <div class="grid gap-1">
+                        <Label for="area-name" class="text-xs">Nuova area</Label>
+                        <Input id="area-name" v-model="areaForm.name" required placeholder="Cucina, bar, parcheggi…" />
+                    </div>
+                    <select v-model="areaForm.family" class="h-9 rounded-md border border-input bg-transparent px-3 text-sm">
+                        <option value="">Famiglia (opzionale)</option>
+                        <option v-for="(label, value) in areaFamilyLabels" :key="value" :value="value">{{ label }}</option>
+                    </select>
+                    <Button type="submit" :disabled="areaForm.processing"><Plus class="h-4 w-4" /> Aggiungi</Button>
+                    <InputError :message="areaForm.errors.name" class="w-full" />
+                </form>
+            </div>
 
-            <p v-if="event.areas.length === 0" class="text-muted-foreground">
-                Nessuna area ancora. Le aree sono i posti dove si lavora: cucina, bar, cassa, pulizie…
-            </p>
-
-            <!-- Areas with shifts -->
-            <div class="grid gap-4">
-                <Card v-for="area in event.areas" :key="area.id">
+            <!-- Active area -->
+            <template v-else>
+                <Card v-for="area in [currentArea]" :key="area.id">
                     <CardHeader class="flex flex-row items-center justify-between space-y-0">
                         <CardTitle class="flex items-baseline gap-2">
                             {{ area.name }}
@@ -345,7 +376,7 @@ function removeSignup(signup: SignupRow) {
                         </form>
                     </CardContent>
                 </Card>
-            </div>
+            </template>
         </div>
 
         <!-- Edit event dialog -->
