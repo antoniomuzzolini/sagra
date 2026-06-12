@@ -29,6 +29,7 @@ export interface SharedData {
     auth: Auth;
     flash: {
         magicLink: MagicLinkFlash | null;
+        recoveryRequested: boolean | null;
     };
     ziggy: {
         location: string;

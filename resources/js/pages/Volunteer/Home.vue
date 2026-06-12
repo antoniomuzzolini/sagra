@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import ModeratedSignupList, { type ModeratedSignup } from '@/components/ModeratedSignupList.vue';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { formatTime } from '@/lib/event-helpers';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, useForm } from '@inertiajs/vue3';
 import { CalendarCheck, Hand, Undo2 } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 interface VolunteerShift {
     id: number;
@@ -22,10 +23,18 @@ interface VolunteerShift {
 }
 
 const props = defineProps<{
-    person: { name: string };
+    person: { name: string; needsContact: boolean };
     tenant: { name: string };
     shifts: VolunteerShift[];
 }>();
+
+// "Complete the registration": one contact unlocks reminders and recovery.
+const contactFormOpen = ref(false);
+const contactForm = useForm({ phone: '', email: '' });
+
+function saveContact() {
+    contactForm.put(route('volunteer.contact'), { preserveScroll: true });
+}
 
 const mine = computed(() => props.shifts.filter((s) => s.myStatus === 'assigned'));
 const pending = computed(() => props.shifts.filter((s) => s.myStatus === 'available'));
@@ -69,6 +78,20 @@ function cancelSubstitution(shift: VolunteerShift) {
             <h1 class="text-2xl font-semibold text-foreground">Ciao, {{ person.name }}!</h1>
             <p class="text-muted-foreground">{{ tenant.name }}</p>
         </header>
+
+        <section v-if="person.needsContact" class="rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950">
+            <p class="text-sm text-amber-900 dark:text-amber-100">
+                Lascia un recapito: ti ricordiamo i turni e, se perdi l'accesso, rientri da solo.
+            </p>
+            <Button v-if="!contactFormOpen" variant="outline" size="sm" class="mt-2" @click="contactFormOpen = true">Aggiungi un recapito</Button>
+            <form v-else class="mt-2 grid gap-2" @submit.prevent="saveContact">
+                <Input v-model="contactForm.phone" type="tel" placeholder="Telefono: +39 333 1234567" aria-label="Telefono" />
+                <p v-if="contactForm.errors.phone" class="text-sm text-red-600">{{ contactForm.errors.phone }}</p>
+                <Input v-model="contactForm.email" type="email" placeholder="Email: nome@esempio.it" aria-label="Email" />
+                <p v-if="contactForm.errors.email" class="text-sm text-red-600">{{ contactForm.errors.email }}</p>
+                <Button type="submit" size="sm" :disabled="contactForm.processing">Salva</Button>
+            </form>
+        </section>
 
         <!-- Confirmed shifts -->
         <section v-if="mine.length > 0" class="grid gap-2">

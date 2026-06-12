@@ -25,6 +25,7 @@ class PersonController extends Controller
                 'email' => $person->email,
                 'hasLink' => $person->magicLinks->isNotEmpty(),
                 'linkLastUsedAt' => $person->magicLinks->first()?->last_used_at?->toIso8601String(),
+                'linkRequested' => $person->link_requested_at !== null,
             ]);
 
         return Inertia::render('People/Index', [
@@ -82,6 +83,9 @@ class PersonController extends Controller
         $this->authorizeTenant($request, $person);
 
         $url = route('magic-link.consume', $person->createMagicLink());
+
+        // The fresh link answers any pending recovery request.
+        $person->forceFill(['link_requested_at' => null])->save();
 
         return back()->with('magicLink', [
             'personId' => $person->id,

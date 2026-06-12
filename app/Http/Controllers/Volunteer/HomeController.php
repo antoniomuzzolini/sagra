@@ -26,7 +26,12 @@ class HomeController extends Controller
             ->get();
 
         return Inertia::render('Volunteer/Home', [
-            'person' => ['name' => $person->name],
+            'person' => [
+                'name' => $person->name,
+                // Nudge to "complete the registration" (D16): a contact
+                // unlocks reminders and self-service recovery.
+                'needsContact' => blank($person->phone) && blank($person->email),
+            ],
             'tenant' => ['name' => $person->tenant->name],
             'shifts' => $shifts->map(function (Shift $shift) use ($person, $managedAreaIds) {
                 $mine = $shift->signups->firstWhere('person_id', $person->id);

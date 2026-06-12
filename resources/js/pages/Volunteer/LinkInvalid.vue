@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Button } from '@/components/ui/button';
+import { Head, Link } from '@inertiajs/vue3';
 
 const props = defineProps<{ reason?: 'unknown' | 'used' }>();
 </script>
@@ -17,5 +18,8 @@ const props = defineProps<{ reason?: 'unknown' | 'used' }>();
                     : 'Chiedi al tuo referente di mandartene uno nuovo: ti basterà toccarlo per entrare.'
             }}
         </p>
+        <Button class="mt-4" variant="outline" as-child>
+            <Link :href="route('volunteer.recover')">Recupera l'accesso da solo</Link>
+        </Button>
     </div>
 </template>

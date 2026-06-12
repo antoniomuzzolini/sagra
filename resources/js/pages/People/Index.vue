@@ -17,6 +17,7 @@ interface PersonRow {
     email: string | null;
     hasLink: boolean;
     linkLastUsedAt: string | null;
+    linkRequested: boolean;
 }
 
 const props = defineProps<{ people: PersonRow[]; inviteUrl: string }>();
@@ -148,7 +149,13 @@ const whatsappUrl = computed(() => {
                             {{ [person.phone, person.email].filter(Boolean).join(' · ') || '—' }}
                         </p>
                     </div>
-                    <span v-if="person.hasLink" class="text-xs text-muted-foreground">
+                    <span
+                        v-if="person.linkRequested"
+                        class="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800 dark:bg-amber-900 dark:text-amber-100"
+                    >
+                        ha chiesto un nuovo link
+                    </span>
+                    <span v-else-if="person.hasLink" class="text-xs text-muted-foreground">
                         {{ person.linkLastUsedAt ? 'link usato' : 'link mai usato' }}
                     </span>
                     <Button variant="outline" size="sm" @click="requestLink(person)">

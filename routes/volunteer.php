@@ -3,6 +3,8 @@
 use App\Http\Controllers\Volunteer\HomeController;
 use App\Http\Controllers\Volunteer\JoinController;
 use App\Http\Controllers\Volunteer\MagicLinkController;
+use App\Http\Controllers\Volunteer\ProfileController;
+use App\Http\Controllers\Volunteer\RecoveryController;
 use App\Http\Controllers\Volunteer\SignupController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -18,6 +20,11 @@ Route::get('link-invalid', function () {
     return Inertia::render('Volunteer/LinkInvalid');
 })->name('magic-link.invalid');
 
+Route::get('recover', [RecoveryController::class, 'show'])->name('volunteer.recover');
+Route::post('recover', [RecoveryController::class, 'store'])
+    ->middleware('throttle:5,1')
+    ->name('volunteer.recover.store');
+
 Route::middleware('auth:volunteer')->group(function () {
     Route::get('me', HomeController::class)->name('volunteer.home');
     Route::post('me/shifts/{shift}/signup', [SignupController::class, 'store'])->name('volunteer.signup');
@@ -26,4 +33,5 @@ Route::middleware('auth:volunteer')->group(function () {
     Route::delete('me/shifts/{shift}/substitution', [SignupController::class, 'cancelSubstitution'])->name('volunteer.substitution.cancel');
     Route::put('me/signups/{signup}', [SignupController::class, 'moderate'])->name('volunteer.signups.moderate');
     Route::delete('me/signups/{signup}', [SignupController::class, 'remove'])->name('volunteer.signups.remove');
+    Route::put('me/contact', [ProfileController::class, 'updateContact'])->name('volunteer.contact');
 });
