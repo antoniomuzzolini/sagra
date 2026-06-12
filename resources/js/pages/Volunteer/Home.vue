@@ -7,7 +7,7 @@ import { formatTime } from '@/lib/event-helpers';
 import { enablePush, pushDenied, pushSupported } from '@/lib/push';
 import { type MagicLinkFlash, type SharedData } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { Bell, CalendarCheck, Check, Copy, Hand, Pencil, Plus, Trash2, Undo2, UserPlus, UserRound } from 'lucide-vue-next';
+import { Bell, CalendarCheck, Check, Copy, Hand, Pencil, Plus, Share2, Trash2, Undo2, UserPlus, UserRound } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 interface VolunteerShift {
@@ -155,6 +155,7 @@ const magicLinkWhatsappUrl = computed(() => {
     return phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`;
 });
 
+const inviteDialogOpen = ref(false);
 const inviteCopied = ref(false);
 
 async function copyInvite() {
@@ -270,14 +271,7 @@ function cancelSubstitution(shift: VolunteerShift) {
                     <Button variant="outline" size="sm" @click="toggleShiftForm"><Plus class="h-4 w-4" /> Turno</Button>
                     <Button variant="outline" size="sm" @click="toggleVolunteerForm"><UserPlus class="h-4 w-4" /> Volontario</Button>
                     <span class="flex-1"></span>
-                    <Button variant="ghost" size="sm" @click="copyInvite">
-                        <Check v-if="inviteCopied" class="h-4 w-4" />
-                        <Copy v-else class="h-4 w-4" />
-                        Invito
-                    </Button>
-                    <Button variant="ghost" size="sm" as-child>
-                        <a :href="inviteWhatsappUrl" target="_blank" rel="noopener">Invito su WhatsApp</a>
-                    </Button>
+                    <Button variant="outline" size="sm" @click="inviteDialogOpen = true"><Share2 class="h-4 w-4" /> Invita volontari</Button>
                 </div>
 
                 <form v-if="shiftFormOpen" class="grid gap-2 rounded-xl border border-dashed p-3" @submit.prevent="submitShift(area.id)">
@@ -434,6 +428,30 @@ function cancelSubstitution(shift: VolunteerShift) {
                 </template>
             </section>
         </div>
+
+        <!-- Invite link dialog (managers) -->
+        <Dialog v-model:open="inviteDialogOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Invita volontari</DialogTitle>
+                    <DialogDescription>
+                        Condividi questo link, ad esempio nel gruppo WhatsApp: chi lo apre si registra da solo con il suo nome e arriva subito ai
+                        turni.
+                    </DialogDescription>
+                </DialogHeader>
+                <p class="break-all rounded-md bg-muted p-3 font-mono text-sm">{{ manager?.inviteUrl }}</p>
+                <DialogFooter class="gap-2">
+                    <Button variant="outline" @click="copyInvite">
+                        <Check v-if="inviteCopied" class="h-4 w-4" />
+                        <Copy v-else class="h-4 w-4" />
+                        {{ inviteCopied ? 'Copiato!' : 'Copia' }}
+                    </Button>
+                    <Button as-child>
+                        <a :href="inviteWhatsappUrl" target="_blank" rel="noopener">Condividi su WhatsApp</a>
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
 
         <!-- Profile / contacts dialog -->
         <Dialog v-model:open="contactFormOpen">
