@@ -27,7 +27,21 @@ class PersonController extends Controller
                 'linkLastUsedAt' => $person->magicLinks->first()?->last_used_at?->toIso8601String(),
             ]);
 
-        return Inertia::render('People/Index', ['people' => $people]);
+        return Inertia::render('People/Index', [
+            'people' => $people,
+            'inviteUrl' => route('join.show', $request->user()->tenant->inviteToken()),
+        ]);
+    }
+
+    /**
+     * Rotate the tenant invite link (D16), e.g. after it leaked
+     * outside the volunteer group. People already in are unaffected.
+     */
+    public function regenerateInvite(Request $request): RedirectResponse
+    {
+        $request->user()->tenant->regenerateInviteToken();
+
+        return back();
     }
 
     public function store(Request $request): RedirectResponse

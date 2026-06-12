@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Enums\Role;
 use Database\Factories\PersonFactory;
 use DateTimeInterface;
-use DomainException;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -31,16 +30,6 @@ class Person extends Authenticatable
         'phone',
         'email',
     ];
-
-    protected static function booted(): void
-    {
-        static::saving(function (Person $person) {
-            // A person must be reachable: notifications and magic links need a channel.
-            if (blank($person->phone) && blank($person->email)) {
-                throw new DomainException('A person needs at least one contact (phone or email).');
-            }
-        });
-    }
 
     public function tenant(): BelongsTo
     {
@@ -83,8 +72,11 @@ class Person extends Authenticatable
     /**
      * Create a personal access link token (D6: passwordless access).
      *
-     * A person has one active link: regenerating revokes the previous
-     * one. Returns the plain token, shown only once to the organizer.
+     * Links are single-use and short-lived (D17): once tapped, the long
+     * remember session takes over. A person has one pending link;
+     * regenerating revokes the previous one and the remember sessions
+     * on every device (kill switch). Returns the plain token, shown
+     * only once to the organizer.
      */
     public function createMagicLink(?DateTimeInterface $expiresAt = null): string
     {
@@ -94,8 +86,11 @@ class Person extends Authenticatable
         $this->magicLinks()->create([
             'tenant_id' => $this->tenant_id,
             'token_hash' => hash('sha256', $token),
-            'expires_at' => $expiresAt,
+            'expires_at' => $expiresAt ?? now()->addDays(7),
         ]);
+
+        $this->setRememberToken(Str::random(60));
+        $this->save();
 
         return $token;
     }

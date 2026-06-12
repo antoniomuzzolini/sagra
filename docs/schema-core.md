@@ -25,6 +25,7 @@
 | id | bigint PK | |
 | name | string | |
 | slug | string unique | per URL e futuri sottodomini |
+| invite_token | string unique, nullable | link d'invito condiviso per l'auto-registrazione dei volontari (D16); rigenerabile |
 
 ### users — account di accesso (organizzatori)
 
@@ -52,8 +53,10 @@ Minimizzazione GDPR: solo ciò che serve per turni e notifiche.
 | email | string, nullable | canale alternativo |
 | deleted_at | soft delete | cancellazione GDPR senza rompere lo storico |
 
-Vincoli: almeno un contatto tra `phone` ed `email` (check applicativo);
-unique parziale `(tenant_id, phone)` e `(tenant_id, email)` dove non null.
+Vincoli: unique parziale `(tenant_id, phone)` e `(tenant_id, email)`
+dove non null. Il contatto è richiesto (validazione) solo per le persone
+create dall'organizzatore, che deve recapitare il link d'accesso; chi si
+auto-registra via invito (D16) può non lasciarne e aggiungerlo poi.
 
 ### events — l'edizione della sagra
 

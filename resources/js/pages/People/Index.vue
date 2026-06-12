@@ -19,7 +19,7 @@ interface PersonRow {
     linkLastUsedAt: string | null;
 }
 
-const props = defineProps<{ people: PersonRow[] }>();
+const props = defineProps<{ people: PersonRow[]; inviteUrl: string }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Volontari', href: '/people' }];
 
@@ -87,6 +87,21 @@ async function copyLink() {
     }
 }
 
+// Tenant invite link (self-registration)
+const inviteCopied = ref(false);
+
+async function copyInvite() {
+    await navigator.clipboard.writeText(props.inviteUrl);
+    inviteCopied.value = true;
+    setTimeout(() => (inviteCopied.value = false), 2000);
+}
+
+function regenerateInvite() {
+    if (confirm("Rigenerare il link d'invito? Quello attuale smetterà di funzionare. Chi è già registrato non perde nulla.")) {
+        useForm({}).post(route('people.invite.regenerate'), { preserveScroll: true });
+    }
+}
+
 const whatsappUrl = computed(() => {
     if (!magicLink.value) return '#';
     const text = encodeURIComponent(`Ciao ${magicLink.value.personName}! Ecco il tuo link personale per i turni: ${magicLink.value.url}`);
@@ -105,8 +120,24 @@ const whatsappUrl = computed(() => {
                 <Button @click="openCreate">Nuovo volontario</Button>
             </div>
 
+            <div class="grid gap-2 rounded-xl border bg-muted/30 p-3">
+                <p class="text-sm font-medium">Link d'invito</p>
+                <p class="text-sm text-muted-foreground">
+                    Condividilo una volta (es. nel gruppo WhatsApp): chi lo apre si registra da solo e arriva subito ai turni.
+                </p>
+                <div class="flex flex-wrap items-center gap-2">
+                    <p class="min-w-0 flex-1 truncate rounded-md bg-muted p-2 font-mono text-xs">{{ props.inviteUrl }}</p>
+                    <Button variant="outline" size="sm" @click="copyInvite">
+                        <Check v-if="inviteCopied" class="h-4 w-4" />
+                        <Copy v-else class="h-4 w-4" />
+                        {{ inviteCopied ? 'Copiato!' : 'Copia' }}
+                    </Button>
+                    <Button variant="ghost" size="sm" @click="regenerateInvite">Rigenera</Button>
+                </div>
+            </div>
+
             <p v-if="props.people.length === 0" class="text-muted-foreground">
-                Nessun volontario ancora. Aggiungi il primo: bastano nome e telefono.
+                Nessun volontario ancora. Aggiungi il primo a mano o condividi il link d'invito.
             </p>
 
             <ul class="divide-y rounded-xl border">

@@ -36,6 +36,9 @@ prodotto, non un dettaglio.
 | D13 | Per l'MVP il core usa la struttura Laravel standard (`app/Models`, `app/Enums`...); niente cartella `Modules/` né convenzioni di confine finché non esiste il primo modulo verticale | Evita architettura speculativa; il confine core/moduli si disegna sul primo caso reale |
 | D14 | Schema dati del core come da `docs/schema-core.md`: `tenant_id` su ogni tabella, disponibilità+assegnazione in un'unica `shift_signups` con stato, volontari in `people` distinti dagli `users` con password | Vedi motivazioni nel documento di schema |
 | D15 | L'anno di un'edizione è **derivato** dalle date delle fasi, mai dichiarato; le viste di gestione sono filtrate per anno (default: l'anno più vicino a oggi); niente entità "manifestazione" che raggruppa le edizioni finché un caso d'uso concreto non la richiede | Stesso principio della fase derivata dalla data; la replica delle edizioni (post-MVP) avverrà per duplicazione di un evento esistente |
+| D16 | Auto-registrazione volontari via **link d'invito** del tenant (condiviso una volta: gruppo WhatsApp, QR), rigenerabile; basta il nome, contatto facoltativo da completare poi (abilita promemoria e recupero accesso self-service) | Elimina il collo di bottiglia "il gestore crea ogni persona e invia ogni link" senza reintrodurre password (conferma D6) |
+| D17 | Link magici personali **monouso** con scadenza breve (7 giorni); la permanenza è data dalla sessione remember lunga (~1 anno); rigenerare il link revoca link e sessioni remember (kill switch); su un dispositivo già collegato a un'altra persona il link **chiede** ("continua come X / entra come Y"), mai blocca o scambia in silenzio | Il link viaggia su WhatsApp e può essere inoltrato; il telefono condiviso in famiglia è un caso legittimo e frequente |
+| D18 | Gerarchia organizzatore → responsabili d'area → volontari con **delega facoltativa**: l'organizzatore può tutto, il responsabile gestisce turni e volontari del proprio reparto (via link magico, senza account); appartenenza dei volontari ai reparti **morbida** (i turni del proprio reparto prima, i buchi altrui restano visibili); sovrapposizioni di turno permesse ma **segnalate** (al volontario e al responsabile che conferma) | Rispecchia l'organizzazione reale delle sagre; la divisione rigida sprecherebbe la flessibilità dei volontari, che è la risorsa principale |
 
 ## 3. Glossario ed entità di dominio
 
@@ -127,6 +130,8 @@ WhatsApp e rincorre i buchi).
 - Il responsabile definisce aree e turni con fabbisogno persone.
 - I volontari accedono da smartphone con link magico (no password),
   dichiarano disponibilità e vedono i propri turni.
+- Auto-registrazione via link d'invito dell'associazione (D16): il
+  gestore condivide un solo link, i volontari si iscrivono da soli.
 - Vista copertura in tempo reale: turni scoperti evidenziati.
 - Richiesta e gestione sostituzioni.
 - Promemoria e notifiche automatiche.

@@ -1,13 +1,18 @@
 <?php
 
 use App\Http\Controllers\Volunteer\HomeController;
+use App\Http\Controllers\Volunteer\JoinController;
 use App\Http\Controllers\Volunteer\MagicLinkController;
 use App\Http\Controllers\Volunteer\SignupController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-// Short path: these links travel via WhatsApp messages.
-Route::get('v/{token}', MagicLinkController::class)->name('magic-link.consume');
+// Short paths: these links travel via WhatsApp messages.
+Route::get('v/{token}', [MagicLinkController::class, 'consume'])->name('magic-link.consume');
+Route::post('v/{token}/switch', [MagicLinkController::class, 'switch'])->name('magic-link.switch');
+
+Route::get('join/{token}', [JoinController::class, 'show'])->name('join.show');
+Route::post('join/{token}', [JoinController::class, 'store'])->name('join.store');
 
 Route::get('link-invalid', function () {
     return Inertia::render('Volunteer/LinkInvalid');

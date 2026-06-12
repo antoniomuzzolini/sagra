@@ -3,7 +3,6 @@
 namespace Tests\Feature\Core;
 
 use App\Models\Person;
-use DomainException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -11,11 +10,13 @@ class PersonTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_a_person_needs_at_least_one_contact()
+    public function test_a_person_can_exist_without_contacts()
     {
-        $this->expectException(DomainException::class);
+        // Self-registered volunteers (D16) may leave every contact blank;
+        // organizer-created people still need one (controller validation).
+        $person = Person::factory()->create(['phone' => null, 'email' => null]);
 
-        Person::factory()->create(['phone' => null, 'email' => null]);
+        $this->assertTrue($person->exists);
     }
 
     public function test_a_single_contact_is_enough()

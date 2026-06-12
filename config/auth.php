@@ -45,9 +45,12 @@ return [
         ],
 
         // Volunteers authenticate via magic link (D6), never via password.
+        // The remember cookie lasts a year (D17): links are single-use,
+        // the long session is what keeps volunteers in.
         'volunteer' => [
             'driver' => 'session',
             'provider' => 'people',
+            'remember' => 60 * 24 * 365,
         ],
     ],
 

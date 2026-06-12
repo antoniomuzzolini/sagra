@@ -13,6 +13,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->only(['index', 'store', 'update', 'destroy']);
     Route::post('people/{person}/magic-link', [PersonController::class, 'magicLink'])
         ->name('people.magic-link');
+    Route::post('invite/regenerate', [PersonController::class, 'regenerateInvite'])
+        ->name('people.invite.regenerate');
 
     Route::resource('events', EventController::class)
         ->only(['index', 'store', 'show', 'update', 'destroy']);
