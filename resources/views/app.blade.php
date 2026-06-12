@@ -6,6 +6,10 @@
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
+        <link rel="manifest" href="{{ route('pwa.manifest') }}">
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        <meta name="theme-color" content="#18181b">
+
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
 

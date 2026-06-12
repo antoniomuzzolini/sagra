@@ -66,7 +66,9 @@ class HomeController extends Controller
                 // Nudge to "complete the registration" (D16): a contact
                 // unlocks reminders and self-service recovery.
                 'needsContact' => blank($person->phone) && blank($person->email),
+                'hasPush' => $person->pushSubscriptions()->exists(),
             ],
+            'vapidPublicKey' => config('webpush.vapid.public_key'),
             'tenant' => ['name' => $person->tenant->name],
             // The manager toolkit (D18): only for people running areas.
             'manager' => $managedAreaIds->isEmpty() ? null : [

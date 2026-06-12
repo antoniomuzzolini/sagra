@@ -7,6 +7,8 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\WebPush\WebPushChannel;
+use NotificationChannels\WebPush\WebPushMessage;
 
 class ShiftReminder extends Notification implements ShouldQueue
 {
@@ -16,8 +18,24 @@ class ShiftReminder extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        // Web push (D10) will join later; mail is the only channel for now.
-        return $notifiable->email ? ['mail'] : [];
+        // Web push is the primary channel (D10: volunteers live on
+        // their phones); mail is the fallback for those who left one.
+        return array_values(array_filter([
+            $notifiable->pushSubscriptions()->exists() ? WebPushChannel::class : null,
+            $notifiable->email ? 'mail' : null,
+        ]));
+    }
+
+    public function toWebPush(object $notifiable): WebPushMessage
+    {
+        $shift = $this->shift;
+        $day = $shift->starts_at->locale('it')->isoFormat('dddd D MMMM');
+        $hours = $shift->starts_at->format('H:i').'–'.$shift->ends_at->format('H:i');
+
+        return (new WebPushMessage)
+            ->title("Domani tocca a te: {$shift->area->name}")
+            ->body("{$day}, ore {$hours}".($shift->notes ? " — {$shift->notes}" : ''))
+            ->data(['url' => route('volunteer.home')]);
     }
 
     public function toMail(object $notifiable): MailMessage

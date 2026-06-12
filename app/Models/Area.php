@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 class Area extends Model
 {
@@ -47,5 +48,16 @@ class Area extends Model
     public function managerRoles(): HasMany
     {
         return $this->hasMany(PersonRole::class)->where('role', Role::AreaManager);
+    }
+
+    /**
+     * The people running this area, notification targets for what
+     * happens in it.
+     *
+     * @return Collection<int, Person>
+     */
+    public function managers(): Collection
+    {
+        return $this->managerRoles()->with('person')->get()->toBase()->pluck('person')->filter();
     }
 }

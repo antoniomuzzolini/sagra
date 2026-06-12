@@ -38,3 +38,12 @@ createInertiaApp({
 
 // This will set light / dark mode on page load...
 initializeTheme();
+
+// PWA: register the (tiny, push-only) service worker.
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {
+            // Push is progressive enhancement: never break the app for it.
+        });
+    });
+}

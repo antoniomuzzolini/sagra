@@ -7,8 +7,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Person;
 use App\Models\Shift;
 use App\Models\ShiftSignup;
+use App\Notifications\AvailabilityReceived;
+use App\Notifications\SubstitutionRequested;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
 
 class SignupController extends Controller
@@ -28,8 +31,18 @@ class SignupController extends Controller
             ['tenant_id' => $person->tenant_id, 'status' => SignupStatus::Available],
         );
 
+        $isNew = $signup->wasRecentlyCreated;
+
         if ($signup->status === SignupStatus::Declined) {
             $signup->update(['status' => SignupStatus::Available]);
+            $isNew = true;
+        }
+
+        if ($isNew) {
+            Notification::send(
+                $shift->area->managers()->reject(fn (Person $manager) => $manager->is($person)),
+                new AvailabilityReceived($person, $shift),
+            );
         }
 
         return back();
@@ -62,10 +75,18 @@ class SignupController extends Controller
 
         abort_unless($shift->tenant_id === $person->tenant_id, 404);
 
-        $person->signups()
+        $updated = $person->signups()
             ->where('shift_id', $shift->id)
             ->where('status', SignupStatus::Assigned)
+            ->whereNull('substitution_requested_at')
             ->update(['substitution_requested_at' => now()]);
+
+        if ($updated > 0) {
+            Notification::send(
+                $shift->area->managers()->reject(fn (Person $manager) => $manager->is($person)),
+                new SubstitutionRequested($person, $shift),
+            );
+        }
 
         return back();
     }

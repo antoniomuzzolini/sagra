@@ -13,12 +13,14 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use NotificationChannels\WebPush\HasPushSubscriptions;
 
 class Person extends Authenticatable
 {
     /** @use HasFactory<PersonFactory> */
     use HasFactory;
 
+    use HasPushSubscriptions;
     use Notifiable;
     use SoftDeletes;
 

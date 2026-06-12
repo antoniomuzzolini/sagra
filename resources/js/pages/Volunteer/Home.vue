@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { formatTime } from '@/lib/event-helpers';
+import { enablePush, pushDenied, pushSupported } from '@/lib/push';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { CalendarCheck, Check, Copy, Hand, Pencil, Trash2, Undo2, Wrench } from 'lucide-vue-next';
+import { Bell, CalendarCheck, Check, Copy, Hand, Pencil, Trash2, Undo2, Wrench } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 interface VolunteerShift {
@@ -27,13 +28,14 @@ interface VolunteerShift {
 }
 
 const props = defineProps<{
-    person: { name: string; phone: string | null; email: string | null; needsContact: boolean };
+    person: { name: string; phone: string | null; email: string | null; needsContact: boolean; hasPush: boolean };
     tenant: { name: string };
     manager: {
         areas: { id: number; name: string }[];
         people: { id: number; name: string }[];
         inviteUrl: string;
     } | null;
+    vapidPublicKey: string | null;
     shifts: VolunteerShift[];
 }>();
 
@@ -118,6 +120,21 @@ const inviteWhatsappUrl = computed(() => {
 // areas I do not manage (managed ones live in their own section above).
 const mine = computed(() => props.shifts.filter((s) => s.myStatus === 'assigned'));
 const pending = computed(() => props.shifts.filter((s) => s.myStatus === 'available'));
+
+// Push nudge: asked at the moment it becomes useful — once the person
+// has at least one shift worth being reminded of (D10).
+const pushBusy = ref(false);
+const pushFailed = ref(false);
+const showPushNudge = computed(
+    () => pushSupported() && !pushDenied() && !props.person.hasPush && !pushFailed.value && (mine.value.length > 0 || pending.value.length > 0),
+);
+
+async function activatePush() {
+    pushBusy.value = true;
+    const enabled = await enablePush(props.vapidPublicKey ?? '');
+    pushBusy.value = false;
+    pushFailed.value = !enabled;
+}
 const open = computed(() => props.shifts.filter((s) => s.myStatus !== 'assigned' && s.myStatus !== 'available' && !s.canModerate));
 
 // Soft area membership (D18): your areas first, the rest stays visible
@@ -198,6 +215,18 @@ function cancelSubstitution(shift: VolunteerShift) {
                     <Button type="button" size="sm" variant="ghost" @click="contactFormOpen = false">Annulla</Button>
                 </div>
             </form>
+        </section>
+
+        <!-- Push nudge: one tap, nothing to type -->
+        <section v-if="showPushNudge" class="flex flex-wrap items-center gap-2 rounded-xl border p-3">
+            <Bell class="h-4 w-4 text-muted-foreground" />
+            <p class="min-w-0 flex-1 text-sm text-muted-foreground">Vuoi un promemoria prima dei tuoi turni?</p>
+            <Button size="sm" :disabled="pushBusy" @click="activatePush">Attiva le notifiche</Button>
+        </section>
+        <section v-else-if="pushFailed" class="rounded-xl border p-3">
+            <p class="text-sm text-muted-foreground">
+                Notifiche non attivate. Nessun problema: se lasci un'email qui sopra, i promemoria arrivano lì.
+            </p>
         </section>
 
         <!-- One management section per managed area (D18) -->
