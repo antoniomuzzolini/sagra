@@ -169,6 +169,38 @@ class ManagerPowersTest extends TestCase
         $this->assertSame(0, ShiftSignup::count());
     }
 
+    public function test_a_manager_can_add_a_volunteer_and_gets_their_link()
+    {
+        $this->actingAs($this->manager, 'volunteer')
+            ->post('/me/people', ['name' => 'Luigia Verdi', 'phone' => '+39 333 9876543'])
+            ->assertRedirect()
+            ->assertSessionHas('magicLink', fn ($flash) => $flash['personName'] === 'Luigia Verdi');
+
+        $person = Person::where('name', 'Luigia Verdi')->first();
+        $this->assertSame($this->manager->tenant_id, $person->tenant_id);
+        $this->assertSame(1, $person->magicLinks()->count());
+    }
+
+    public function test_a_plain_volunteer_cannot_add_people()
+    {
+        $volunteer = Person::factory()->create(['tenant_id' => $this->area->tenant_id]);
+
+        $this->actingAs($volunteer, 'volunteer')
+            ->post('/me/people', ['name' => 'Intruso'])
+            ->assertNotFound();
+
+        $this->assertNull(Person::where('name', 'Intruso')->first());
+    }
+
+    public function test_adding_a_volunteer_with_a_taken_phone_is_rejected()
+    {
+        Person::factory()->create(['tenant_id' => $this->area->tenant_id, 'phone' => '+39 333 9876543']);
+
+        $this->actingAs($this->manager, 'volunteer')
+            ->post('/me/people', ['name' => 'Luigia Verdi', 'phone' => '+39 333 9876543'])
+            ->assertSessionHasErrors('phone');
+    }
+
     public function test_the_home_ships_the_manager_toolkit_only_to_managers()
     {
         $volunteer = Person::factory()->create(['tenant_id' => $this->area->tenant_id]);

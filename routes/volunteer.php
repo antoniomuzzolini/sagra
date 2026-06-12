@@ -3,6 +3,7 @@
 use App\Http\Controllers\Volunteer\HomeController;
 use App\Http\Controllers\Volunteer\JoinController;
 use App\Http\Controllers\Volunteer\MagicLinkController;
+use App\Http\Controllers\Volunteer\ManagerPeopleController;
 use App\Http\Controllers\Volunteer\ManagerShiftController;
 use App\Http\Controllers\Volunteer\ProfileController;
 use App\Http\Controllers\Volunteer\PushSubscriptionController;
@@ -40,6 +41,7 @@ Route::middleware('auth:volunteer')->group(function () {
     Route::delete('me/push-subscriptions', [PushSubscriptionController::class, 'destroy'])->name('volunteer.push.destroy');
 
     // Area managers (D18): run your own area, still via magic link.
+    Route::post('me/people', [ManagerPeopleController::class, 'store'])->name('volunteer.people.store');
     Route::post('me/areas/{area}/shifts', [ManagerShiftController::class, 'store'])->name('volunteer.shifts.store');
     Route::put('me/shifts/{shift}', [ManagerShiftController::class, 'update'])->name('volunteer.shifts.update');
     Route::delete('me/shifts/{shift}', [ManagerShiftController::class, 'destroy'])->name('volunteer.shifts.destroy');
