@@ -110,6 +110,8 @@ class EventController extends Controller
                         'id' => $role->id,
                         'personId' => $role->person_id,
                         'name' => $role->person->name,
+                        'phone' => $role->person->phone,
+                        'email' => $role->person->email,
                     ]),
                     'shifts' => $area->shifts->map(fn ($shift) => [
                         'id' => $shift->id,
@@ -121,6 +123,8 @@ class EventController extends Controller
                         'signups' => $shift->signups->map(fn ($signup) => [
                             'id' => $signup->id,
                             'personName' => $signup->person->name,
+                            'personPhone' => $signup->person->phone,
+                            'personEmail' => $signup->person->email,
                             'status' => $signup->status->value,
                             'substitutionRequested' => $signup->substitution_requested_at !== null,
                         ]),

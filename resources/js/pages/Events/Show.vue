@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import InputError from '@/components/InputError.vue';
+import PersonContact from '@/components/PersonContact.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -15,6 +16,8 @@ import { computed, ref } from 'vue';
 interface SignupRow {
     id: number;
     personName: string;
+    personPhone: string | null;
+    personEmail: string | null;
     status: 'available' | 'assigned' | 'declined';
     substitutionRequested: boolean;
 }
@@ -33,6 +36,8 @@ interface ManagerRow {
     id: number;
     personId: number;
     name: string;
+    phone: string | null;
+    email: string | null;
 }
 
 interface AreaRow {
@@ -253,7 +258,7 @@ function removeSignup(signup: SignupRow) {
                                 :key="manager.id"
                                 class="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5"
                             >
-                                {{ manager.name }}
+                                <PersonContact :name="manager.name" :phone="manager.phone" :email="manager.email" />
                                 <button
                                     type="button"
                                     class="text-muted-foreground hover:text-foreground"
@@ -328,7 +333,7 @@ function removeSignup(signup: SignupRow) {
                             <div v-if="shift.signups.length > 0" class="grid w-full gap-1 border-t pt-2">
                                 <div v-for="signup in shift.signups" :key="signup.id" class="flex items-center gap-2">
                                     <span class="min-w-0 flex-1 truncate">
-                                        {{ signup.personName }}
+                                        <PersonContact :name="signup.personName" :phone="signup.personPhone" :email="signup.personEmail" />
                                         <span
                                             v-if="signup.substitutionRequested"
                                             class="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800 dark:bg-amber-900 dark:text-amber-100"

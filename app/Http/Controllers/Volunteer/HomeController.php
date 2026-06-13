@@ -109,6 +109,8 @@ class HomeController extends Controller
                             'id' => $signup->id,
                             'personId' => $signup->person_id,
                             'personName' => $signup->person->name,
+                            'personPhone' => $signup->person->phone,
+                            'personEmail' => $signup->person->email,
                             'status' => $signup->status->value,
                             'substitutionRequested' => $signup->substitution_requested_at !== null,
                             'overlapsWith' => $overlapFor($signup->person_id, $shift),

@@ -201,6 +201,26 @@ class ManagerPowersTest extends TestCase
             ->assertSessionHasErrors('phone');
     }
 
+    public function test_the_home_exposes_volunteer_contacts_in_the_managed_signups()
+    {
+        // The contact popup needs phone/email alongside the name, but only
+        // for areas the manager runs.
+        $shift = Shift::factory()->for($this->area)->create(['tenant_id' => $this->area->tenant_id, 'starts_at' => now()->addDay()]);
+        $volunteer = Person::factory()->create([
+            'tenant_id' => $this->area->tenant_id,
+            'phone' => '+39 333 1112223',
+            'email' => 'volontario@esempio.it',
+        ]);
+        ShiftSignup::factory()->for($shift)->for($volunteer)->create(['status' => SignupStatus::Available]);
+
+        $this->actingAs($this->manager, 'volunteer')->get('/me')->assertInertia(
+            fn ($page) => $page
+                ->where('shifts.0.signups.0.personName', $volunteer->name)
+                ->where('shifts.0.signups.0.personPhone', '+39 333 1112223')
+                ->where('shifts.0.signups.0.personEmail', 'volontario@esempio.it')
+        );
+    }
+
     public function test_the_home_ships_the_manager_toolkit_only_to_managers()
     {
         $volunteer = Person::factory()->create(['tenant_id' => $this->area->tenant_id]);

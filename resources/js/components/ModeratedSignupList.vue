@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PersonContact from '@/components/PersonContact.vue';
 import { Button } from '@/components/ui/button';
 import { router } from '@inertiajs/vue3';
 
@@ -6,6 +7,8 @@ export interface ModeratedSignup {
     id: number;
     personId: number;
     personName: string;
+    personPhone: string | null;
+    personEmail: string | null;
     status: 'available' | 'assigned' | 'declined';
     substitutionRequested: boolean;
     overlapsWith: string | null;
@@ -41,7 +44,7 @@ function assign(event: Event) {
     <div v-if="signups.length > 0 || people" class="mt-2 grid gap-1 border-t pt-2">
         <div v-for="signup in signups" :key="signup.id" class="flex items-center gap-2 text-sm">
             <span class="min-w-0 flex-1 truncate">
-                {{ signup.personName }}
+                <PersonContact :name="signup.personName" :phone="signup.personPhone" :email="signup.personEmail" />
                 <span
                     v-if="signup.substitutionRequested"
                     class="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800 dark:bg-amber-900 dark:text-amber-100"
