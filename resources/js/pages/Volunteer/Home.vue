@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import ModeratedSignupList, { type ModeratedSignup } from '@/components/ModeratedSignupList.vue';
+import ScheduleTimeline from '@/components/ScheduleTimeline.vue';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,13 @@ interface VolunteerShift {
     signups: ModeratedSignup[];
 }
 
+interface ScheduleArea {
+    id: number;
+    name: string;
+    family: string | null;
+    shifts: { id: number; starts_at: string; ends_at: string; needed_people: number; assigned_count: number; notes: string | null }[];
+}
+
 const props = defineProps<{
     person: { name: string; phone: string | null; email: string | null; needsContact: boolean; hasPush: boolean };
     tenant: { name: string };
@@ -35,14 +43,15 @@ const props = defineProps<{
         areas: { id: number; name: string }[];
         people: { id: number; name: string }[];
         inviteUrl: string;
+        schedule: { areas: ScheduleArea[]; phases: { type: string; starts_on: string; ends_on: string }[] };
     } | null;
     vapidPublicKey: string | null;
     shifts: VolunteerShift[];
 }>();
 
-// Managers get one tab per area plus their personal one; everyone
-// else just sees the personal view, no tab bar at all.
-const activeTab = ref<number | 'me'>(props.manager ? props.manager.areas[0].id : 'me');
+// Managers get one tab per area, a cross-area schedule, and their
+// personal one; everyone else just sees the personal view, no tab bar.
+const activeTab = ref<number | 'schedule' | 'me'>(props.manager ? props.manager.areas[0].id : 'me');
 
 // Profile: contacts are editable any time — they unlock reminders
 // and self-service recovery (D16).
@@ -261,8 +270,16 @@ function cancelSubstitution(shift: VolunteerShift) {
             >
                 {{ area.name }}
             </Button>
+            <Button :variant="activeTab === 'schedule' ? 'secondary' : 'ghost'" size="sm" @click="activeTab = 'schedule'">Calendario</Button>
             <Button :variant="activeTab === 'me' ? 'secondary' : 'ghost'" size="sm" @click="activeTab = 'me'">I miei turni</Button>
         </nav>
+
+        <!-- Scoped schedule (managers): the areas you run, across the days -->
+        <ScheduleTimeline
+            v-if="manager && activeTab === 'schedule'"
+            :areas="manager.schedule.areas"
+            :phases="manager.schedule.phases"
+        />
 
         <!-- Area management tabs (D18) -->
         <template v-for="area in manager?.areas ?? []" :key="area.id">

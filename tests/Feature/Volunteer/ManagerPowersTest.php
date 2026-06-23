@@ -2,12 +2,14 @@
 
 namespace Tests\Feature\Volunteer;
 
+use App\Enums\PhaseType;
 use App\Enums\Role;
 use App\Enums\SignupStatus;
 use App\Models\Area;
 use App\Models\Event;
 use App\Models\Person;
 use App\Models\PersonRole;
+use App\Models\Phase;
 use App\Models\Shift;
 use App\Models\ShiftSignup;
 use App\Models\Tenant;
@@ -218,6 +220,34 @@ class ManagerPowersTest extends TestCase
                 ->where('shifts.0.signups.0.personName', $volunteer->name)
                 ->where('shifts.0.signups.0.personPhone', '+39 333 1112223')
                 ->where('shifts.0.signups.0.personEmail', 'volontario@esempio.it')
+        );
+    }
+
+    public function test_the_home_includes_a_scoped_schedule_for_the_managed_areas()
+    {
+        $event = $this->area->event;
+        Phase::factory()->for($event)->create([
+            'tenant_id' => $this->area->tenant_id,
+            'type' => PhaseType::Service,
+            'starts_on' => '2026-07-11',
+            'ends_on' => '2026-07-13',
+        ]);
+        $shift = Shift::factory()->for($this->area)->create([
+            'tenant_id' => $this->area->tenant_id,
+            'starts_at' => '2026-07-12 18:00',
+            'ends_at' => '2026-07-12 22:00',
+        ]);
+        // A shift in an area she does not manage must stay out of her schedule.
+        Shift::factory()->for($this->otherArea)->create(['tenant_id' => $this->area->tenant_id]);
+
+        $this->actingAs($this->manager, 'volunteer')->get('/me')->assertInertia(
+            fn ($page) => $page
+                ->has('manager.schedule.areas', 1)
+                ->where('manager.schedule.areas.0.id', $this->area->id)
+                ->has('manager.schedule.areas.0.shifts', 1)
+                ->where('manager.schedule.areas.0.shifts.0.id', $shift->id)
+                ->has('manager.schedule.phases', 1)
+                ->where('manager.schedule.phases.0.type', 'service')
         );
     }
 

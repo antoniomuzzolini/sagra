@@ -58,6 +58,20 @@ class HomeController extends Controller
             return null;
         };
 
+        // Managed areas with their full schedule (past and future), for the
+        // scoped Calendario — the same timeline the organizer sees, narrowed
+        // to the areas this person runs (D18).
+        $managedAreas = $managedAreaIds->isEmpty() ? collect() : Area::query()
+            ->whereIn('id', $managedAreaIds)
+            ->with([
+                'event.phases' => fn ($query) => $query->orderBy('starts_on'),
+                'shifts' => fn ($query) => $query
+                    ->withCount(['signups as assigned_count' => fn ($q) => $q->where('status', SignupStatus::Assigned)])
+                    ->orderBy('starts_at'),
+            ])
+            ->orderBy('name')
+            ->get();
+
         return Inertia::render('Volunteer/Home', [
             'person' => [
                 'name' => $person->name,
@@ -72,17 +86,39 @@ class HomeController extends Controller
             'tenant' => ['name' => $person->tenant->name],
             // The manager toolkit (D18): only for people running areas.
             'manager' => $managedAreaIds->isEmpty() ? null : [
-                'areas' => Area::query()
-                    ->whereIn('id', $managedAreaIds)
-                    ->orderBy('name')
-                    ->get(['id', 'name'])
-                    ->map(fn (Area $area) => ['id' => $area->id, 'name' => $area->name]),
+                'areas' => $managedAreas->map(fn (Area $area) => ['id' => $area->id, 'name' => $area->name]),
                 'people' => Person::query()
                     ->where('tenant_id', $person->tenant_id)
                     ->orderBy('name')
                     ->get(['id', 'name'])
                     ->map(fn (Person $p) => ['id' => $p->id, 'name' => $p->name]),
                 'inviteUrl' => route('join.show', $person->tenant->inviteToken()),
+                'schedule' => [
+                    'areas' => $managedAreas->map(fn (Area $area) => [
+                        'id' => $area->id,
+                        'name' => $area->name,
+                        'family' => $area->family?->value,
+                        'shifts' => $area->shifts->map(fn (Shift $shift) => [
+                            'id' => $shift->id,
+                            'starts_at' => $shift->starts_at->toIso8601String(),
+                            'ends_at' => $shift->ends_at->toIso8601String(),
+                            'needed_people' => $shift->needed_people,
+                            'assigned_count' => $shift->assigned_count,
+                            'notes' => $shift->notes,
+                        ]),
+                    ]),
+                    // Phases of every event those areas belong to, so each day
+                    // can show its phase. Deduped across areas sharing an event.
+                    'phases' => $managedAreas
+                        ->flatMap(fn (Area $area) => $area->event->phases)
+                        ->unique('id')
+                        ->map(fn ($phase) => [
+                            'type' => $phase->type->value,
+                            'starts_on' => $phase->starts_on->toDateString(),
+                            'ends_on' => $phase->ends_on->toDateString(),
+                        ])
+                        ->values(),
+                ],
             ],
             'shifts' => $shifts->map(function (Shift $shift) use ($person, $managedAreaIds, $myAreaIds, $overlapFor) {
                 $mine = $shift->signups->firstWhere('person_id', $person->id);
