@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Volunteer;
 
+use App\Enums\Role;
 use App\Enums\SignupStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Area;
 use App\Models\Person;
 use App\Models\Shift;
+use App\Support\PersonRoster;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -76,6 +78,19 @@ class HomeController extends Controller
             ->orderBy('name')
             ->get();
 
+        // Scoped roster (D18): people who belong to the areas this person
+        // runs — through signups there, or by co-managing them.
+        $roster = $managedAreaIds->isEmpty() ? collect() : PersonRoster::rows(
+            Person::query()
+                ->where('tenant_id', $person->tenant_id)
+                ->where(fn ($query) => $query
+                    ->whereHas('signups.shift', fn ($q) => $q->whereIn('area_id', $managedAreaIds))
+                    ->orWhereHas('roles', fn ($q) => $q->where('role', Role::AreaManager)->whereIn('area_id', $managedAreaIds)))
+                ->with(PersonRoster::eagerLoads())
+                ->orderBy('name')
+                ->get()
+        );
+
         return Inertia::render('Volunteer/Home', [
             'person' => [
                 'name' => $person->name,
@@ -97,6 +112,7 @@ class HomeController extends Controller
                     ->get(['id', 'name'])
                     ->map(fn (Person $p) => ['id' => $p->id, 'name' => $p->name]),
                 'inviteUrl' => route('join.show', $person->tenant->inviteToken()),
+                'roster' => $roster,
                 // Scoped coverage for the shared overview dashboard (D18).
                 'overview' => $managedAreas->map(fn (Area $area) => [
                     'id' => $area->id,

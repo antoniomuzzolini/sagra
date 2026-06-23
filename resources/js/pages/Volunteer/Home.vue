@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ModeratedSignupList, { type ModeratedSignup } from '@/components/ModeratedSignupList.vue';
 import OverviewDashboard, { type OverviewArea } from '@/components/OverviewDashboard.vue';
+import PeopleRoster, { type PersonRosterRow } from '@/components/PeopleRoster.vue';
 import ScheduleTimeline from '@/components/ScheduleTimeline.vue';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -45,6 +46,7 @@ const props = defineProps<{
         people: { id: number; name: string }[];
         inviteUrl: string;
         overview: OverviewArea[];
+        roster: PersonRosterRow[];
         schedule: { areas: ScheduleArea[]; phases: { type: string; starts_on: string; ends_on: string }[] };
     } | null;
     vapidPublicKey: string | null;
@@ -54,7 +56,7 @@ const props = defineProps<{
 // Managers land on the overview, then one tab per area, a cross-area
 // schedule, and their personal one; everyone else just sees the personal
 // view, no tab bar.
-const activeTab = ref<number | 'overview' | 'schedule' | 'me'>(props.manager ? 'overview' : 'me');
+const activeTab = ref<number | 'overview' | 'schedule' | 'people' | 'me'>(props.manager ? 'overview' : 'me');
 
 // Profile: contacts are editable any time — they unlock reminders
 // and self-service recovery (D16).
@@ -266,6 +268,7 @@ function cancelSubstitution(shift: VolunteerShift) {
         <nav v-if="manager" class="flex flex-wrap gap-1 border-b pb-2">
             <Button :variant="activeTab === 'overview' ? 'secondary' : 'ghost'" size="sm" @click="activeTab = 'overview'">Panoramica</Button>
             <Button :variant="activeTab === 'schedule' ? 'secondary' : 'ghost'" size="sm" @click="activeTab = 'schedule'">Calendario</Button>
+            <Button :variant="activeTab === 'people' ? 'secondary' : 'ghost'" size="sm" @click="activeTab = 'people'">Persone</Button>
             <Button
                 v-for="area in manager.areas"
                 :key="area.id"
@@ -283,6 +286,9 @@ function cancelSubstitution(shift: VolunteerShift) {
 
         <!-- Scoped schedule (managers): the areas you run, across the days -->
         <ScheduleTimeline v-if="manager && activeTab === 'schedule'" :areas="manager.schedule.areas" :phases="manager.schedule.phases" />
+
+        <!-- Scoped roster (managers): people in the areas you run -->
+        <PeopleRoster v-if="manager && activeTab === 'people'" :people="manager.roster" />
 
         <!-- Area management tabs (D18) -->
         <template v-for="area in manager?.areas ?? []" :key="area.id">

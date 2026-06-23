@@ -223,6 +223,31 @@ class ManagerPowersTest extends TestCase
         );
     }
 
+    public function test_the_home_roster_is_scoped_to_people_in_the_managed_areas()
+    {
+        $tenant = $this->area->tenant_id;
+
+        $here = Person::factory()->create(['tenant_id' => $tenant, 'name' => 'Dentro Area']);
+        $hereShift = Shift::factory()->for($this->area)->create(['tenant_id' => $tenant]);
+        ShiftSignup::factory()->for($hereShift)->for($here)->create(['tenant_id' => $tenant, 'status' => SignupStatus::Available]);
+
+        $elsewhere = Person::factory()->create(['tenant_id' => $tenant, 'name' => 'Solo Altrove']);
+        $otherShift = Shift::factory()->for($this->otherArea)->create(['tenant_id' => $tenant]);
+        ShiftSignup::factory()->for($otherShift)->for($elsewhere)->create(['tenant_id' => $tenant, 'status' => SignupStatus::Available]);
+
+        $this->actingAs($this->manager, 'volunteer')->get('/me')->assertInertia(
+            fn ($page) => $page->where('manager.roster', function ($roster) {
+                $names = collect($roster)->pluck('name');
+
+                // The volunteer in her area and herself (co-manager) are in;
+                // the one who only works elsewhere is out.
+                return $names->contains('Dentro Area')
+                    && $names->contains($this->manager->name)
+                    && ! $names->contains('Solo Altrove');
+            })
+        );
+    }
+
     public function test_the_home_includes_a_scoped_overview_for_the_managed_areas()
     {
         $shift = Shift::factory()->for($this->area)->create(['tenant_id' => $this->area->tenant_id, 'needed_people' => 3]);
