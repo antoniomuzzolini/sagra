@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Avatar from '@/components/Avatar.vue';
 import PersonContact from '@/components/PersonContact.vue';
 import { Button } from '@/components/ui/button';
 import { router } from '@inertiajs/vue3';
@@ -43,6 +44,7 @@ function assign(event: Event) {
 <template>
     <div v-if="signups.length > 0 || people" class="mt-2 grid gap-1 border-t pt-2">
         <div v-for="signup in signups" :key="signup.id" class="flex items-center gap-2 text-sm">
+            <Avatar :name="signup.personName" :size="24" />
             <span class="min-w-0 flex-1 truncate">
                 <PersonContact :name="signup.personName" :phone="signup.personPhone" :email="signup.personEmail" />
                 <span

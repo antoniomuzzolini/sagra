@@ -161,6 +161,7 @@ class HomeController extends Controller
                     'event' => $shift->area->event->name,
                     'area' => $shift->area->name,
                     'areaId' => $shift->area_id,
+                    'areaFamily' => $shift->area->family?->value,
                     'starts_at' => $shift->starts_at->toIso8601String(),
                     'ends_at' => $shift->ends_at->toIso8601String(),
                     'needed_people' => $shift->needed_people,

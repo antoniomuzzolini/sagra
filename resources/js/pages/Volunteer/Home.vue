@@ -2,10 +2,12 @@
 import ModeratedSignupList, { type ModeratedSignup } from '@/components/ModeratedSignupList.vue';
 import OverviewDashboard, { type OverviewArea } from '@/components/OverviewDashboard.vue';
 import PeopleRoster, { type PersonRosterRow } from '@/components/PeopleRoster.vue';
+import Pill from '@/components/Pill.vue';
 import ScheduleTimeline from '@/components/ScheduleTimeline.vue';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { areaColors } from '@/lib/colors';
 import { formatTime } from '@/lib/event-helpers';
 import { enablePush, pushDenied, pushSupported } from '@/lib/push';
 import { type MagicLinkFlash, type SharedData } from '@/types';
@@ -18,6 +20,7 @@ interface VolunteerShift {
     event: string;
     area: string;
     areaId: number;
+    areaFamily: string | null;
     starts_at: string;
     ends_at: string;
     needed_people: number;
@@ -338,16 +341,12 @@ function cancelSubstitution(shift: VolunteerShift) {
                             <p class="font-medium text-foreground first-letter:uppercase">
                                 {{ shortDayLabel(shift.starts_at) }} · {{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }}
                             </p>
-                            <p
-                                class="text-sm"
-                                :class="
-                                    shift.assigned_count >= shift.needed_people
-                                        ? 'text-green-700 dark:text-green-400'
-                                        : 'text-amber-700 dark:text-amber-400'
-                                "
-                            >
-                                {{ shift.assigned_count }}/{{ shift.needed_people }} coperti
-                            </p>
+                            <div class="mt-0.5 flex items-center gap-2 text-sm">
+                                <Pill :variant="shift.assigned_count >= shift.needed_people ? 'good' : 'warn'">
+                                    {{ shift.assigned_count >= shift.needed_people ? 'Completo' : `Servono ${shift.needed_people - shift.assigned_count}` }}
+                                </Pill>
+                                <span class="text-muted-foreground">{{ shift.assigned_count }}/{{ shift.needed_people }}</span>
+                            </div>
                             <p v-if="shift.notes" class="text-sm text-muted-foreground">{{ shift.notes }}</p>
                         </div>
                         <Button variant="ghost" size="icon" aria-label="Modifica turno" @click="openEditShift(shift)">
@@ -372,7 +371,10 @@ function cancelSubstitution(shift: VolunteerShift) {
                     :key="shift.id"
                     class="rounded-xl border border-green-200 bg-green-50 p-3 dark:border-green-900 dark:bg-green-950"
                 >
-                    <p class="font-medium text-foreground">{{ shift.area }} · {{ dayLabel(shift.starts_at) }}</p>
+                    <p class="flex items-center gap-1.5 font-medium text-foreground">
+                        <span class="h-2 w-2 shrink-0 rounded-full" :style="{ background: areaColors(shift.areaFamily, shift.area).solid }"></span>
+                        {{ shift.area }} · {{ dayLabel(shift.starts_at) }}
+                    </p>
                     <p class="text-sm text-muted-foreground">{{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }} · {{ shift.event }}</p>
                     <p v-if="shift.notes" class="text-sm text-muted-foreground">{{ shift.notes }}</p>
                     <p v-if="shift.myOverlap" class="text-sm text-amber-700 dark:text-amber-400">⚠ Si sovrappone con {{ shift.myOverlap }}</p>
@@ -393,7 +395,10 @@ function cancelSubstitution(shift: VolunteerShift) {
                 <h2 class="flex items-center gap-2 font-medium text-foreground"><Hand class="h-4 w-4 text-amber-600" /> In attesa di conferma</h2>
                 <div v-for="shift in pending" :key="shift.id" class="flex items-center gap-2 rounded-xl border p-3">
                     <div class="min-w-0 flex-1">
-                        <p class="font-medium text-foreground">{{ shift.area }} · {{ dayLabel(shift.starts_at) }}</p>
+                        <p class="flex items-center gap-1.5 font-medium text-foreground">
+                        <span class="h-2 w-2 shrink-0 rounded-full" :style="{ background: areaColors(shift.areaFamily, shift.area).solid }"></span>
+                        {{ shift.area }} · {{ dayLabel(shift.starts_at) }}
+                    </p>
                         <p class="text-sm text-muted-foreground">{{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }}</p>
                         <p v-if="shift.myOverlap" class="text-sm text-amber-700 dark:text-amber-400">⚠ Si sovrappone con {{ shift.myOverlap }}</p>
                     </div>
@@ -411,7 +416,10 @@ function cancelSubstitution(shift: VolunteerShift) {
                     <h3 class="text-sm font-medium text-muted-foreground first-letter:uppercase">{{ day }}</h3>
                     <div v-for="shift in dayShifts" :key="shift.id" class="flex items-center gap-2 rounded-xl border p-3">
                         <div class="min-w-0 flex-1">
-                            <p class="font-medium text-foreground">{{ shift.area }}</p>
+                            <p class="flex items-center gap-1.5 font-medium text-foreground">
+                                <span class="h-2 w-2 shrink-0 rounded-full" :style="{ background: areaColors(shift.areaFamily, shift.area).solid }"></span>
+                                {{ shift.area }}
+                            </p>
                             <p class="text-sm text-muted-foreground">
                                 {{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }} · {{ shift.assigned_count }}/{{
                                     shift.needed_people
@@ -436,7 +444,10 @@ function cancelSubstitution(shift: VolunteerShift) {
                         <h3 class="text-sm font-medium text-muted-foreground first-letter:uppercase">{{ day }}</h3>
                         <div v-for="shift in dayShifts" :key="shift.id" class="flex items-center gap-2 rounded-xl border p-3">
                             <div class="min-w-0 flex-1">
-                                <p class="font-medium text-foreground">{{ shift.area }}</p>
+                                <p class="flex items-center gap-1.5 font-medium text-foreground">
+                                <span class="h-2 w-2 shrink-0 rounded-full" :style="{ background: areaColors(shift.areaFamily, shift.area).solid }"></span>
+                                {{ shift.area }}
+                            </p>
                                 <p class="text-sm text-muted-foreground">
                                     {{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }} · {{ shift.assigned_count }}/{{
                                         shift.needed_people
