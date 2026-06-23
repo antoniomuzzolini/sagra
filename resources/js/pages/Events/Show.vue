@@ -1,18 +1,14 @@
 <script setup lang="ts">
-import Avatar from '@/components/Avatar.vue';
 import InputError from '@/components/InputError.vue';
+import OverviewDashboard, { type OverviewArea } from '@/components/OverviewDashboard.vue';
 import PersonContact from '@/components/PersonContact.vue';
-import Pill from '@/components/Pill.vue';
-import Progress from '@/components/Progress.vue';
 import ScheduleTimeline from '@/components/ScheduleTimeline.vue';
-import StatCard from '@/components/StatCard.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { areaColors } from '@/lib/colors';
 import { areaFamilyLabels, formatDate, formatTime, phaseTypeLabels } from '@/lib/event-helpers';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
@@ -96,42 +92,19 @@ function submitEvent() {
 const activeTab = ref<'overview' | 'calendario' | number | 'new'>(props.event.areas.length ? 'overview' : 'new');
 const currentArea = computed(() => (typeof activeTab.value !== 'number' ? null : (props.event.areas.find((a) => a.id === activeTab.value) ?? null)));
 
-// Coverage derived per area (and totalled) from shift needs vs. assignments —
-// the same figures shown on each area's detail, aggregated for the dashboard.
-const areaStatsById = computed(() => {
-    const map: Record<
-        number,
-        { needed: number; filled: number; pct: number; full: boolean; empty: boolean; managersLabel: string; people: string[] }
-    > = {};
-    for (const area of props.event.areas) {
-        const needed = area.shifts.reduce((s, sh) => s + sh.needed_people, 0);
-        const filled = area.shifts.reduce((s, sh) => s + sh.assigned_count, 0);
-        // Distinct people actually assigned somewhere in the area, for the avatar stack.
-        const people = Array.from(new Set(area.shifts.flatMap((sh) => sh.signups.filter((x) => x.status === 'assigned').map((x) => x.personName))));
-        map[area.id] = {
-            needed,
-            filled,
-            pct: needed ? Math.round((filled / needed) * 100) : 0,
-            full: needed > 0 && filled >= needed,
-            empty: needed === 0,
-            managersLabel: area.managers.length ? 'Resp. · ' + area.managers.map((m) => m.name).join(', ') : 'Nessun responsabile',
-            people,
-        };
-    }
-    return map;
-});
-
-const overview = computed(() => {
-    const stats = props.event.areas.map((a) => areaStatsById.value[a.id]);
-    const needed = stats.reduce((s, x) => s + x.needed, 0);
-    const filled = stats.reduce((s, x) => s + x.filled, 0);
-    return {
-        needed,
-        filled,
-        pct: needed ? Math.round((filled / needed) * 100) : 0,
-        needHelp: stats.filter((x) => !x.empty && x.filled < x.needed).length,
-    };
-});
+// Per-area coverage for the shared overview dashboard, derived from shift
+// needs vs. assignments and the people actually assigned in the area.
+const overviewAreas = computed<OverviewArea[]>(() =>
+    props.event.areas.map((area) => ({
+        id: area.id,
+        name: area.name,
+        family: area.family,
+        needed: area.shifts.reduce((s, sh) => s + sh.needed_people, 0),
+        filled: area.shifts.reduce((s, sh) => s + sh.assigned_count, 0),
+        people: Array.from(new Set(area.shifts.flatMap((sh) => sh.signups.filter((x) => x.status === 'assigned').map((x) => x.personName)))),
+        managers: area.managers.map((m) => m.name),
+    })),
+);
 
 // New area
 const areaForm = useForm({ name: '', family: '' });
@@ -269,70 +242,13 @@ function removeSignup(signup: SignupRow) {
             </nav>
 
             <!-- Overview dashboard -->
-            <div v-if="activeTab === 'overview'" class="grid gap-4">
-                <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <StatCard :value="`${overview.filled} / ${overview.needed}`" label="Posti coperti" />
-                    <StatCard :value="`${overview.pct}%`" label="Copertura turni" />
-                    <StatCard :value="event.areas.length" label="Aree" />
-                    <StatCard :value="overview.needHelp" label="Da coprire" :accent="overview.needHelp > 0" />
-                </div>
-
-                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    <button
-                        v-for="area in event.areas"
-                        :key="area.id"
-                        type="button"
-                        class="flex flex-col gap-3 rounded-xl border bg-card p-4 text-left transition hover:border-foreground/30 hover:shadow-sm"
-                        @click="activeTab = area.id"
-                    >
-                        <div class="flex items-center gap-3">
-                            <div
-                                class="flex h-9 w-9 items-center justify-center rounded-lg text-sm font-semibold"
-                                :style="{ background: areaColors(area.family, area.name).soft, color: areaColors(area.family, area.name).solid }"
-                            >
-                                {{ area.name[0]?.toUpperCase() }}
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <div class="truncate font-medium">{{ area.name }}</div>
-                                <div class="truncate text-xs text-muted-foreground">{{ areaStatsById[area.id].managersLabel }}</div>
-                            </div>
-                            <Pill v-if="areaStatsById[area.id].empty" variant="neutral">Nessun turno</Pill>
-                            <Pill v-else-if="areaStatsById[area.id].full" variant="good">Completo</Pill>
-                            <Pill v-else variant="warn">Servono {{ areaStatsById[area.id].needed - areaStatsById[area.id].filled }}</Pill>
-                        </div>
-                        <div>
-                            <div class="flex items-center justify-between text-sm">
-                                <span class="text-muted-foreground">Coperti</span>
-                                <span
-                                    ><b>{{ areaStatsById[area.id].filled }}</b>
-                                    <span class="text-muted-foreground">di {{ areaStatsById[area.id].needed }}</span></span
-                                >
-                            </div>
-                            <Progress class="mt-1.5" :value="areaStatsById[area.id].pct" :full="areaStatsById[area.id].full" />
-                        </div>
-                        <div class="flex min-h-7 items-center">
-                            <div v-if="areaStatsById[area.id].people.length" class="flex -space-x-2">
-                                <Avatar v-for="p in areaStatsById[area.id].people.slice(0, 5)" :key="p" :name="p" :size="28" />
-                                <div
-                                    v-if="areaStatsById[area.id].people.length > 5"
-                                    class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium ring-2 ring-background"
-                                >
-                                    +{{ areaStatsById[area.id].people.length - 5 }}
-                                </div>
-                            </div>
-                            <span v-else class="text-xs text-muted-foreground">Nessun assegnato</span>
-                        </div>
-                    </button>
-
-                    <button
-                        type="button"
-                        class="flex items-center justify-center gap-2 rounded-xl border border-dashed p-4 text-sm text-muted-foreground transition hover:border-foreground/30 hover:text-foreground"
-                        @click="activeTab = 'new'"
-                    >
-                        <Plus class="h-4 w-4" /> Nuova area
-                    </button>
-                </div>
-            </div>
+            <OverviewDashboard
+                v-if="activeTab === 'overview'"
+                :areas="overviewAreas"
+                can-create
+                @select="activeTab = $event"
+                @create="activeTab = 'new'"
+            />
 
             <!-- Schedule timeline -->
             <ScheduleTimeline v-else-if="activeTab === 'calendario'" :areas="event.areas" :phases="event.phases" />

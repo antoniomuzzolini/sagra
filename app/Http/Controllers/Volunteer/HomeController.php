@@ -65,8 +65,12 @@ class HomeController extends Controller
             ->whereIn('id', $managedAreaIds)
             ->with([
                 'event.phases' => fn ($query) => $query->orderBy('starts_on'),
+                'managerRoles.person' => fn ($query) => $query->withTrashed(),
                 'shifts' => fn ($query) => $query
                     ->withCount(['signups as assigned_count' => fn ($q) => $q->where('status', SignupStatus::Assigned)])
+                    ->with(['signups' => fn ($q) => $q
+                        ->where('status', SignupStatus::Assigned)
+                        ->with(['person' => fn ($p) => $p->withTrashed()])])
                     ->orderBy('starts_at'),
             ])
             ->orderBy('name')
@@ -93,6 +97,18 @@ class HomeController extends Controller
                     ->get(['id', 'name'])
                     ->map(fn (Person $p) => ['id' => $p->id, 'name' => $p->name]),
                 'inviteUrl' => route('join.show', $person->tenant->inviteToken()),
+                // Scoped coverage for the shared overview dashboard (D18).
+                'overview' => $managedAreas->map(fn (Area $area) => [
+                    'id' => $area->id,
+                    'name' => $area->name,
+                    'family' => $area->family?->value,
+                    'needed' => $area->shifts->sum('needed_people'),
+                    'filled' => $area->shifts->sum('assigned_count'),
+                    'people' => collect($area->shifts->flatMap(fn (Shift $shift) => $shift->signups->map(fn ($signup) => $signup->person->name)))
+                        ->unique()
+                        ->values(),
+                    'managers' => $area->managerRoles->map(fn ($role) => $role->person->name)->values(),
+                ]),
                 'schedule' => [
                     'areas' => $managedAreas->map(fn (Area $area) => [
                         'id' => $area->id,

@@ -223,6 +223,23 @@ class ManagerPowersTest extends TestCase
         );
     }
 
+    public function test_the_home_includes_a_scoped_overview_for_the_managed_areas()
+    {
+        $shift = Shift::factory()->for($this->area)->create(['tenant_id' => $this->area->tenant_id, 'needed_people' => 3]);
+        $volunteer = Person::factory()->create(['tenant_id' => $this->area->tenant_id, 'name' => 'Gigi Volont']);
+        ShiftSignup::factory()->for($shift)->for($volunteer)->create(['tenant_id' => $this->area->tenant_id, 'status' => SignupStatus::Assigned]);
+
+        $this->actingAs($this->manager, 'volunteer')->get('/me')->assertInertia(
+            fn ($page) => $page
+                ->has('manager.overview', 1)
+                ->where('manager.overview.0.id', $this->area->id)
+                ->where('manager.overview.0.needed', 3)
+                ->where('manager.overview.0.filled', 1)
+                ->where('manager.overview.0.people', ['Gigi Volont'])
+                ->where('manager.overview.0.managers', [$this->manager->name])
+        );
+    }
+
     public function test_the_home_includes_a_scoped_schedule_for_the_managed_areas()
     {
         $event = $this->area->event;

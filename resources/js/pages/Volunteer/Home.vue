@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import ModeratedSignupList, { type ModeratedSignup } from '@/components/ModeratedSignupList.vue';
+import OverviewDashboard, { type OverviewArea } from '@/components/OverviewDashboard.vue';
 import ScheduleTimeline from '@/components/ScheduleTimeline.vue';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -43,15 +44,17 @@ const props = defineProps<{
         areas: { id: number; name: string }[];
         people: { id: number; name: string }[];
         inviteUrl: string;
+        overview: OverviewArea[];
         schedule: { areas: ScheduleArea[]; phases: { type: string; starts_on: string; ends_on: string }[] };
     } | null;
     vapidPublicKey: string | null;
     shifts: VolunteerShift[];
 }>();
 
-// Managers get one tab per area, a cross-area schedule, and their
-// personal one; everyone else just sees the personal view, no tab bar.
-const activeTab = ref<number | 'schedule' | 'me'>(props.manager ? props.manager.areas[0].id : 'me');
+// Managers land on the overview, then one tab per area, a cross-area
+// schedule, and their personal one; everyone else just sees the personal
+// view, no tab bar.
+const activeTab = ref<number | 'overview' | 'schedule' | 'me'>(props.manager ? 'overview' : 'me');
 
 // Profile: contacts are editable any time — they unlock reminders
 // and self-service recovery (D16).
@@ -261,6 +264,8 @@ function cancelSubstitution(shift: VolunteerShift) {
 
         <!-- Tab bar, managers only -->
         <nav v-if="manager" class="flex flex-wrap gap-1 border-b pb-2">
+            <Button :variant="activeTab === 'overview' ? 'secondary' : 'ghost'" size="sm" @click="activeTab = 'overview'">Panoramica</Button>
+            <Button :variant="activeTab === 'schedule' ? 'secondary' : 'ghost'" size="sm" @click="activeTab = 'schedule'">Calendario</Button>
             <Button
                 v-for="area in manager.areas"
                 :key="area.id"
@@ -270,16 +275,14 @@ function cancelSubstitution(shift: VolunteerShift) {
             >
                 {{ area.name }}
             </Button>
-            <Button :variant="activeTab === 'schedule' ? 'secondary' : 'ghost'" size="sm" @click="activeTab = 'schedule'">Calendario</Button>
             <Button :variant="activeTab === 'me' ? 'secondary' : 'ghost'" size="sm" @click="activeTab = 'me'">I miei turni</Button>
         </nav>
 
+        <!-- Scoped overview (managers): coverage of the areas you run -->
+        <OverviewDashboard v-if="manager && activeTab === 'overview'" :areas="manager.overview" @select="activeTab = $event" />
+
         <!-- Scoped schedule (managers): the areas you run, across the days -->
-        <ScheduleTimeline
-            v-if="manager && activeTab === 'schedule'"
-            :areas="manager.schedule.areas"
-            :phases="manager.schedule.phases"
-        />
+        <ScheduleTimeline v-if="manager && activeTab === 'schedule'" :areas="manager.schedule.areas" :phases="manager.schedule.phases" />
 
         <!-- Area management tabs (D18) -->
         <template v-for="area in manager?.areas ?? []" :key="area.id">
