@@ -4,6 +4,7 @@ import InputError from '@/components/InputError.vue';
 import PersonContact from '@/components/PersonContact.vue';
 import Pill from '@/components/Pill.vue';
 import Progress from '@/components/Progress.vue';
+import ScheduleTimeline from '@/components/ScheduleTimeline.vue';
 import StatCard from '@/components/StatCard.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -92,7 +93,7 @@ function submitEvent() {
 // Top-level navigation: the overview dashboard, one tab per area, plus the
 // "new area" one. Land on the overview, falling back to "new area" only when
 // there's nothing to show yet.
-const activeTab = ref<'overview' | number | 'new'>(props.event.areas.length ? 'overview' : 'new');
+const activeTab = ref<'overview' | 'calendario' | number | 'new'>(props.event.areas.length ? 'overview' : 'new');
 const currentArea = computed(() => (typeof activeTab.value !== 'number' ? null : (props.event.areas.find((a) => a.id === activeTab.value) ?? null)));
 
 // Coverage derived per area (and totalled) from shift needs vs. assignments —
@@ -246,6 +247,14 @@ function removeSignup(signup: SignupRow) {
             <nav class="flex flex-wrap gap-1 border-b pb-2">
                 <Button :variant="activeTab === 'overview' ? 'secondary' : 'ghost'" size="sm" @click="activeTab = 'overview'"> Panoramica </Button>
                 <Button
+                    v-if="event.areas.length"
+                    :variant="activeTab === 'calendario' ? 'secondary' : 'ghost'"
+                    size="sm"
+                    @click="activeTab = 'calendario'"
+                >
+                    Calendario
+                </Button>
+                <Button
                     v-for="area in event.areas"
                     :key="area.id"
                     :variant="currentArea?.id === area.id ? 'secondary' : 'ghost'"
@@ -324,6 +333,9 @@ function removeSignup(signup: SignupRow) {
                     </button>
                 </div>
             </div>
+
+            <!-- Schedule timeline -->
+            <ScheduleTimeline v-else-if="activeTab === 'calendario'" :areas="event.areas" :phases="event.phases" />
 
             <!-- New area -->
             <div v-else-if="activeTab === 'new' || !currentArea" class="grid gap-3">
