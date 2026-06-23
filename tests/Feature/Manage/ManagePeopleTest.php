@@ -2,7 +2,14 @@
 
 namespace Tests\Feature\Manage;
 
+use App\Enums\Role;
+use App\Enums\SignupStatus;
+use App\Models\Area;
+use App\Models\Event;
 use App\Models\Person;
+use App\Models\PersonRole;
+use App\Models\Shift;
+use App\Models\ShiftSignup;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -34,6 +41,43 @@ class ManagePeopleTest extends TestCase
             ->assertSee('Mario Rossi');
 
         $this->assertSame(1, Person::where('tenant_id', $user->tenant_id)->count());
+    }
+
+    public function test_the_roster_derives_role_areas_and_shift_count()
+    {
+        $user = $this->organizer();
+        $tenant = $user->tenant_id;
+        $event = Event::factory()->create(['tenant_id' => $tenant]);
+        $kitchen = Area::factory()->for($event)->create(['tenant_id' => $tenant, 'name' => 'Cucina']);
+        $bar = Area::factory()->for($event)->create(['tenant_id' => $tenant, 'name' => 'Bar']);
+
+        // A plain volunteer assigned to a kitchen shift: area derived from the
+        // signup, one shift counted.
+        $aldo = Person::factory()->create(['tenant_id' => $tenant, 'name' => 'Aldo Bianchi']);
+        $shift = Shift::factory()->for($kitchen)->create(['tenant_id' => $tenant]);
+        ShiftSignup::factory()->for($shift)->for($aldo)->create(['tenant_id' => $tenant, 'status' => SignupStatus::Assigned]);
+
+        // A bar manager with no signups: still belongs to the bar (managed),
+        // role is manager, zero shifts.
+        $bea = Person::factory()->create(['tenant_id' => $tenant, 'name' => 'Bea Costa']);
+        PersonRole::factory()->for($bea)->for($event)->create([
+            'tenant_id' => $tenant,
+            'role' => Role::AreaManager,
+            'area_id' => $bar->id,
+        ]);
+
+        $this->actingAs($user)->get('/people')->assertInertia(
+            fn ($page) => $page
+                ->component('People/Index')
+                ->where('people.0.name', 'Aldo Bianchi')
+                ->where('people.0.role', 'volunteer')
+                ->where('people.0.areas', ['Cucina'])
+                ->where('people.0.shiftsCount', 1)
+                ->where('people.1.name', 'Bea Costa')
+                ->where('people.1.role', 'manager')
+                ->where('people.1.areas', ['Bar'])
+                ->where('people.1.shiftsCount', 0)
+        );
     }
 
     public function test_an_organizer_can_create_a_person()

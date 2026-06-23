@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Role;
+use App\Enums\SignupStatus;
 use App\Models\Person;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,18 +17,41 @@ class PersonController extends Controller
     {
         $people = Person::query()
             ->where('tenant_id', $request->user()->tenant_id)
-            ->with('magicLinks')
+            ->with([
+                'magicLinks',
+                'roles.area',
+                // Soft membership (D18): the areas a person belongs to are
+                // derived from where they've actually signed up, not declared.
+                'signups' => fn ($query) => $query
+                    ->whereIn('status', [SignupStatus::Available, SignupStatus::Assigned])
+                    ->with('shift.area'),
+            ])
             ->orderBy('name')
             ->get()
-            ->map(fn (Person $person) => [
-                'id' => $person->id,
-                'name' => $person->name,
-                'phone' => $person->phone,
-                'email' => $person->email,
-                'hasLink' => $person->magicLinks->isNotEmpty(),
-                'linkLastUsedAt' => $person->magicLinks->first()?->last_used_at?->toIso8601String(),
-                'linkRequested' => $person->link_requested_at !== null,
-            ]);
+            ->map(function (Person $person) {
+                $managerRoles = $person->roles->filter(fn ($role) => $role->role === Role::AreaManager);
+                $areas = collect($managerRoles->map(fn ($role) => $role->area?->name))
+                    ->merge($person->signups->map(fn ($signup) => $signup->shift?->area?->name))
+                    ->filter()
+                    ->unique()
+                    ->sort()
+                    ->values();
+
+                return [
+                    'id' => $person->id,
+                    'name' => $person->name,
+                    'phone' => $person->phone,
+                    'email' => $person->email,
+                    'role' => $person->roles->contains(fn ($role) => $role->role === Role::Organizer)
+                        ? 'organizer'
+                        : ($managerRoles->isNotEmpty() ? 'manager' : 'volunteer'),
+                    'areas' => $areas,
+                    'shiftsCount' => $person->signups->where('status', SignupStatus::Assigned)->count(),
+                    'hasLink' => $person->magicLinks->isNotEmpty(),
+                    'linkLastUsedAt' => $person->magicLinks->first()?->last_used_at?->toIso8601String(),
+                    'linkRequested' => $person->link_requested_at !== null,
+                ];
+            });
 
         return Inertia::render('People/Index', [
             'people' => $people,
