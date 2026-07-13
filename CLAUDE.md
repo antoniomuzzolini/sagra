@@ -47,7 +47,8 @@ Lo schema dati del core è documentato in @docs/schema-core.md.
 - Setup: `composer install && npm install`, poi `cp .env.example .env`,
   `php artisan key:generate`, `createdb sagra`, `php artisan migrate`
 - Dev: `composer run dev` (server, queue, log e Vite in parallelo)
-- Test: `php artisan test` (SQLite in memoria, vedi `phpunit.xml`)
+- Test backend: `php artisan test` (SQLite in memoria, vedi `phpunit.xml`)
+- Test frontend: `npm run test` (Vitest + Vue Test Utils, jsdom)
 - Lint/format PHP: `vendor/bin/pint`
 - Lint/format frontend: `npm run lint` e `npm run format`
 

@@ -343,7 +343,11 @@ function cancelSubstitution(shift: VolunteerShift) {
                             </p>
                             <div class="mt-0.5 flex items-center gap-2 text-sm">
                                 <Pill :variant="shift.assigned_count >= shift.needed_people ? 'good' : 'warn'">
-                                    {{ shift.assigned_count >= shift.needed_people ? 'Completo' : `Servono ${shift.needed_people - shift.assigned_count}` }}
+                                    {{
+                                        shift.assigned_count >= shift.needed_people
+                                            ? 'Completo'
+                                            : `Servono ${shift.needed_people - shift.assigned_count}`
+                                    }}
                                 </Pill>
                                 <span class="text-muted-foreground">{{ shift.assigned_count }}/{{ shift.needed_people }}</span>
                             </div>
@@ -396,9 +400,12 @@ function cancelSubstitution(shift: VolunteerShift) {
                 <div v-for="shift in pending" :key="shift.id" class="flex items-center gap-2 rounded-xl border p-3">
                     <div class="min-w-0 flex-1">
                         <p class="flex items-center gap-1.5 font-medium text-foreground">
-                        <span class="h-2 w-2 shrink-0 rounded-full" :style="{ background: areaColors(shift.areaFamily, shift.area).solid }"></span>
-                        {{ shift.area }} · {{ dayLabel(shift.starts_at) }}
-                    </p>
+                            <span
+                                class="h-2 w-2 shrink-0 rounded-full"
+                                :style="{ background: areaColors(shift.areaFamily, shift.area).solid }"
+                            ></span>
+                            {{ shift.area }} · {{ dayLabel(shift.starts_at) }}
+                        </p>
                         <p class="text-sm text-muted-foreground">{{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }}</p>
                         <p v-if="shift.myOverlap" class="text-sm text-amber-700 dark:text-amber-400">⚠ Si sovrappone con {{ shift.myOverlap }}</p>
                     </div>
@@ -417,7 +424,10 @@ function cancelSubstitution(shift: VolunteerShift) {
                     <div v-for="shift in dayShifts" :key="shift.id" class="flex items-center gap-2 rounded-xl border p-3">
                         <div class="min-w-0 flex-1">
                             <p class="flex items-center gap-1.5 font-medium text-foreground">
-                                <span class="h-2 w-2 shrink-0 rounded-full" :style="{ background: areaColors(shift.areaFamily, shift.area).solid }"></span>
+                                <span
+                                    class="h-2 w-2 shrink-0 rounded-full"
+                                    :style="{ background: areaColors(shift.areaFamily, shift.area).solid }"
+                                ></span>
                                 {{ shift.area }}
                             </p>
                             <p class="text-sm text-muted-foreground">
@@ -445,9 +455,12 @@ function cancelSubstitution(shift: VolunteerShift) {
                         <div v-for="shift in dayShifts" :key="shift.id" class="flex items-center gap-2 rounded-xl border p-3">
                             <div class="min-w-0 flex-1">
                                 <p class="flex items-center gap-1.5 font-medium text-foreground">
-                                <span class="h-2 w-2 shrink-0 rounded-full" :style="{ background: areaColors(shift.areaFamily, shift.area).solid }"></span>
-                                {{ shift.area }}
-                            </p>
+                                    <span
+                                        class="h-2 w-2 shrink-0 rounded-full"
+                                        :style="{ background: areaColors(shift.areaFamily, shift.area).solid }"
+                                    ></span>
+                                    {{ shift.area }}
+                                </p>
                                 <p class="text-sm text-muted-foreground">
                                     {{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }} · {{ shift.assigned_count }}/{{
                                         shift.needed_people

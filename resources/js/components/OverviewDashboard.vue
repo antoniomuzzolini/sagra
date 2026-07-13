@@ -75,7 +75,9 @@ const isFull = (a: OverviewArea): boolean => a.needed > 0 && a.filled >= a.neede
                 <div>
                     <div class="flex items-center justify-between text-sm">
                         <span class="text-muted-foreground">Coperti</span>
-                        <span><b>{{ area.filled }}</b> <span class="text-muted-foreground">di {{ area.needed }}</span></span>
+                        <span
+                            ><b>{{ area.filled }}</b> <span class="text-muted-foreground">di {{ area.needed }}</span></span
+                        >
                     </div>
                     <Progress class="mt-1.5" :value="coverage(area)" :full="isFull(area)" />
                 </div>
