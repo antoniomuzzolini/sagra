@@ -1,0 +1,70 @@
+# Cheapest production shape: one small VPS runs the web app, a queue worker and
+# the scheduler from a single image, plus PostgreSQL. Sessions, cache and the
+# queue all live in Postgres, so there's no Redis to run.
+#
+#   cp .env.docker.example .env   # then fill it in (see DEPLOY.md)
+#   docker compose up -d --build
+
+services:
+    app:
+        build: .
+        image: sagra:latest
+        restart: unless-stopped
+        env_file: .env
+        environment:
+            RUN_MIGRATIONS: 'true'
+            # Your domain → automatic HTTPS. Unset → plain HTTP on :80.
+            SERVER_NAME: ${APP_DOMAIN:-:80}
+            CADDY_EMAIL: ${CADDY_EMAIL:-}
+        depends_on:
+            db:
+                condition: service_healthy
+        ports:
+            - '80:80'
+            - '443:443'
+            - '443:443/udp' # HTTP/3
+        volumes:
+            - caddy_data:/data
+            - caddy_config:/config
+
+    worker:
+        build: .
+        image: sagra:latest
+        restart: unless-stopped
+        env_file: .env
+        command: php artisan queue:work --tries=3 --max-time=3600 --sleep=3
+        depends_on:
+            db:
+                condition: service_healthy
+
+    scheduler:
+        build: .
+        image: sagra:latest
+        restart: unless-stopped
+        env_file: .env
+        command: php artisan schedule:work
+        depends_on:
+            db:
+                condition: service_healthy
+
+    # Drop this service to use managed Postgres (e.g. Neon): point DB_* / DB_URL
+    # in .env at the managed instance instead.
+    db:
+        image: postgres:16-alpine
+        restart: unless-stopped
+        environment:
+            POSTGRES_DB: ${DB_DATABASE:-sagra}
+            POSTGRES_USER: ${DB_USERNAME:-sagra}
+            POSTGRES_PASSWORD: ${DB_PASSWORD:-please-change-me}
+        volumes:
+            - pgdata:/var/lib/postgresql/data
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-sagra} -d ${DB_DATABASE:-sagra}']
+            interval: 5s
+            timeout: 3s
+            retries: 10
+
+volumes:
+    pgdata:
+    caddy_data:
+    caddy_config:

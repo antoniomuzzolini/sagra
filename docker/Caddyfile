@@ -1,0 +1,14 @@
+{
+	frankenphp
+	# Account email for automatic Let's Encrypt certificates.
+	email {$CADDY_EMAIL}
+}
+
+# SERVER_NAME drives HTTPS: set it to your domain (e.g. sagra.example.com) and
+# Caddy provisions a certificate automatically. Leave it as ":80" for plain
+# HTTP (local testing, or when a separate proxy terminates TLS).
+{$SERVER_NAME::80} {
+	root * /app/public
+	encode zstd gzip
+	php_server
+}
