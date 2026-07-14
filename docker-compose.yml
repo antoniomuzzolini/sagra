@@ -47,6 +47,21 @@ services:
             db:
                 condition: service_healthy
 
+    # Optional: expose the app from a home network without port-forwarding or a
+    # public IP (works behind CGNAT). Set CLOUDFLARE_TUNNEL_TOKEN and start with
+    # `docker compose --profile tunnel up -d`. In the Cloudflare dashboard, point
+    # the tunnel's public hostname at http://app:80. Also set TRUSTED_PROXIES=*
+    # and APP_URL=https://your-domain in .env.
+    cloudflared:
+        image: cloudflare/cloudflared:latest
+        restart: unless-stopped
+        command: tunnel --no-autoupdate run
+        environment:
+            TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+        depends_on:
+            - app
+        profiles: ['tunnel']
+
     # Drop this service to use managed Postgres (e.g. Neon): point DB_* / DB_URL
     # in .env at the managed instance instead.
     db:

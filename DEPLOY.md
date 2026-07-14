@@ -51,6 +51,28 @@ curl -fsS https://your-domain.example/up   # health endpoint
    connection string (`…?sslmode=require`), or `DB_HOST` / `DB_USERNAME` /
    `DB_PASSWORD` with the Neon values. Keep `DB_CONNECTION=pgsql`.
 
+## Self-hosting at home (Cloudflare Tunnel)
+
+Runs on any always-on machine — a mini-PC, a Raspberry Pi, or a Windows 11 PC
+with Docker Desktop (WSL2). Home connections rarely have a public IP (CGNAT),
+so instead of port-forwarding, a **Cloudflare Tunnel** gives a public HTTPS URL
+with nothing opened on the router.
+
+1. In the Cloudflare Zero Trust dashboard, create a **Tunnel** and copy its
+   token. Add a **public hostname** (your domain) pointing at `http://app:80`.
+2. In `.env`, set `CLOUDFLARE_TUNNEL_TOKEN=<token>`, `TRUSTED_PROXIES=*`,
+   `APP_URL=https://your-domain`, and leave `APP_DOMAIN` empty (the app serves
+   plain HTTP; the tunnel provides HTTPS).
+3. Start everything, tunnel included:
+
+   ```bash
+   docker compose --profile tunnel up -d --build
+   ```
+
+Reachability aside, the setup is identical to a VPS. Keep in mind a home box
+depends on your power and internet staying up — for the days of the event a
+VPS is more dependable.
+
 ## Updating
 
 ```bash

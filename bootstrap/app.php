@@ -14,6 +14,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Behind a TLS-terminating proxy (e.g. a Cloudflare Tunnel for home
+        // self-hosting), trust it so HTTPS and secure cookies are detected
+        // correctly. Off unless TRUSTED_PROXIES is set (a VPS with FrankenPHP
+        // terminates TLS itself and needs nothing here).
+        if ($proxies = env('TRUSTED_PROXIES')) {
+            $middleware->trustProxies(at: $proxies === '*' ? '*' : explode(',', $proxies));
+        }
+
         $middleware->web(append: [
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
