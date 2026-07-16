@@ -15,7 +15,6 @@ services:
             RUN_MIGRATIONS: 'true'
             # Your domain → automatic HTTPS. Unset → plain HTTP on :80.
             SERVER_NAME: ${APP_DOMAIN:-:80}
-            CADDY_EMAIL: ${CADDY_EMAIL:-}
         depends_on:
             db:
                 condition: service_healthy

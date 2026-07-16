@@ -29,8 +29,8 @@ docker compose run --rm app php artisan key:generate --show   # paste into APP_K
 docker compose run --rm app php artisan webpush:vapid
 ```
 
-Set `APP_DOMAIN` to your domain (for automatic HTTPS) and `CADDY_EMAIL` to your
-address. Then:
+Set `APP_DOMAIN` to your domain (Caddy then provisions HTTPS automatically).
+Then:
 
 ```bash
 docker compose up -d --build

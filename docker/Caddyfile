@@ -1,7 +1,5 @@
 {
 	frankenphp
-	# Account email for automatic Let's Encrypt certificates.
-	email {$CADDY_EMAIL}
 }
 
 # SERVER_NAME drives HTTPS: set it to your domain (e.g. sagra.example.com) and

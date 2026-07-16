@@ -53,4 +53,4 @@ COPY docker/entrypoint.sh /usr/local/bin/app-entrypoint
 RUN chmod +x /usr/local/bin/app-entrypoint
 
 ENTRYPOINT ["app-entrypoint"]
-CMD ["frankenphp", "run"]
+CMD ["frankenphp", "run", "--config", "/etc/frankenphp/Caddyfile"]
