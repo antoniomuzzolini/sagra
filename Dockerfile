@@ -12,7 +12,12 @@ COPY composer.json composer.lock ./
 # not the composer image, so skip the check here.
 RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --ignore-platform-reqs
 COPY . .
-RUN composer dump-autoload --no-dev --optimize --no-scripts
+# The composer image's own PHP (8.4) differs from the runtime image (8.3), and
+# Composer otherwise bakes its own PHP version into vendor/composer/platform_check.php,
+# which then fails at runtime. The app supports PHP ^8.2 and the runtime PHP is
+# fixed by this image, so drop that check.
+RUN composer config platform-check false \
+    && composer dump-autoload --no-dev --optimize --no-scripts
 
 # ── Stage 2: frontend assets ────────────────────────────────────────────────
 FROM node:22-alpine AS frontend
