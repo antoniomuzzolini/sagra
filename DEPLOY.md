@@ -82,6 +82,38 @@ docker compose up -d --build
 
 Old images pile up over time; `docker image prune -f` reclaims the space.
 
+## Auto-deploy on push
+
+`scripts/deploy.ps1` (Windows) and `scripts/deploy.sh` (Linux/macOS) pull
+`origin/main` and, only if there are new commits, rebuild and restart the
+containers. Run them on a schedule for hands-off redeploys (poll interval =
+how quickly a push goes live).
+
+If you self-host with the tunnel, add `COMPOSE_PROFILES=tunnel` to `.env` so the
+rebuild keeps the tunnel running.
+
+**Windows (Task Scheduler), every 5 minutes:**
+
+```powershell
+schtasks /Create /SC MINUTE /MO 5 /TN "Sagra Auto Deploy" `
+  /TR "powershell -NoProfile -ExecutionPolicy Bypass -File C:\path\to\sagra\scripts\deploy.ps1" /F
+```
+
+**Linux (cron), every 5 minutes:**
+
+```bash
+*/5 * * * * /path/to/sagra/scripts/deploy.sh >> /var/log/sagra-deploy.log 2>&1
+```
+
+Notes:
+- The machine needs read access to the repo (a private repo needs a stored
+  credential — Git Credential Manager on Windows remembers it after the first
+  `git clone`/login, or use an SSH deploy key).
+- Keep the checkout clean; the script uses `git pull --ff-only`, so only `.env`
+  (git-ignored) should differ locally.
+- A rebuild spikes CPU for a couple of minutes while assets/deps compile —
+  harmless on a PC, slow on a Raspberry Pi.
+
 ## Notes
 
 - **Logs**: `docker compose logs -f app` (and `worker`, `scheduler`).
