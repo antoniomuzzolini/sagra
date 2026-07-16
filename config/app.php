@@ -65,7 +65,9 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    // Shift times are wall-clock times at the event ("dalle 18 alle 22"):
+    // the app lives in the event's timezone, Italy first.
+    'timezone' => env('APP_TIMEZONE', 'Europe/Rome'),
 
     /*
     |--------------------------------------------------------------------------

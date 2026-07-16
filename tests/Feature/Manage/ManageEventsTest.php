@@ -4,7 +4,9 @@ namespace Tests\Feature\Manage;
 
 use App\Models\Area;
 use App\Models\Event;
+use App\Models\Person;
 use App\Models\Shift;
+use App\Models\ShiftSignup;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -198,6 +200,62 @@ class ManageEventsTest extends TestCase
 
         $shift = $area->shifts()->first();
         $this->assertSame('2026-07-05', $shift->ends_at->toDateString());
+    }
+
+    public function test_replicating_a_day_copies_its_shifts_without_signups()
+    {
+        $user = $this->organizer();
+        $event = Event::factory()->create(['tenant_id' => $user->tenant_id]);
+        $area = Area::factory()->for($event)->create(['tenant_id' => $user->tenant_id]);
+
+        $lunch = Shift::factory()->for($area)->create([
+            'tenant_id' => $user->tenant_id,
+            'starts_at' => '2026-07-04 11:00',
+            'ends_at' => '2026-07-04 15:00',
+            'needed_people' => 3,
+            'notes' => 'Pranzo',
+        ]);
+        // A bar shift rolling past midnight keeps its overnight shape.
+        Shift::factory()->for($area)->create([
+            'tenant_id' => $user->tenant_id,
+            'starts_at' => '2026-07-04 20:00',
+            'ends_at' => '2026-07-05 01:00',
+            'needed_people' => 2,
+        ]);
+        // A signup on the source day must not travel to the copy.
+        $person = Person::factory()->create(['tenant_id' => $user->tenant_id]);
+        ShiftSignup::factory()->for($lunch)->for($person)->create(['tenant_id' => $user->tenant_id]);
+        // A shift on another day stays out of the copy.
+        Shift::factory()->for($area)->create([
+            'tenant_id' => $user->tenant_id,
+            'starts_at' => '2026-07-05 11:00',
+            'ends_at' => '2026-07-05 15:00',
+        ]);
+
+        $this->actingAs($user)->post("/areas/{$area->id}/shifts/replicate-day", [
+            'source_date' => '2026-07-04',
+            'target_date' => '2026-07-11',
+        ])->assertSessionHasNoErrors();
+
+        $copies = $area->shifts()->whereDate('starts_at', '2026-07-11')->orderBy('starts_at')->get();
+        $this->assertCount(2, $copies);
+        $this->assertSame('2026-07-11 11:00', $copies[0]->starts_at->format('Y-m-d H:i'));
+        $this->assertSame(3, $copies[0]->needed_people);
+        $this->assertSame('Pranzo', $copies[0]->notes);
+        $this->assertSame('2026-07-12 01:00', $copies[1]->ends_at->format('Y-m-d H:i'));
+        $this->assertSame(0, $copies[0]->signups()->count());
+    }
+
+    public function test_replicating_onto_the_same_day_is_rejected()
+    {
+        $user = $this->organizer();
+        $event = Event::factory()->create(['tenant_id' => $user->tenant_id]);
+        $area = Area::factory()->for($event)->create(['tenant_id' => $user->tenant_id]);
+
+        $this->actingAs($user)->post("/areas/{$area->id}/shifts/replicate-day", [
+            'source_date' => '2026-07-04',
+            'target_date' => '2026-07-04',
+        ])->assertSessionHasErrors('target_date');
     }
 
     public function test_cross_tenant_event_access_is_a_404()
