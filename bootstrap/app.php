@@ -28,10 +28,16 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         // Volunteers have no login page: without a valid session the
-        // only way in is a fresh magic link.
-        $middleware->redirectGuestsTo(fn (Request $request) => $request->routeIs('volunteer.*')
-            ? route('magic-link.invalid')
-            : route('login'));
+        // only way in is a fresh magic link. An organizer landing on a
+        // volunteer route (e.g. via a stale intended URL after login)
+        // isn't a broken link though — send them to their own home.
+        $middleware->redirectGuestsTo(function (Request $request) {
+            if ($request->routeIs('volunteer.*')) {
+                return $request->user() ? route('dashboard') : route('magic-link.invalid');
+            }
+
+            return route('login');
+        });
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

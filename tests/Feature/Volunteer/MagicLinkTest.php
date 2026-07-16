@@ -3,6 +3,8 @@
 namespace Tests\Feature\Volunteer;
 
 use App\Models\Person;
+use App\Models\Tenant;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -134,6 +136,17 @@ class MagicLinkTest extends TestCase
     {
         $this->get(route('volunteer.home'))
             ->assertRedirect(route('magic-link.invalid'));
+    }
+
+    public function test_an_organizer_on_a_volunteer_route_goes_to_their_dashboard()
+    {
+        // E.g. a stale intended URL pointing at /me after the web login:
+        // that's not a broken magic link, it's the wrong home.
+        $organizer = User::factory()->for(Tenant::factory())->create();
+
+        $this->actingAs($organizer)
+            ->get(route('volunteer.home'))
+            ->assertRedirect(route('dashboard'));
     }
 
     public function test_a_magic_link_does_not_authenticate_the_web_guard()
