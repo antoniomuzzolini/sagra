@@ -206,8 +206,16 @@ const replicateForm = useForm({ source_date: '', target_date: '' });
 function openReplicateDay(area: AreaRow, day: string) {
     replicating.value = { areaId: area.id, sourceDate: day };
     replicateForm.source_date = day;
-    replicateForm.target_date = '';
+    // Prefill the target with the source day so the picker opens on it — the
+    // organizer just nudges to the nearby day (same-day submit is rejected).
+    replicateForm.target_date = day;
     replicateForm.clearErrors();
+}
+
+function destroyDay(area: AreaRow, day: string) {
+    if (confirm(`Eliminare tutti i turni di ${dayLabel(day)} in ${area.name}?`)) {
+        useForm({}).delete(route('shifts.destroy-day', [area.id, day]), { preserveScroll: true });
+    }
 }
 
 function submitReplicateDay() {
@@ -370,11 +378,16 @@ function removeSignup(signup: SignupRow) {
                         </p>
 
                         <div v-for="group in areaDays" :key="group.day" class="grid gap-2">
-                            <div class="mt-2 flex items-center justify-between gap-2 border-b pb-1">
+                            <div class="mt-2 flex flex-wrap items-center justify-between gap-x-2 border-b pb-1">
                                 <h3 class="text-sm font-medium first-letter:uppercase">{{ dayLabel(group.day) }}</h3>
-                                <Button variant="ghost" size="sm" @click="openReplicateDay(area, group.day)">
-                                    <CopyPlus class="h-4 w-4" /> Replica giornata
-                                </Button>
+                                <div class="flex items-center">
+                                    <Button variant="ghost" size="sm" @click="openReplicateDay(area, group.day)">
+                                        <CopyPlus class="h-4 w-4" /> Replica giornata
+                                    </Button>
+                                    <Button variant="ghost" size="sm" @click="destroyDay(area, group.day)">
+                                        <Trash2 class="h-4 w-4" /> Elimina giornata
+                                    </Button>
+                                </div>
                             </div>
 
                             <div

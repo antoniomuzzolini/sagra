@@ -25,6 +25,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('areas/{area}/shifts', [ShiftController::class, 'store'])->name('shifts.store');
     Route::post('areas/{area}/shifts/replicate-day', [ShiftController::class, 'replicateDay'])->name('shifts.replicate-day');
+    Route::delete('areas/{area}/shifts/day/{date}', [ShiftController::class, 'destroyDay'])->name('shifts.destroy-day');
     Route::put('shifts/{shift}', [ShiftController::class, 'update'])->name('shifts.update');
     Route::delete('shifts/{shift}', [ShiftController::class, 'destroy'])->name('shifts.destroy');
 

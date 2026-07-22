@@ -78,6 +78,21 @@ class ShiftController extends Controller
         return back();
     }
 
+    /**
+     * Delete every shift of one day in an area (and their signups, via the
+     * cascade), e.g. to undo a day added by mistake or a bad replicate.
+     */
+    public function destroyDay(Request $request, Area $area, string $date): RedirectResponse
+    {
+        $this->authorizeTenant($request, $area);
+
+        abort_unless(preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) === 1, 404);
+
+        $area->shifts()->whereDate('starts_at', $date)->delete();
+
+        return back();
+    }
+
     public function destroy(Request $request, Shift $shift): RedirectResponse
     {
         $this->authorizeTenant($request, $shift);

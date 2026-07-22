@@ -246,6 +246,21 @@ class ManageEventsTest extends TestCase
         $this->assertSame(0, $copies[0]->signups()->count());
     }
 
+    public function test_deleting_a_day_removes_only_that_days_shifts()
+    {
+        $user = $this->organizer();
+        $event = Event::factory()->create(['tenant_id' => $user->tenant_id]);
+        $area = Area::factory()->for($event)->create(['tenant_id' => $user->tenant_id]);
+
+        $doomed = Shift::factory()->for($area)->create(['tenant_id' => $user->tenant_id, 'starts_at' => '2026-07-04 18:00']);
+        $kept = Shift::factory()->for($area)->create(['tenant_id' => $user->tenant_id, 'starts_at' => '2026-07-05 18:00']);
+
+        $this->actingAs($user)->delete("/areas/{$area->id}/shifts/day/2026-07-04")->assertSessionHasNoErrors();
+
+        $this->assertDatabaseMissing('shifts', ['id' => $doomed->id]);
+        $this->assertDatabaseHas('shifts', ['id' => $kept->id]);
+    }
+
     public function test_replicating_onto_the_same_day_is_rejected()
     {
         $user = $this->organizer();
