@@ -39,6 +39,21 @@ prodotto, non un dettaglio.
 | D16 | Auto-registrazione volontari via **link d'invito** del tenant (condiviso una volta: gruppo WhatsApp, QR), rigenerabile; basta il nome, contatto facoltativo da completare poi (abilita promemoria e recupero accesso self-service) | Elimina il collo di bottiglia "il gestore crea ogni persona e invia ogni link" senza reintrodurre password (conferma D6) |
 | D17 | Link magici personali **monouso** con scadenza breve (7 giorni); la permanenza è data dalla sessione remember lunga (~1 anno); rigenerare il link revoca link e sessioni remember (kill switch); su un dispositivo già collegato a un'altra persona il link **chiede** ("continua come X / entra come Y"), mai blocca o scambia in silenzio | Il link viaggia su WhatsApp e può essere inoltrato; il telefono condiviso in famiglia è un caso legittimo e frequente |
 | D18 | Gerarchia organizzatore → responsabili d'area → volontari con **delega facoltativa**: l'organizzatore può tutto, il responsabile gestisce turni e volontari del proprio reparto (via link magico, senza account); appartenenza dei volontari ai reparti **morbida e derivata dalla storia delle iscrizioni** (niente da dichiarare o amministrare: prima i turni dei reparti dove hai già lavorato, i buchi altrui restano visibili); sovrapposizioni di turno permesse ma **segnalate** (al volontario e al responsabile che conferma) | Rispecchia l'organizzazione reale delle sagre; la divisione rigida sprecherebbe la flessibilità dei volontari, che è la risorsa principale |
+| D19 | **Identità unica con ruoli ortogonali** (rivede D14 e D18). Una sola entità persona, non più lo split `users`/`people`: password **facoltativa**, ruoli separati dall'identità (organizzatore / responsabile d'area / volontario). **Chiunque può iscriversi ai turni**, a prescindere dal ruolo. Volontari semplici: accesso solo con **link magico** (D6/D17). Responsabili e organizzatori: **account con password** (email + password). Il responsabile **non entra più via link magico** (supera la delega senza account di D18). Invito account (organizzatore → responsabile) con **link a scelta del canale**: email, WhatsApp o copia-incolla (riusa il pattern di condivisione dei link già presente) | Lo split a due tabelle era la radice dell'attrito (responsabile "a metà" tra i due mondi, bug cross-guard). Un'unica identità con password opzionale rispecchia la realtà — è la stessa persona con ruoli diversi — e semplifica auth, sessioni e viste |
+
+### Piano D19 — implementazione (sessione dedicata)
+
+Refactor corposo, da fare a contesto pieno. Traccia di massima:
+
+1. **Modello dati**: `people` diventa la tabella identità unica → aggiungere `password` (nullable), `email` già presente, e ruoli. Ricondurre `users` (organizzatori) a `people` con ruolo organizzatore, oppure retire di `users`. Migrazione dati semplice (siamo in test).
+2. **Ruoli/permessi**: ruolo a livello persona (organizzatore, responsabile-scoped-area, volontario); `person_roles` già modella lo scoping per area — estenderlo/riusarlo.
+3. **Auth**: una guardia sola. Login con password per chi ce l'ha; magic link per chi non ce l'ha. Rivedere `bootstrap/app.php` (redirect ospiti), `config/auth.php` (unificare guard `web`/`volunteer`), controller Auth.
+4. **Invito responsabile**: endpoint che crea l'account (email obbligatoria) e genera un **link di set-password**, condivisibile via email / WhatsApp / copia (dialog come per il magic link).
+5. **Viste**: i responsabili usano le **pagine scoped** già estratte (Panoramica/Calendario/Persone/gestione area), non più `/me`. Chiunque (anche organizzatore/responsabile) può avere "i miei turni" e iscriversi.
+6. **Iscrizione ai turni universale**: `shift_signups` riferisce l'identità unica → ogni ruolo può iscriversi.
+7. **Test**: coprire login-con-password, magic-link-per-volontari, invito responsabile, iscrizione ai turni per ogni ruolo, scoping responsabile.
+
+Ripartenza: *"continua sul progetto sagra, branch main: implementa D19 (unificazione identità)"*.
 
 ## 3. Glossario ed entità di dominio
 
