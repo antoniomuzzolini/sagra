@@ -34,10 +34,12 @@ interface Entry {
 
 const dayKeyOf = (iso: string): string => iso.slice(0, 10);
 
-// Hours since the shift's own midnight. A shift that runs past midnight keeps
-// its start day and simply reads beyond 24 — so the axis can stretch to it.
+// Wall-clock hours since the day's midnight, read straight from the ISO string
+// (never via `new Date`, which would apply the browser timezone). A shift that
+// runs past midnight lands on the next date and simply reads beyond 24.
 function hoursFromMidnight(iso: string, dayKey: string): number {
-    return (new Date(iso).getTime() - new Date(dayKey + 'T00:00:00').getTime()) / 3_600_000;
+    const dayDiff = Math.round((Date.parse(iso.slice(0, 10)) - Date.parse(dayKey)) / 86_400_000);
+    return dayDiff * 24 + Number(iso.slice(11, 13)) + Number(iso.slice(14, 16)) / 60;
 }
 
 // One mini-timeline per day that has shifts, each with its own hour axis sized
@@ -74,9 +76,11 @@ const days = computed(() => {
 
 const pct = (value: number, minH: number, span: number): number => ((value - minH) / span) * 100;
 const tickLabel = (h: number): string => String(((h % 24) + 24) % 24).padStart(2, '0') + ':00';
-const fmtDay = (key: string): string =>
-    new Date(key + 'T00:00:00').toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'numeric' });
-const fmtTime = (iso: string): string => new Date(iso).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+const fmtDay = (key: string): string => {
+    const [y, m, d] = key.slice(0, 10).split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'numeric' });
+};
+const fmtTime = (iso: string): string => iso.slice(11, 16);
 
 // Day picker ("calendarietto"): jump to a day, and follow the scroll so the
 // active chip tracks what's on screen.

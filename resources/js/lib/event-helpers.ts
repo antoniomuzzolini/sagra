@@ -11,11 +11,26 @@ export const areaFamilyLabels: Record<string, string> = {
     support: 'Supporto',
 };
 
-export function formatDate(date: string | null | undefined): string {
-    if (!date) return '—';
-    return new Date(date).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' });
+// Shift times are wall-clock times at the event ("dalle 18 alle 22"), not
+// instants to convert: read date and time straight from the ISO string, never
+// via `new Date(iso)`, which would shift them by the browser's timezone.
+
+export function formatDate(value: string | null | undefined): string {
+    if (!value) return '—';
+    const [y, m, d] = value.slice(0, 10).split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 export function formatTime(datetime: string): string {
-    return new Date(datetime).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    return datetime.slice(11, 16);
+}
+
+export function formatDayLong(value: string): string {
+    const [y, m, d] = value.slice(0, 10).split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+export function formatDayShort(value: string): string {
+    const [y, m, d] = value.slice(0, 10).split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'numeric' });
 }

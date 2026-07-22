@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { areaColors } from '@/lib/colors';
-import { formatTime } from '@/lib/event-helpers';
+import { formatDayLong, formatDayShort, formatTime } from '@/lib/event-helpers';
 import { enablePush, pushDenied, pushSupported } from '@/lib/push';
 import { type MagicLinkFlash, type SharedData } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
@@ -215,13 +215,8 @@ const splitByArea = computed(() => openPreferred.value.length > 0 && openOthers.
 const mainOpen = computed(() => (splitByArea.value ? openPreferred.value : open.value));
 const showOthers = ref(false);
 
-function dayLabel(datetime: string): string {
-    return new Date(datetime).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
-}
-
-function shortDayLabel(datetime: string): string {
-    return new Date(datetime).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'numeric' });
-}
+const dayLabel = formatDayLong;
+const shortDayLabel = formatDayShort;
 
 function groupByDay(shifts: VolunteerShift[]): [string, VolunteerShift[]][] {
     const groups = new Map<string, VolunteerShift[]>();

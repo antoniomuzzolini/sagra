@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { areaFamilyLabels, formatDate, formatTime, phaseTypeLabels } from '@/lib/event-helpers';
+import { areaFamilyLabels, formatDate, formatDayLong, formatTime, phaseTypeLabels } from '@/lib/event-helpers';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { Copy, CopyPlus, Pencil, Plus, Trash2 } from 'lucide-vue-next';
@@ -196,9 +196,7 @@ const areaDays = computed(() => {
     return [...groups.entries()].map(([day, shifts]) => ({ day, shifts }));
 });
 
-function dayLabel(day: string): string {
-    return new Date(day + 'T00:00:00').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
-}
+const dayLabel = formatDayLong;
 
 // Replicate a whole day onto another date (backend copies the shifts).
 const replicating = ref<{ areaId: number; sourceDate: string } | null>(null);
