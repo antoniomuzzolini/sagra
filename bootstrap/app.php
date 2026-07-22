@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureManager;
 use App\Http\Middleware\EnsureOrganizer;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
@@ -28,7 +29,10 @@ return Application::configure(basePath: dirname(__DIR__))
             AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        $middleware->alias(['organizer' => EnsureOrganizer::class]);
+        $middleware->alias([
+            'organizer' => EnsureOrganizer::class,
+            'manager' => EnsureManager::class,
+        ]);
 
         // Simple volunteers have no login page: without a valid session the
         // only way in is a fresh magic link (D6/D17). Account holders

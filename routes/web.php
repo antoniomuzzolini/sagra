@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Manage\ManagerAreaController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -28,6 +29,14 @@ Route::get('manifest.webmanifest', function () {
 
 Route::get('dashboard', DashboardController::class)
     ->middleware(['auth', 'verified', 'organizer'])->name('dashboard');
+
+// Area-manager pages (D19): the same sidebar shell as the organizer, scoped
+// to the areas the person runs. Read views for now — editing stays on /me.
+Route::middleware(['auth', 'manager'])->prefix('manage')->name('manage.')->group(function () {
+    Route::get('overview', [ManagerAreaController::class, 'overview'])->name('overview');
+    Route::get('calendar', [ManagerAreaController::class, 'calendar'])->name('calendar');
+    Route::get('people', [ManagerAreaController::class, 'people'])->name('people');
+});
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

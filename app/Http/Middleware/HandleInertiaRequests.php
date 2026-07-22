@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Person;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -44,6 +45,9 @@ class HandleInertiaRequests extends Middleware
             'quote' => ['message' => trim($message), 'author' => trim($author)],
             'auth' => [
                 'user' => $request->user(),
+                // Drives the role-aware sidebar (D19): one shell, the nav
+                // items depend on what the person is.
+                'role' => $this->role($request->user()),
             ],
             'flash' => [
                 'magicLink' => fn () => $request->session()->get('magicLink'),
@@ -51,5 +55,22 @@ class HandleInertiaRequests extends Middleware
                 'recoveryRequested' => fn () => $request->session()->get('recoveryRequested'),
             ],
         ]);
+    }
+
+    /**
+     * The person's role, orthogonal to identity (D19): organizer (tenant-wide
+     * flag), area manager (runs at least one area), or plain volunteer.
+     */
+    private function role(?Person $person): ?string
+    {
+        if ($person === null) {
+            return null;
+        }
+
+        if ($person->isOrganizer()) {
+            return 'organizer';
+        }
+
+        return $person->managedAreaIds()->isNotEmpty() ? 'manager' : 'volunteer';
     }
 }

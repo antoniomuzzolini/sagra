@@ -33,11 +33,15 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        // Role-aware home (D19): organizers run the event from the dashboard;
-        // area managers and other account holders land on their own shifts.
-        $home = $request->user()->isOrganizer()
-            ? route('dashboard', absolute: false)
-            : route('volunteer.home', absolute: false);
+        // Role-aware home (D19): organizers run the event from the dashboard,
+        // area managers from their scoped overview, everyone else from their
+        // own shifts.
+        $user = $request->user();
+        $home = match (true) {
+            $user->isOrganizer() => route('dashboard', absolute: false),
+            $user->managedAreaIds()->isNotEmpty() => route('manage.overview', absolute: false),
+            default => route('volunteer.home', absolute: false),
+        };
 
         return redirect()->intended($home);
     }

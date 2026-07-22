@@ -1,7 +1,10 @@
 import type { LucideIcon } from 'lucide-vue-next';
 
+export type UserRole = 'organizer' | 'manager' | 'volunteer';
+
 export interface Auth {
     user: User;
+    role: UserRole | null;
 }
 
 export interface BreadcrumbItem {
