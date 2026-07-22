@@ -177,7 +177,7 @@ const whatsappUrl = computed(() => {
                 <Button @click="openCreate">Nuovo volontario</Button>
             </div>
 
-            <div class="grid gap-2 rounded-xl border bg-muted/30 p-3">
+            <div class="flex min-w-0 flex-col gap-2 rounded-xl border bg-muted/30 p-3">
                 <p class="text-sm font-medium">Link d'invito</p>
                 <p class="text-sm text-muted-foreground">
                     Condividilo una volta (es. nel gruppo WhatsApp): chi lo apre si registra da solo e arriva subito ai turni.

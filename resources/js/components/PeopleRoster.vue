@@ -128,7 +128,8 @@ const gridCols = computed(() =>
                     </div>
 
                     <!-- Aree -->
-                    <div class="flex flex-wrap gap-1">
+                    <div class="flex flex-wrap items-center gap-1">
+                        <span class="text-sm text-muted-foreground sm:hidden">Aree: </span>
                         <span v-for="area in person.areas" :key="area" class="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs">
                             {{ area }}
                         </span>
