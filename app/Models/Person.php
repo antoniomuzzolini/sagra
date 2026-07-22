@@ -57,6 +57,16 @@ class Person extends Authenticatable
     }
 
     /**
+     * Store emails normalised (lower-case, trimmed) so login and lookups are
+     * case-insensitive — the same address must match however it was typed.
+     */
+    protected function setEmailAttribute(?string $value): void
+    {
+        $value = $value === null ? null : mb_strtolower(trim($value));
+        $this->attributes['email'] = $value === '' ? null : $value;
+    }
+
+    /**
      * Organizer (D19): tenant-wide capability, distinct from the
      * area-scoped manager roles in `person_roles`. Orthogonal to identity —
      * an organizer is still a person who can sign up for shifts.

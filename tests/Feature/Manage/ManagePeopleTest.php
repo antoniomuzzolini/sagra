@@ -202,4 +202,31 @@ class ManagePeopleTest extends TestCase
             ->assertRedirect(route('volunteer.home'));
         $this->assertAuthenticatedAs($person->fresh());
     }
+
+    public function test_email_login_is_case_insensitive()
+    {
+        $user = $this->organizer();
+        $person = Person::factory()->create(['tenant_id' => $user->tenant_id, 'phone' => '+39333', 'email' => null]);
+
+        // The organizer types the email with capitals; it is stored lower-case.
+        $this->actingAs($user)->post("/people/{$person->id}/account-invite", ['email' => 'Bea@Example.com'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame('bea@example.com', $person->fresh()->email);
+
+        // The invited person acts in a fresh guest session.
+        $this->app['auth']->forgetGuards();
+
+        $token = Password::broker('people')->createToken($person->fresh());
+        $this->post('/reset-password', [
+            'token' => $token,
+            'email' => 'bea@example.com',
+            'password' => 'secretpassword',
+            'password_confirmation' => 'secretpassword',
+        ])->assertSessionHasNoErrors();
+
+        // The person logs in with the natural lower-case form and gets in.
+        $this->post('/login', ['email' => 'BEA@example.com', 'password' => 'secretpassword'])
+            ->assertRedirect(route('volunteer.home'));
+        $this->assertAuthenticatedAs($person->fresh());
+    }
 }

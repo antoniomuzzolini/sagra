@@ -17,6 +17,11 @@ class ProfileController extends Controller
     {
         $person = $request->user();
 
+        // Store emails normalised (see Person) and check uniqueness against it.
+        if (is_string($request->input('email'))) {
+            $request->merge(['email' => mb_strtolower(trim($request->input('email')))]);
+        }
+
         $data = $request->validate([
             'phone' => [
                 'nullable', 'string', 'max:30', 'required_without:email',

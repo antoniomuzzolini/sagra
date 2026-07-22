@@ -102,6 +102,8 @@ class PersonController extends Controller
     {
         $this->authorizeTenant($request, $person);
 
+        $this->normalizeEmail($request);
+
         $data = $request->validate([
             'email' => [
                 $person->email ? 'nullable' : 'required',
@@ -130,8 +132,21 @@ class PersonController extends Controller
         ]);
     }
 
+    /**
+     * Lower-case the submitted email before validation so the unique check
+     * compares against the normalised value we actually store (see Person).
+     */
+    private function normalizeEmail(Request $request): void
+    {
+        if (is_string($request->input('email'))) {
+            $request->merge(['email' => mb_strtolower(trim($request->input('email')))]);
+        }
+    }
+
     private function validatePerson(Request $request, ?Person $person = null): array
     {
+        $this->normalizeEmail($request);
+
         $tenantId = $request->user()->tenant_id;
 
         return $request->validate([
