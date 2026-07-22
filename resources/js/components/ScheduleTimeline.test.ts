@@ -32,14 +32,30 @@ const phases = [{ type: 'service', starts_on: '2026-07-11', ends_on: '2026-07-14
 describe('ScheduleTimeline', () => {
     it('renders one section per day that has shifts', () => {
         const wrapper = mount(ScheduleTimeline, { props: { areas, phases } });
-        expect(wrapper.find('[data-day="2026-07-12"]').exists()).toBe(true);
-        expect(wrapper.find('[data-day="2026-07-13"]').exists()).toBe(true);
+        // Default is "Tutti": every day with shifts is shown.
+        expect(wrapper.findAll('section')).toHaveLength(2);
     });
 
-    it('offers one day-picker chip per day', () => {
+    it('offers a "Tutti" chip plus one per day', () => {
         const wrapper = mount(ScheduleTimeline, { props: { areas, phases } });
-        // The only buttons in the component are the day-picker chips.
-        expect(wrapper.findAll('button')).toHaveLength(2);
+        const chips = wrapper.findAll('button');
+        expect(chips).toHaveLength(3);
+        expect(chips[0].text()).toBe('Tutti');
+    });
+
+    it('filters the timeline to a single day when its chip is picked', async () => {
+        const wrapper = mount(ScheduleTimeline, { props: { areas, phases } });
+        // Chips are [Tutti, day 12, day 13]; pick the second day.
+        await wrapper.findAll('button')[2].trigger('click');
+        const sections = wrapper.findAll('section');
+        expect(sections).toHaveLength(1);
+        // Only the 13th's shift ("2/5", "pranzo") remains, not the 12th's "4/4".
+        expect(wrapper.text()).toContain('2/5');
+        expect(wrapper.text()).not.toContain('4/4');
+
+        // Picking it again clears the filter (back to "Tutti").
+        await wrapper.findAll('button')[2].trigger('click');
+        expect(wrapper.findAll('section')).toHaveLength(2);
     });
 
     it('colors bars green when full and amber when understaffed', () => {

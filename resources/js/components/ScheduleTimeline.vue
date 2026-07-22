@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { areaColors } from '@/lib/colors';
 import { phaseTypeLabels } from '@/lib/event-helpers';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 
 interface Shift {
     id: number;
@@ -82,37 +82,18 @@ const fmtDay = (key: string): string => {
 };
 const fmtTime = (iso: string): string => iso.slice(11, 16);
 
-// Day picker ("calendarietto"): jump to a day, and follow the scroll so the
-// active chip tracks what's on screen.
-const activeDay = ref<string | null>(null);
-const sections = new Map<string, HTMLElement>();
-function setSection(key: string, el: unknown) {
-    if (el instanceof HTMLElement) {
-        sections.set(key, el);
-        observer?.observe(el);
-    } else {
-        sections.delete(key);
-    }
-}
-function jumpTo(key: string) {
-    activeDay.value = key;
-    sections.get(key)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
+// Day picker: filter the timeline to a single day, or show them all.
+// null = "Tutti" (every day). A picked day that no longer exists (e.g. after
+// editing shifts) falls back to showing all.
+const selectedDay = ref<string | null>(null);
 
-let observer: IntersectionObserver | null = null;
-onMounted(() => {
-    activeDay.value = days.value[0]?.key ?? null;
-    observer = new IntersectionObserver(
-        (entries) => {
-            const top = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-            const key = top && (top.target as HTMLElement).dataset.day;
-            if (key) activeDay.value = key;
-        },
-        { rootMargin: '-12% 0px -80% 0px' },
-    );
-    sections.forEach((el) => observer!.observe(el));
-});
-onBeforeUnmount(() => observer?.disconnect());
+const visibleDays = computed(() =>
+    selectedDay.value === null ? days.value : days.value.filter((d) => d.key === selectedDay.value),
+);
+
+function pickDay(key: string | null) {
+    selectedDay.value = selectedDay.value === key ? null : key;
+}
 </script>
 
 <template>
@@ -120,15 +101,23 @@ onBeforeUnmount(() => observer?.disconnect());
         Nessun turno ancora. Aggiungi turni dalle aree per vederli sul calendario.
     </div>
     <div v-else class="grid gap-4">
-        <!-- Day picker -->
+        <!-- Day filter -->
         <div class="sticky top-0 z-10 -mx-1 flex gap-1 overflow-x-auto bg-background/95 px-1 py-2 backdrop-blur">
+            <button
+                type="button"
+                class="shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition"
+                :class="selectedDay === null ? 'border-foreground bg-foreground text-background' : 'hover:border-foreground/30'"
+                @click="pickDay(null)"
+            >
+                Tutti
+            </button>
             <button
                 v-for="day in days"
                 :key="day.key"
                 type="button"
                 class="shrink-0 rounded-full border px-3 py-1 text-xs font-medium capitalize transition"
-                :class="activeDay === day.key ? 'border-foreground bg-foreground text-background' : 'hover:border-foreground/30'"
-                @click="jumpTo(day.key)"
+                :class="selectedDay === day.key ? 'border-foreground bg-foreground text-background' : 'hover:border-foreground/30'"
+                @click="pickDay(day.key)"
             >
                 {{ fmtDay(day.key) }}
             </button>
@@ -140,8 +129,8 @@ onBeforeUnmount(() => observer?.disconnect());
             <div class="flex items-center gap-1.5"><span class="h-2.5 w-4 rounded-sm bg-amber-500"></span>Servono volontari</div>
         </div>
 
-        <!-- One section per day -->
-        <section v-for="day in days" :key="day.key" :ref="(el) => setSection(day.key, el)" :data-day="day.key" class="grid scroll-mt-16 gap-2">
+        <!-- One section per (visible) day -->
+        <section v-for="day in visibleDays" :key="day.key" class="grid scroll-mt-16 gap-2">
             <div class="flex items-baseline gap-2">
                 <h3 class="font-semibold capitalize">{{ fmtDay(day.key) }}</h3>
                 <span v-if="day.phaseLabel" class="text-xs text-muted-foreground">{{ day.phaseLabel }}</span>
