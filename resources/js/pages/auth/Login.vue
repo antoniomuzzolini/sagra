@@ -4,6 +4,7 @@ import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import PasswordInput from '@/components/PasswordInput.vue';
 import { Label } from '@/components/ui/label';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
@@ -57,9 +58,8 @@ const submit = () => {
                         <Label for="password">Password</Label>
                         <TextLink v-if="canResetPassword" :href="route('password.request')" class="text-sm" tabindex="5"> Forgot password? </TextLink>
                     </div>
-                    <Input
+                    <PasswordInput
                         id="password"
-                        type="password"
                         required
                         tabindex="2"
                         autocomplete="current-password"
@@ -85,6 +85,11 @@ const submit = () => {
             <div class="text-center text-sm text-muted-foreground">
                 Don't have an account?
                 <TextLink :href="route('register')" :tabindex="5">Sign up</TextLink>
+            </div>
+
+            <div class="rounded-lg border bg-muted/30 p-3 text-center text-sm text-muted-foreground">
+                Sei un volontario? Non serve la password:
+                <TextLink :href="route('volunteer.recover')" :tabindex="6">accedi con il tuo link personale</TextLink>.
             </div>
         </form>
     </AuthBase>

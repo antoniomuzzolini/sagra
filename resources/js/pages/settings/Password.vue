@@ -8,7 +8,7 @@ import { ref } from 'vue';
 
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import PasswordInput from '@/components/PasswordInput.vue';
 import { Label } from '@/components/ui/label';
 import { type BreadcrumbItem } from '@/types';
 
@@ -68,11 +68,10 @@ const updatePassword = () => {
                 <form @submit.prevent="updatePassword" class="space-y-6">
                     <div class="grid gap-2">
                         <Label for="current_password">Current Password</Label>
-                        <Input
+                        <PasswordInput
                             id="current_password"
                             ref="currentPasswordInput"
                             v-model="form.current_password"
-                            type="password"
                             class="mt-1 block w-full"
                             autocomplete="current-password"
                             placeholder="Current password"
@@ -82,11 +81,10 @@ const updatePassword = () => {
 
                     <div class="grid gap-2">
                         <Label for="password">New password</Label>
-                        <Input
+                        <PasswordInput
                             id="password"
                             ref="passwordInput"
                             v-model="form.password"
-                            type="password"
                             class="mt-1 block w-full"
                             autocomplete="new-password"
                             placeholder="New password"
@@ -96,10 +94,9 @@ const updatePassword = () => {
 
                     <div class="grid gap-2">
                         <Label for="password_confirmation">Confirm password</Label>
-                        <Input
+                        <PasswordInput
                             id="password_confirmation"
                             v-model="form.password_confirmation"
-                            type="password"
                             class="mt-1 block w-full"
                             autocomplete="new-password"
                             placeholder="Confirm password"

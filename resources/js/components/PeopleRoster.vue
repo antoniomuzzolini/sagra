@@ -102,17 +102,28 @@ const gridCols = computed(() =>
                 <div
                     v-for="person in filteredPeople"
                     :key="person.id"
-                    class="grid grid-cols-1 gap-x-3 gap-y-2 p-3 sm:items-center sm:py-2"
+                    class="flex flex-col gap-2 p-3 sm:grid sm:items-center sm:gap-x-3 sm:gap-y-0 sm:py-2"
                     :class="gridCols"
                 >
-                    <!-- Volontario -->
-                    <div class="flex min-w-0 items-center gap-2">
-                        <Avatar :name="person.name" :size="32" />
-                        <div class="min-w-0">
-                            <div class="truncate font-medium">{{ person.name }}</div>
-                            <div class="truncate text-xs text-muted-foreground">
-                                {{ [person.phone, person.email].filter(Boolean).join(' · ') || '—' }}
+                    <!-- Volontario: name + contact, with role/status badges
+                         alongside on mobile (they get their own columns on ≥sm). -->
+                    <div class="flex min-w-0 items-start justify-between gap-2 sm:items-center">
+                        <div class="flex min-w-0 items-center gap-2">
+                            <Avatar :name="person.name" :size="32" />
+                            <div class="min-w-0">
+                                <div class="truncate font-medium">{{ person.name }}</div>
+                                <div class="truncate text-xs text-muted-foreground">
+                                    {{ [person.phone, person.email].filter(Boolean).join(' · ') || '—' }}
+                                </div>
                             </div>
+                        </div>
+                        <div class="flex shrink-0 items-center gap-1 sm:hidden">
+                            <span
+                                class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+                                :class="roleBadgeClass[person.role]"
+                            >
+                                {{ roleLabels[person.role] }}
+                            </span>
                         </div>
                     </div>
 
@@ -130,8 +141,8 @@ const gridCols = computed(() =>
                         <span :class="person.shiftsCount === 0 ? 'text-muted-foreground' : 'font-semibold'">{{ person.shiftsCount }}</span>
                     </div>
 
-                    <!-- Ruolo -->
-                    <div>
+                    <!-- Ruolo (own column on ≥sm; shown next to the name on mobile) -->
+                    <div class="hidden sm:block">
                         <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium" :class="roleBadgeClass[person.role]">
                             {{ roleLabels[person.role] }}
                         </span>
@@ -139,11 +150,12 @@ const gridCols = computed(() =>
 
                     <!-- Stato -->
                     <div>
+                        <span class="text-muted-foreground sm:hidden">Stato: </span>
                         <Pill :variant="statusOf(person).variant">{{ statusOf(person).label }}</Pill>
                     </div>
 
-                    <!-- Azioni (injected) -->
-                    <div v-if="hasActions" class="flex items-center gap-1 justify-self-start sm:justify-self-end">
+                    <!-- Azioni (injected): wrap on mobile so nothing overflows -->
+                    <div v-if="hasActions" class="flex flex-wrap items-center gap-1 border-t pt-2 sm:justify-end sm:border-t-0 sm:pt-0">
                         <slot name="actions" :person="person" />
                     </div>
                 </div>

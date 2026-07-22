@@ -38,6 +38,15 @@ return Application::configure(basePath: dirname(__DIR__))
                 ? route('magic-link.invalid')
                 : route('login');
         });
+
+        // Already-signed-in people who hit a guest-only page (login, register,
+        // an invite link) go to their own home — role-aware, so a volunteer
+        // isn't bounced onto the organizer dashboard they can't open (D19).
+        $middleware->redirectUsersTo(function (Request $request) {
+            return $request->user()?->isOrganizer()
+                ? route('dashboard')
+                : route('volunteer.home');
+        });
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

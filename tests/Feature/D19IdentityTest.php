@@ -55,6 +55,23 @@ class D19IdentityTest extends TestCase
         $this->actingAs($manager)->get('/people')->assertForbidden();
     }
 
+    public function test_a_signed_in_volunteer_hitting_a_guest_page_goes_to_their_shifts()
+    {
+        // Regression: a magic-link volunteer opening /register or /login used
+        // to be bounced onto the organizer dashboard and hit a 403.
+        $volunteer = Person::factory()->for($this->tenant())->create();
+
+        $this->actingAs($volunteer)->get('/register')->assertRedirect(route('volunteer.home'));
+        $this->actingAs($volunteer)->get('/login')->assertRedirect(route('volunteer.home'));
+    }
+
+    public function test_a_signed_in_organizer_hitting_a_guest_page_goes_to_the_dashboard()
+    {
+        $organizer = Person::factory()->organizer()->for($this->tenant())->create();
+
+        $this->actingAs($organizer)->get('/login')->assertRedirect(route('dashboard'));
+    }
+
     public function test_an_organizer_reaches_the_organizer_area()
     {
         $organizer = Person::factory()->organizer()->for($this->tenant())->create();

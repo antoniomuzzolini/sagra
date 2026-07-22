@@ -16,7 +16,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import PasswordInput from '@/components/PasswordInput.vue';
 import { Label } from '@/components/ui/label';
 
 const passwordInput = ref<HTMLInputElement | null>(null);
@@ -66,7 +66,7 @@ const closeModal = () => {
 
                         <div class="grid gap-2">
                             <Label for="password" class="sr-only">Password</Label>
-                            <Input id="password" type="password" name="password" ref="passwordInput" v-model="form.password" placeholder="Password" />
+                            <PasswordInput id="password" name="password" ref="passwordInput" v-model="form.password" placeholder="Password" />
                             <InputError :message="form.errors.password" />
                         </div>
 
