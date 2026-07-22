@@ -3,6 +3,7 @@ import InputError from '@/components/InputError.vue';
 import OverviewDashboard, { type OverviewArea } from '@/components/OverviewDashboard.vue';
 import PersonContact from '@/components/PersonContact.vue';
 import ScheduleTimeline from '@/components/ScheduleTimeline.vue';
+import ShiftFields from '@/components/ShiftFields.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -405,23 +406,14 @@ function removeSignup(signup: SignupRow) {
                                     <Trash2 class="h-4 w-4" />
                                 </Button>
 
-                                <form v-if="editingShiftId === shift.id" class="grid w-full gap-2 border-t pt-2" @submit.prevent="submitShiftEdit">
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <Input type="date" v-model="shiftForm.date" required class="w-auto" />
-                                        <Input type="time" v-model="shiftForm.start_time" required class="w-auto" />
-                                        <span class="text-muted-foreground">→</span>
-                                        <Input type="time" v-model="shiftForm.end_time" required class="w-auto" />
-                                        <div class="flex items-center gap-1">
-                                            <Input type="number" v-model.number="shiftForm.needed_people" min="1" required class="w-20" />
-                                            <span class="text-sm text-muted-foreground">persone</span>
-                                        </div>
-                                    </div>
-                                    <Input v-model="shiftForm.notes" placeholder="Note (opzionale)" />
-                                    <InputError :message="shiftForm.errors.date" />
-                                    <InputError :message="shiftForm.errors.start_time" />
-                                    <InputError :message="shiftForm.errors.end_time" />
-                                    <InputError :message="shiftForm.errors.needed_people" />
-                                    <div class="flex gap-2">
+                                <form
+                                    v-if="editingShiftId === shift.id"
+                                    class="mt-2 w-full rounded-lg border border-primary/40 bg-muted/60 p-3"
+                                    @submit.prevent="submitShiftEdit"
+                                >
+                                    <p class="mb-3 flex items-center gap-1.5 text-sm font-semibold"><Pencil class="h-4 w-4" /> Modifica turno</p>
+                                    <ShiftFields :form="shiftForm" />
+                                    <div class="mt-3 flex gap-2">
                                         <Button type="submit" size="sm" :disabled="shiftForm.processing">Salva modifiche</Button>
                                         <Button type="button" size="sm" variant="ghost" @click="editingShiftId = null">Annulla</Button>
                                     </div>
@@ -454,25 +446,12 @@ function removeSignup(signup: SignupRow) {
 
                         <form
                             v-if="shiftFormArea === area.id"
-                            class="grid gap-2 rounded-md border border-dashed p-3"
+                            class="rounded-lg border border-dashed border-primary/50 bg-muted/30 p-3"
                             @submit.prevent="submitShift(area)"
                         >
-                            <div class="flex flex-wrap items-center gap-2">
-                                <Input type="date" v-model="shiftForm.date" required class="w-auto" />
-                                <Input type="time" v-model="shiftForm.start_time" required class="w-auto" />
-                                <span class="text-muted-foreground">→</span>
-                                <Input type="time" v-model="shiftForm.end_time" required class="w-auto" />
-                                <div class="flex items-center gap-1">
-                                    <Input type="number" v-model.number="shiftForm.needed_people" min="1" required class="w-20" />
-                                    <span class="text-sm text-muted-foreground">persone</span>
-                                </div>
-                            </div>
-                            <Input v-model="shiftForm.notes" placeholder="Note (opzionale)" />
-                            <InputError :message="shiftForm.errors.date" />
-                            <InputError :message="shiftForm.errors.start_time" />
-                            <InputError :message="shiftForm.errors.end_time" />
-                            <InputError :message="shiftForm.errors.needed_people" />
-                            <div class="flex gap-2">
+                            <p class="mb-3 flex items-center gap-1.5 text-sm font-semibold"><Plus class="h-4 w-4" /> Nuovo turno</p>
+                            <ShiftFields :form="shiftForm" />
+                            <div class="mt-3 flex gap-2">
                                 <Button type="submit" size="sm" :disabled="shiftForm.processing">Salva turno</Button>
                                 <Button type="button" size="sm" variant="ghost" @click="shiftFormArea = null"> Annulla </Button>
                             </div>
