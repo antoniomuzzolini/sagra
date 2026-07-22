@@ -17,7 +17,7 @@ class HomeController extends Controller
 {
     public function __invoke(Request $request): Response
     {
-        $person = $request->user('volunteer');
+        $person = $request->user();
         $managedAreaIds = $person->managedAreaIds();
 
         $shifts = Shift::query()

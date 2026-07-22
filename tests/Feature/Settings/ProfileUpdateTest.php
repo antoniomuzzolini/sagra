@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Settings;
 
-use App\Models\User;
+use App\Models\Person;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -12,7 +12,7 @@ class ProfileUpdateTest extends TestCase
 
     public function test_profile_page_is_displayed()
     {
-        $user = User::factory()->create();
+        $user = Person::factory()->organizer()->create();
 
         $response = $this
             ->actingAs($user)
@@ -23,7 +23,7 @@ class ProfileUpdateTest extends TestCase
 
     public function test_profile_information_can_be_updated()
     {
-        $user = User::factory()->create();
+        $user = Person::factory()->organizer()->create();
 
         $response = $this
             ->actingAs($user)
@@ -45,7 +45,7 @@ class ProfileUpdateTest extends TestCase
 
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged()
     {
-        $user = User::factory()->create();
+        $user = Person::factory()->organizer()->create();
 
         $response = $this
             ->actingAs($user)
@@ -63,7 +63,7 @@ class ProfileUpdateTest extends TestCase
 
     public function test_user_can_delete_their_account()
     {
-        $user = User::factory()->create();
+        $user = Person::factory()->organizer()->create();
 
         $response = $this
             ->actingAs($user)
@@ -76,12 +76,14 @@ class ProfileUpdateTest extends TestCase
             ->assertRedirect('/');
 
         $this->assertGuest();
-        $this->assertNull($user->fresh());
+        // A person is soft-deleted (D19: identities carry signup history that
+        // must survive an account closure), so the row lingers, deactivated.
+        $this->assertSoftDeleted($user);
     }
 
     public function test_correct_password_must_be_provided_to_delete_account()
     {
-        $user = User::factory()->create();
+        $user = Person::factory()->organizer()->create();
 
         $response = $this
             ->actingAs($user)

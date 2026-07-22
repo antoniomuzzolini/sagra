@@ -20,7 +20,7 @@ class PushSubscriptionController extends Controller
             'keys.auth' => ['required', 'string'],
         ]);
 
-        $request->user('volunteer')->updatePushSubscription(
+        $request->user()->updatePushSubscription(
             $data['endpoint'],
             $data['keys']['p256dh'],
             $data['keys']['auth'],
@@ -33,7 +33,7 @@ class PushSubscriptionController extends Controller
     {
         $data = $request->validate(['endpoint' => ['required', 'string', 'max:500']]);
 
-        $request->user('volunteer')->deletePushSubscription($data['endpoint']);
+        $request->user()->deletePushSubscription($data['endpoint']);
 
         return back();
     }

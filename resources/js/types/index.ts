@@ -23,12 +23,21 @@ export interface MagicLinkFlash {
     url: string;
 }
 
+export interface AccountInviteFlash {
+    personId: number;
+    personName: string;
+    personPhone: string | null;
+    email: string | null;
+    url: string;
+}
+
 export interface SharedData {
     name: string;
     quote: { message: string; author: string };
     auth: Auth;
     flash: {
         magicLink: MagicLinkFlash | null;
+        accountInvite: AccountInviteFlash | null;
         recoveryRequested: boolean | null;
     };
     ziggy: {

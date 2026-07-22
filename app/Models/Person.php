@@ -31,7 +31,40 @@ class Person extends Authenticatable
         'name',
         'phone',
         'email',
+        'password',
+        'is_organizer',
     ];
+
+    /**
+     * @var list<string>
+     */
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'password' => 'hashed',
+            'email_verified_at' => 'datetime',
+            'is_organizer' => 'boolean',
+            'link_requested_at' => 'datetime',
+        ];
+    }
+
+    /**
+     * Organizer (D19): tenant-wide capability, distinct from the
+     * area-scoped manager roles in `person_roles`. Orthogonal to identity —
+     * an organizer is still a person who can sign up for shifts.
+     */
+    public function isOrganizer(): bool
+    {
+        return (bool) $this->is_organizer;
+    }
 
     public function tenant(): BelongsTo
     {

@@ -4,7 +4,6 @@ namespace Tests\Feature\Volunteer;
 
 use App\Models\Person;
 use App\Models\Tenant;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -34,7 +33,7 @@ class JoinTest extends TestCase
         $person = Person::where('tenant_id', $tenant->id)->first();
         $this->assertSame('Maria Rossi', $person->name);
         $this->assertNull($person->phone);
-        $this->assertAuthenticatedAs($person, 'volunteer');
+        $this->assertAuthenticatedAs($person);
     }
 
     public function test_the_phone_is_optional_but_unique_within_the_tenant()
@@ -54,7 +53,7 @@ class JoinTest extends TestCase
     {
         $this->get('/join/not-a-token')->assertNotFound();
         $this->post('/join/not-a-token', ['name' => 'Maria'])->assertNotFound();
-        $this->assertGuest('volunteer');
+        $this->assertGuest();
     }
 
     public function test_a_device_already_in_use_sees_who_it_belongs_to()
@@ -62,7 +61,7 @@ class JoinTest extends TestCase
         $tenant = Tenant::factory()->create();
         $existing = Person::factory()->create(['tenant_id' => $tenant->id, 'name' => 'Mario Bianchi']);
 
-        $this->actingAs($existing, 'volunteer')
+        $this->actingAs($existing)
             ->get('/join/'.$tenant->inviteToken())
             ->assertInertia(fn ($page) => $page->where('currentName', 'Mario Bianchi'));
     }
@@ -72,17 +71,17 @@ class JoinTest extends TestCase
         $tenant = Tenant::factory()->create();
         $existing = Person::factory()->create(['tenant_id' => $tenant->id]);
 
-        $this->actingAs($existing, 'volunteer')
+        $this->actingAs($existing)
             ->post('/join/'.$tenant->inviteToken(), ['name' => 'Luigia Verdi'])
             ->assertRedirect(route('volunteer.home'));
 
         $new = Person::where('name', 'Luigia Verdi')->first();
-        $this->assertAuthenticatedAs($new, 'volunteer');
+        $this->assertAuthenticatedAs($new);
     }
 
     public function test_regenerating_the_invite_revokes_the_old_link()
     {
-        $user = User::factory()->for(Tenant::factory())->create();
+        $user = Person::factory()->organizer()->for(Tenant::factory())->create();
         $oldToken = $user->tenant->inviteToken();
 
         $this->actingAs($user)->post('/invite/regenerate')->assertRedirect();
@@ -93,7 +92,7 @@ class JoinTest extends TestCase
 
     public function test_the_people_page_exposes_the_invite_url()
     {
-        $user = User::factory()->for(Tenant::factory())->create();
+        $user = Person::factory()->organizer()->for(Tenant::factory())->create();
 
         $this->actingAs($user)->get('/people')->assertInertia(
             fn ($page) => $page->where('inviteUrl', fn ($url) => str_contains($url, '/join/'))

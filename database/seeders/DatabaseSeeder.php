@@ -2,7 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
+use App\Models\Person;
+use App\Models\Tenant;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -13,9 +14,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $tenant = Tenant::factory()->create(['name' => 'Sagra di prova']);
 
-        User::factory()->create([
+        Person::factory()->organizer()->for($tenant)->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);

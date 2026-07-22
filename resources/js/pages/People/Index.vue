@@ -6,9 +6,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem, type MagicLinkFlash, type SharedData } from '@/types';
+import { type AccountInviteFlash, type BreadcrumbItem, type MagicLinkFlash, type SharedData } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { Check, Copy, Link2, Pencil, Trash2 } from 'lucide-vue-next';
+import { Check, Copy, KeyRound, Link2, Pencil, Trash2 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{ people: PersonRosterRow[]; inviteUrl: string }>();
@@ -81,6 +81,63 @@ async function copyLink() {
     }
 }
 
+// Account invite (D19): give a person a password login (area managers).
+const accountTarget = ref<PersonRosterRow | null>(null);
+const accountForm = useForm({ email: '' });
+const accountFormOpen = ref(false);
+
+const accountInvite = ref<AccountInviteFlash | null>(null);
+const accountCopied = ref(false);
+
+watch(
+    () => page.props.flash.accountInvite,
+    (value) => {
+        if (value) {
+            accountInvite.value = value;
+            accountCopied.value = false;
+            accountFormOpen.value = false;
+        }
+    },
+    { immediate: true },
+);
+
+function openAccountInvite(person: PersonRosterRow) {
+    accountTarget.value = person;
+    accountForm.email = person.email ?? '';
+    accountForm.clearErrors();
+    accountFormOpen.value = true;
+}
+
+function submitAccountInvite() {
+    if (!accountTarget.value) return;
+    accountForm.post(route('people.account-invite', accountTarget.value.id), { preserveScroll: true });
+}
+
+async function copyAccountLink() {
+    if (accountInvite.value) {
+        await navigator.clipboard.writeText(accountInvite.value.url);
+        accountCopied.value = true;
+    }
+}
+
+const accountWhatsappUrl = computed(() => {
+    if (!accountInvite.value) return '#';
+    const text = encodeURIComponent(
+        `Ciao ${accountInvite.value.personName}! Attiva il tuo account responsabile impostando una password qui: ${accountInvite.value.url}`,
+    );
+    const phone = accountInvite.value.personPhone?.replace(/[^0-9]/g, '');
+    return phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`;
+});
+
+const accountMailUrl = computed(() => {
+    if (!accountInvite.value?.email) return '#';
+    const subject = encodeURIComponent('Attiva il tuo account');
+    const body = encodeURIComponent(
+        `Ciao ${accountInvite.value.personName},\n\nattiva il tuo account impostando una password qui:\n${accountInvite.value.url}`,
+    );
+    return `mailto:${accountInvite.value.email}?subject=${subject}&body=${body}`;
+});
+
 // Tenant invite link (self-registration)
 const inviteCopied = ref(false);
 
@@ -146,6 +203,15 @@ const whatsappUrl = computed(() => {
                         <Link2 class="h-4 w-4" />
                         <span class="sm:sr-only">{{ person.hasLink ? 'Nuovo link' : 'Crea link' }}</span>
                     </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        @click="openAccountInvite(person)"
+                        :title="person.hasAccount ? 'Reinvia accesso account' : 'Invita come account (responsabile)'"
+                    >
+                        <KeyRound class="h-4 w-4" />
+                        <span class="sm:sr-only">{{ person.hasAccount ? 'Reinvia account' : 'Invita account' }}</span>
+                    </Button>
                     <Button variant="ghost" size="icon" @click="openEdit(person)" aria-label="Modifica">
                         <Pencil class="h-4 w-4" />
                     </Button>
@@ -202,6 +268,54 @@ const whatsappUrl = computed(() => {
                     </Button>
                     <Button as-child>
                         <a :href="whatsappUrl" target="_blank" rel="noopener">Invia su WhatsApp</a>
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog v-model:open="accountFormOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Account per {{ accountTarget?.name }}</DialogTitle>
+                    <DialogDescription>
+                        I responsabili accedono con email e password. Serve un'email: genereremo un link per impostare la password, da
+                        condividere come preferisci.
+                    </DialogDescription>
+                </DialogHeader>
+                <form class="grid gap-4" @submit.prevent="submitAccountInvite">
+                    <div class="grid gap-2">
+                        <Label for="account-email">Email</Label>
+                        <Input id="account-email" v-model="accountForm.email" type="email" required placeholder="nome@esempio.it" />
+                        <InputError :message="accountForm.errors.email" />
+                    </div>
+                    <DialogFooter>
+                        <Button type="submit" :disabled="accountForm.processing">Genera link</Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog :open="accountInvite !== null" @update:open="accountInvite = null">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Attivazione account per {{ accountInvite?.personName }}</DialogTitle>
+                    <DialogDescription>
+                        Invia questo link: impostando una password attiva il suo account. Il link scade tra un'ora, puoi rigenerarlo quando
+                        vuoi.
+                    </DialogDescription>
+                </DialogHeader>
+                <p class="break-all rounded-md bg-muted p-3 font-mono text-sm">{{ accountInvite?.url }}</p>
+                <DialogFooter class="gap-2">
+                    <Button variant="outline" @click="copyAccountLink">
+                        <Check v-if="accountCopied" class="h-4 w-4" />
+                        <Copy v-else class="h-4 w-4" />
+                        {{ accountCopied ? 'Copiato!' : 'Copia' }}
+                    </Button>
+                    <Button v-if="accountInvite?.email" variant="outline" as-child>
+                        <a :href="accountMailUrl">Invia via email</a>
+                    </Button>
+                    <Button as-child>
+                        <a :href="accountWhatsappUrl" target="_blank" rel="noopener">Invia su WhatsApp</a>
                     </Button>
                 </DialogFooter>
             </DialogContent>

@@ -14,7 +14,7 @@ class ContactTest extends TestCase
     {
         $person = Person::factory()->create(['phone' => null, 'email' => null]);
 
-        $this->actingAs($person, 'volunteer')
+        $this->actingAs($person)
             ->put('/me/contact', ['phone' => '+39 333 1234567', 'email' => ''])
             ->assertSessionHasNoErrors();
 
@@ -25,7 +25,7 @@ class ContactTest extends TestCase
     {
         $person = Person::factory()->create(['phone' => null, 'email' => null]);
 
-        $this->actingAs($person, 'volunteer')
+        $this->actingAs($person)
             ->put('/me/contact', ['phone' => '', 'email' => ''])
             ->assertSessionHasErrors(['phone', 'email']);
     }
@@ -35,7 +35,7 @@ class ContactTest extends TestCase
         $person = Person::factory()->create(['phone' => null, 'email' => null]);
         Person::factory()->create(['tenant_id' => $person->tenant_id, 'phone' => '+39 333 1234567']);
 
-        $this->actingAs($person, 'volunteer')
+        $this->actingAs($person)
             ->put('/me/contact', ['phone' => '+39 333 1234567', 'email' => ''])
             ->assertSessionHasErrors('phone');
     }
@@ -45,10 +45,10 @@ class ContactTest extends TestCase
         $without = Person::factory()->create(['phone' => null, 'email' => null]);
         $with = Person::factory()->create(['phone' => '+39 333 1234567']);
 
-        $this->actingAs($without, 'volunteer')->get('/me')
+        $this->actingAs($without)->get('/me')
             ->assertInertia(fn ($page) => $page->where('person.needsContact', true));
 
-        $this->actingAs($with, 'volunteer')->get('/me')
+        $this->actingAs($with)->get('/me')
             ->assertInertia(fn ($page) => $page->where('person.needsContact', false)->where('person.phone', '+39 333 1234567'));
     }
 
@@ -56,7 +56,7 @@ class ContactTest extends TestCase
     {
         $person = Person::factory()->create(['phone' => '+39 333 1234567', 'email' => null]);
 
-        $this->actingAs($person, 'volunteer')
+        $this->actingAs($person)
             ->put('/me/contact', ['phone' => '+39 333 7654321', 'email' => 'mario@example.com'])
             ->assertSessionHasNoErrors();
 

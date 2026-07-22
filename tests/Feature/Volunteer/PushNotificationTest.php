@@ -35,7 +35,7 @@ class PushNotificationTest extends TestCase
     {
         $person = Person::factory()->create();
 
-        $this->actingAs($person, 'volunteer')
+        $this->actingAs($person)
             ->post('/me/push-subscriptions', $this->subscription())
             ->assertRedirect();
 
@@ -45,9 +45,9 @@ class PushNotificationTest extends TestCase
     public function test_a_subscription_can_be_removed()
     {
         $person = Person::factory()->create();
-        $this->actingAs($person, 'volunteer')->post('/me/push-subscriptions', $this->subscription());
+        $this->actingAs($person)->post('/me/push-subscriptions', $this->subscription());
 
-        $this->actingAs($person, 'volunteer')
+        $this->actingAs($person)
             ->delete('/me/push-subscriptions', ['endpoint' => 'https://push.example.com/sub/abc123'])
             ->assertRedirect();
 
@@ -77,12 +77,12 @@ class PushNotificationTest extends TestCase
         [$manager, $shift] = $this->areaWithManager();
         $volunteer = Person::factory()->create(['tenant_id' => $shift->tenant_id]);
 
-        $this->actingAs($volunteer, 'volunteer')->post("/me/shifts/{$shift->id}/signup");
+        $this->actingAs($volunteer)->post("/me/shifts/{$shift->id}/signup");
 
         Notification::assertSentTo($manager, AvailabilityReceived::class);
 
         // Tapping twice stays idempotent: no second notification.
-        $this->actingAs($volunteer, 'volunteer')->post("/me/shifts/{$shift->id}/signup");
+        $this->actingAs($volunteer)->post("/me/shifts/{$shift->id}/signup");
         Notification::assertSentToTimes($manager, AvailabilityReceived::class, 1);
     }
 
@@ -91,7 +91,7 @@ class PushNotificationTest extends TestCase
         Notification::fake();
         [$manager, $shift] = $this->areaWithManager();
 
-        $this->actingAs($manager, 'volunteer')->post("/me/shifts/{$shift->id}/signup");
+        $this->actingAs($manager)->post("/me/shifts/{$shift->id}/signup");
 
         Notification::assertNotSentTo($manager, AvailabilityReceived::class);
     }
@@ -103,8 +103,8 @@ class PushNotificationTest extends TestCase
         $volunteer = Person::factory()->create(['tenant_id' => $shift->tenant_id]);
         ShiftSignup::factory()->for($shift)->for($volunteer)->create(['status' => SignupStatus::Assigned]);
 
-        $this->actingAs($volunteer, 'volunteer')->post("/me/shifts/{$shift->id}/substitution");
-        $this->actingAs($volunteer, 'volunteer')->post("/me/shifts/{$shift->id}/substitution");
+        $this->actingAs($volunteer)->post("/me/shifts/{$shift->id}/substitution");
+        $this->actingAs($volunteer)->post("/me/shifts/{$shift->id}/substitution");
 
         Notification::assertSentToTimes($manager, SubstitutionRequested::class, 1);
     }

@@ -15,7 +15,7 @@ class ProfileController extends Controller
      */
     public function updateContact(Request $request): RedirectResponse
     {
-        $person = $request->user('volunteer');
+        $person = $request->user();
 
         $data = $request->validate([
             'phone' => [

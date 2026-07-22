@@ -54,11 +54,14 @@ class PersonRoster
             'name' => $person->name,
             'phone' => $person->phone,
             'email' => $person->email,
-            'role' => $person->roles->contains(fn ($role) => $role->role === Role::Organizer)
+            'role' => $person->isOrganizer()
                 ? 'organizer'
                 : ($managerRoles->isNotEmpty() ? 'manager' : 'volunteer'),
             'areas' => $areas,
             'shiftsCount' => $person->signups->where('status', SignupStatus::Assigned)->count(),
+            // An account holder logs in with a password (D19: managers);
+            // people without one rely on magic links.
+            'hasAccount' => filled($person->password),
             'hasLink' => $person->magicLinks->isNotEmpty(),
             'linkLastUsedAt' => $person->magicLinks->first()?->last_used_at?->toIso8601String(),
             'linkRequested' => $person->link_requested_at !== null,

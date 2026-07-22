@@ -35,10 +35,6 @@ class PersonRole extends Model
             if ($personRole->role === Role::AreaManager && $personRole->area_id === null) {
                 throw new DomainException('An area manager role must be scoped to an area.');
             }
-
-            if ($personRole->role === Role::Organizer && $personRole->area_id !== null) {
-                throw new DomainException('An organizer role is event-wide and cannot be scoped to an area.');
-            }
         });
     }
 

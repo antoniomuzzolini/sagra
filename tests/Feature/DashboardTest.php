@@ -9,7 +9,6 @@ use App\Models\Person;
 use App\Models\Shift;
 use App\Models\ShiftSignup;
 use App\Models\Tenant;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -25,19 +24,19 @@ class DashboardTest extends TestCase
 
     public function test_authenticated_users_can_visit_the_dashboard()
     {
-        $user = User::factory()->create();
+        $user = Person::factory()->organizer()->create();
         $this->actingAs($user);
 
         $response = $this->get('/dashboard');
         $response->assertStatus(200);
     }
 
-    private function organizer(): User
+    private function organizer(): Person
     {
-        return User::factory()->for(Tenant::factory())->create();
+        return Person::factory()->organizer()->for(Tenant::factory())->create();
     }
 
-    private function eventWithPhase(User $user): Event
+    private function eventWithPhase(Person $user): Event
     {
         $event = Event::factory()->create(['tenant_id' => $user->tenant_id]);
         $event->phases()->create([

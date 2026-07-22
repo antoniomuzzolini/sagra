@@ -9,7 +9,6 @@ use App\Models\Person;
 use App\Models\Shift;
 use App\Models\ShiftSignup;
 use App\Models\Tenant;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -17,7 +16,7 @@ class ManageSignupsTest extends TestCase
 {
     use RefreshDatabase;
 
-    private User $user;
+    private Person $user;
 
     private ShiftSignup $signup;
 
@@ -26,7 +25,7 @@ class ManageSignupsTest extends TestCase
         parent::setUp();
 
         $tenant = Tenant::factory()->create();
-        $this->user = User::factory()->for($tenant)->create();
+        $this->user = Person::factory()->organizer()->for($tenant)->create();
         $event = Event::factory()->create(['tenant_id' => $tenant->id]);
         $area = Area::factory()->for($event)->create(['tenant_id' => $tenant->id]);
         $shift = Shift::factory()->for($area)->create(['tenant_id' => $tenant->id]);
@@ -80,7 +79,7 @@ class ManageSignupsTest extends TestCase
 
     public function test_cross_tenant_signups_are_invisible()
     {
-        $foreign = User::factory()->for(Tenant::factory())->create();
+        $foreign = Person::factory()->organizer()->for(Tenant::factory())->create();
 
         $this->actingAs($foreign)
             ->put("/signups/{$this->signup->id}", ['status' => 'assigned'])

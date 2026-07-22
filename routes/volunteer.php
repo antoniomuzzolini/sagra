@@ -28,7 +28,7 @@ Route::post('recover', [RecoveryController::class, 'store'])
     ->middleware('throttle:5,1')
     ->name('volunteer.recover.store');
 
-Route::middleware('auth:volunteer')->group(function () {
+Route::middleware('auth')->group(function () {
     Route::get('me', HomeController::class)->name('volunteer.home');
     Route::post('me/shifts/{shift}/signup', [SignupController::class, 'store'])->name('volunteer.signup');
     Route::delete('me/shifts/{shift}/signup', [SignupController::class, 'destroy'])->name('volunteer.signup.withdraw');
@@ -40,7 +40,8 @@ Route::middleware('auth:volunteer')->group(function () {
     Route::post('me/push-subscriptions', [PushSubscriptionController::class, 'store'])->name('volunteer.push.store');
     Route::delete('me/push-subscriptions', [PushSubscriptionController::class, 'destroy'])->name('volunteer.push.destroy');
 
-    // Area managers (D18): run your own area, still via magic link.
+    // Area managers run their own area (D18); the controllers scope every
+    // action to the areas the person manages, so one guard is enough (D19).
     Route::post('me/people', [ManagerPeopleController::class, 'store'])->name('volunteer.people.store');
     Route::post('me/areas/{area}/shifts', [ManagerShiftController::class, 'store'])->name('volunteer.shifts.store');
     Route::put('me/shifts/{shift}', [ManagerShiftController::class, 'update'])->name('volunteer.shifts.update');

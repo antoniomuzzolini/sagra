@@ -8,11 +8,13 @@ use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\SignupController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', 'organizer'])->group(function () {
     Route::resource('people', PersonController::class)
         ->only(['index', 'store', 'update', 'destroy']);
     Route::post('people/{person}/magic-link', [PersonController::class, 'magicLink'])
         ->name('people.magic-link');
+    Route::post('people/{person}/account-invite', [PersonController::class, 'accountInvite'])
+        ->name('people.account-invite');
     Route::post('invite/regenerate', [PersonController::class, 'regenerateInvite'])
         ->name('people.invite.regenerate');
 

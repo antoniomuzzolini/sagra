@@ -45,7 +45,7 @@ class ManagerPowersTest extends TestCase
 
     public function test_a_manager_can_create_a_shift_in_their_area()
     {
-        $this->actingAs($this->manager, 'volunteer')
+        $this->actingAs($this->manager)
             ->post("/me/areas/{$this->area->id}/shifts", [
                 'date' => '2026-07-04',
                 'start_time' => '18:00',
@@ -59,7 +59,7 @@ class ManagerPowersTest extends TestCase
 
     public function test_a_manager_cannot_create_shifts_elsewhere()
     {
-        $this->actingAs($this->manager, 'volunteer')
+        $this->actingAs($this->manager)
             ->post("/me/areas/{$this->otherArea->id}/shifts", [
                 'date' => '2026-07-04',
                 'start_time' => '18:00',
@@ -75,7 +75,7 @@ class ManagerPowersTest extends TestCase
     {
         $volunteer = Person::factory()->create(['tenant_id' => $this->area->tenant_id]);
 
-        $this->actingAs($volunteer, 'volunteer')
+        $this->actingAs($volunteer)
             ->post("/me/areas/{$this->area->id}/shifts", [
                 'date' => '2026-07-04',
                 'start_time' => '18:00',
@@ -91,7 +91,7 @@ class ManagerPowersTest extends TestCase
         // the manager can reshape it.
         $shift = Shift::factory()->for($this->area)->create(['tenant_id' => $this->area->tenant_id]);
 
-        $this->actingAs($this->manager, 'volunteer')->put("/me/shifts/{$shift->id}", [
+        $this->actingAs($this->manager)->put("/me/shifts/{$shift->id}", [
             'date' => '2026-07-05',
             'start_time' => '19:00',
             'end_time' => '23:00',
@@ -107,7 +107,7 @@ class ManagerPowersTest extends TestCase
     {
         $shift = Shift::factory()->for($this->otherArea)->create(['tenant_id' => $this->area->tenant_id]);
 
-        $this->actingAs($this->manager, 'volunteer')->put("/me/shifts/{$shift->id}", [
+        $this->actingAs($this->manager)->put("/me/shifts/{$shift->id}", [
             'date' => '2026-07-05',
             'start_time' => '19:00',
             'end_time' => '23:00',
@@ -120,8 +120,8 @@ class ManagerPowersTest extends TestCase
         $own = Shift::factory()->for($this->area)->create(['tenant_id' => $this->area->tenant_id]);
         $foreign = Shift::factory()->for($this->otherArea)->create(['tenant_id' => $this->area->tenant_id]);
 
-        $this->actingAs($this->manager, 'volunteer')->delete("/me/shifts/{$own->id}")->assertRedirect();
-        $this->actingAs($this->manager, 'volunteer')->delete("/me/shifts/{$foreign->id}")->assertNotFound();
+        $this->actingAs($this->manager)->delete("/me/shifts/{$own->id}")->assertRedirect();
+        $this->actingAs($this->manager)->delete("/me/shifts/{$foreign->id}")->assertNotFound();
 
         $this->assertDatabaseMissing('shifts', ['id' => $own->id]);
         $this->assertDatabaseHas('shifts', ['id' => $foreign->id]);
@@ -132,7 +132,7 @@ class ManagerPowersTest extends TestCase
         $shift = Shift::factory()->for($this->area)->create(['tenant_id' => $this->area->tenant_id]);
         $volunteer = Person::factory()->create(['tenant_id' => $this->area->tenant_id]);
 
-        $this->actingAs($this->manager, 'volunteer')
+        $this->actingAs($this->manager)
             ->post("/me/shifts/{$shift->id}/assign", ['person_id' => $volunteer->id])
             ->assertRedirect();
 
@@ -147,7 +147,7 @@ class ManagerPowersTest extends TestCase
         $volunteer = Person::factory()->create(['tenant_id' => $this->area->tenant_id]);
         ShiftSignup::factory()->for($shift)->for($volunteer)->create(['status' => SignupStatus::Available]);
 
-        $this->actingAs($this->manager, 'volunteer')
+        $this->actingAs($this->manager)
             ->post("/me/shifts/{$shift->id}/assign", ['person_id' => $volunteer->id]);
 
         $this->assertSame(1, ShiftSignup::count());
@@ -161,10 +161,10 @@ class ManagerPowersTest extends TestCase
         $volunteer = Person::factory()->create(['tenant_id' => $this->area->tenant_id]);
         $foreignPerson = Person::factory()->create();
 
-        $this->actingAs($this->manager, 'volunteer')
+        $this->actingAs($this->manager)
             ->post("/me/shifts/{$foreignShift->id}/assign", ['person_id' => $volunteer->id])
             ->assertNotFound();
-        $this->actingAs($this->manager, 'volunteer')
+        $this->actingAs($this->manager)
             ->post("/me/shifts/{$ownShift->id}/assign", ['person_id' => $foreignPerson->id])
             ->assertNotFound();
 
@@ -173,7 +173,7 @@ class ManagerPowersTest extends TestCase
 
     public function test_a_manager_can_add_a_volunteer_and_gets_their_link()
     {
-        $this->actingAs($this->manager, 'volunteer')
+        $this->actingAs($this->manager)
             ->post('/me/people', ['name' => 'Luigia Verdi', 'phone' => '+39 333 9876543'])
             ->assertRedirect()
             ->assertSessionHas('magicLink', fn ($flash) => $flash['personName'] === 'Luigia Verdi');
@@ -187,7 +187,7 @@ class ManagerPowersTest extends TestCase
     {
         $volunteer = Person::factory()->create(['tenant_id' => $this->area->tenant_id]);
 
-        $this->actingAs($volunteer, 'volunteer')
+        $this->actingAs($volunteer)
             ->post('/me/people', ['name' => 'Intruso'])
             ->assertNotFound();
 
@@ -198,7 +198,7 @@ class ManagerPowersTest extends TestCase
     {
         Person::factory()->create(['tenant_id' => $this->area->tenant_id, 'phone' => '+39 333 9876543']);
 
-        $this->actingAs($this->manager, 'volunteer')
+        $this->actingAs($this->manager)
             ->post('/me/people', ['name' => 'Luigia Verdi', 'phone' => '+39 333 9876543'])
             ->assertSessionHasErrors('phone');
     }
@@ -215,7 +215,7 @@ class ManagerPowersTest extends TestCase
         ]);
         ShiftSignup::factory()->for($shift)->for($volunteer)->create(['status' => SignupStatus::Available]);
 
-        $this->actingAs($this->manager, 'volunteer')->get('/me')->assertInertia(
+        $this->actingAs($this->manager)->get('/me')->assertInertia(
             fn ($page) => $page
                 ->where('shifts.0.signups.0.personName', $volunteer->name)
                 ->where('shifts.0.signups.0.personPhone', '+39 333 1112223')
@@ -235,7 +235,7 @@ class ManagerPowersTest extends TestCase
         $otherShift = Shift::factory()->for($this->otherArea)->create(['tenant_id' => $tenant]);
         ShiftSignup::factory()->for($otherShift)->for($elsewhere)->create(['tenant_id' => $tenant, 'status' => SignupStatus::Available]);
 
-        $this->actingAs($this->manager, 'volunteer')->get('/me')->assertInertia(
+        $this->actingAs($this->manager)->get('/me')->assertInertia(
             fn ($page) => $page->where('manager.roster', function ($roster) {
                 $names = collect($roster)->pluck('name');
 
@@ -254,7 +254,7 @@ class ManagerPowersTest extends TestCase
         $volunteer = Person::factory()->create(['tenant_id' => $this->area->tenant_id, 'name' => 'Gigi Volont']);
         ShiftSignup::factory()->for($shift)->for($volunteer)->create(['tenant_id' => $this->area->tenant_id, 'status' => SignupStatus::Assigned]);
 
-        $this->actingAs($this->manager, 'volunteer')->get('/me')->assertInertia(
+        $this->actingAs($this->manager)->get('/me')->assertInertia(
             fn ($page) => $page
                 ->has('manager.overview', 1)
                 ->where('manager.overview.0.id', $this->area->id)
@@ -282,7 +282,7 @@ class ManagerPowersTest extends TestCase
         // A shift in an area she does not manage must stay out of her schedule.
         Shift::factory()->for($this->otherArea)->create(['tenant_id' => $this->area->tenant_id]);
 
-        $this->actingAs($this->manager, 'volunteer')->get('/me')->assertInertia(
+        $this->actingAs($this->manager)->get('/me')->assertInertia(
             fn ($page) => $page
                 ->has('manager.schedule.areas', 1)
                 ->where('manager.schedule.areas.0.id', $this->area->id)
@@ -297,7 +297,7 @@ class ManagerPowersTest extends TestCase
     {
         $volunteer = Person::factory()->create(['tenant_id' => $this->area->tenant_id]);
 
-        $this->actingAs($this->manager, 'volunteer')->get('/me')->assertInertia(
+        $this->actingAs($this->manager)->get('/me')->assertInertia(
             fn ($page) => $page
                 ->has('manager.areas', 1)
                 ->where('manager.areas.0.id', $this->area->id)
@@ -305,7 +305,7 @@ class ManagerPowersTest extends TestCase
                 ->has('manager.inviteUrl')
         );
 
-        $this->actingAs($volunteer, 'volunteer')->get('/me')->assertInertia(
+        $this->actingAs($volunteer)->get('/me')->assertInertia(
             fn ($page) => $page->where('manager', null)
         );
     }

@@ -51,6 +51,6 @@ class ShiftSignup extends Model
 
     public function assignedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'assigned_by');
+        return $this->belongsTo(Person::class, 'assigned_by');
     }
 }

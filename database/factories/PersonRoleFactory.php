@@ -3,7 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\Role;
-use App\Models\Event;
+use App\Models\Area;
 use App\Models\Person;
 use App\Models\PersonRole;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -17,9 +17,8 @@ class PersonRoleFactory extends Factory
     {
         return [
             'person_id' => Person::factory(),
-            'event_id' => Event::factory(),
-            'role' => Role::Organizer,
-            'area_id' => null,
+            'role' => Role::AreaManager,
+            'area_id' => Area::factory(),
         ];
     }
 
@@ -27,6 +26,8 @@ class PersonRoleFactory extends Factory
     {
         return $this->afterMaking(function (PersonRole $personRole) {
             $personRole->tenant_id ??= $personRole->person->tenant_id;
+            // An area manager role is event-scoped through its area (D19).
+            $personRole->event_id ??= $personRole->area?->event_id;
         });
     }
 }

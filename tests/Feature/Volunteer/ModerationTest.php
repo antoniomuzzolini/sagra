@@ -46,7 +46,7 @@ class ModerationTest extends TestCase
 
     public function test_an_area_manager_can_confirm_a_signup_in_their_area()
     {
-        $this->actingAs($this->manager, 'volunteer')
+        $this->actingAs($this->manager)
             ->put("/me/signups/{$this->signup->id}", ['status' => 'assigned'])
             ->assertRedirect();
 
@@ -58,7 +58,7 @@ class ModerationTest extends TestCase
 
     public function test_an_area_manager_can_remove_a_signup_in_their_area()
     {
-        $this->actingAs($this->manager, 'volunteer')
+        $this->actingAs($this->manager)
             ->delete("/me/signups/{$this->signup->id}")
             ->assertRedirect();
 
@@ -75,7 +75,7 @@ class ModerationTest extends TestCase
             'area_id' => $otherArea->id,
         ]);
 
-        $this->actingAs($otherManager, 'volunteer')
+        $this->actingAs($otherManager)
             ->put("/me/signups/{$this->signup->id}", ['status' => 'assigned'])
             ->assertNotFound();
     }
@@ -84,17 +84,17 @@ class ModerationTest extends TestCase
     {
         $volunteer = Person::factory()->create(['tenant_id' => $this->area->tenant_id]);
 
-        $this->actingAs($volunteer, 'volunteer')
+        $this->actingAs($volunteer)
             ->put("/me/signups/{$this->signup->id}", ['status' => 'assigned'])
             ->assertNotFound();
-        $this->actingAs($volunteer, 'volunteer')
+        $this->actingAs($volunteer)
             ->delete("/me/signups/{$this->signup->id}")
             ->assertNotFound();
     }
 
     public function test_the_home_exposes_signup_details_only_for_managed_areas()
     {
-        $this->actingAs($this->manager, 'volunteer')
+        $this->actingAs($this->manager)
             ->get('/me')
             ->assertInertia(fn ($page) => $page
                 ->component('Volunteer/Home')
@@ -104,7 +104,7 @@ class ModerationTest extends TestCase
 
         $volunteer = Person::factory()->create(['tenant_id' => $this->area->tenant_id]);
 
-        $this->actingAs($volunteer, 'volunteer')
+        $this->actingAs($volunteer)
             ->get('/me')
             ->assertInertia(fn ($page) => $page
                 ->where('shifts.0.canModerate', false)

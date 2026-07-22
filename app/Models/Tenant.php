@@ -36,11 +36,6 @@ class Tenant extends Model
         $this->forceFill(['invite_token' => Str::random(40)])->save();
     }
 
-    public function users(): HasMany
-    {
-        return $this->hasMany(User::class);
-    }
-
     public function people(): HasMany
     {
         return $this->hasMany(Person::class);

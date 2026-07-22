@@ -16,7 +16,7 @@ class ManagerPeopleController extends Controller
 {
     public function store(Request $request): RedirectResponse
     {
-        $manager = $request->user('volunteer');
+        $manager = $request->user();
 
         abort_if($manager->managedAreaIds()->isEmpty(), 404);
 

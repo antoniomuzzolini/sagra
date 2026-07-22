@@ -53,7 +53,34 @@ Refactor corposo, da fare a contesto pieno. Traccia di massima:
 6. **Iscrizione ai turni universale**: `shift_signups` riferisce l'identità unica → ogni ruolo può iscriversi.
 7. **Test**: coprire login-con-password, magic-link-per-volontari, invito responsabile, iscrizione ai turni per ogni ruolo, scoping responsabile.
 
-Ripartenza: *"continua sul progetto sagra, branch main: implementa D19 (unificazione identità)"*.
+#### D19 — stato: **implementato**
+
+Realizzato come da piano, con questi affinamenti (fonte di verità = codice):
+
+- **Identità**: `people` è l'unica tabella persona; `password`,
+  `email_verified_at`, `is_organizer` aggiunti; `users` ritirata con
+  migrazione dati (organizzatori → `people`, `is_organizer = true`).
+- **Ruoli**: l'organizzatore è un **flag tenant-wide** (`is_organizer`), non
+  un `person_role` — l'organizzatore è trasversale a tutte le edizioni e
+  precede qualsiasi evento, quindi non stava bene in `person_roles`
+  (event-scoped). `person_roles` resta per il solo **responsabile d'area**
+  (scoped ad area). L'enum `Role` ora ha solo `AreaManager`.
+- **Auth**: una sola guardia `web` sul provider `people`; guardia
+  `volunteer` rimossa. Password per chi ce l'ha, magic link per chi no.
+  Broker password su `people`. Middleware `organizer` a protezione dell'area
+  di gestione (le rotte `auth` sono aperte a chiunque, il **ruolo** decide).
+  Login role-aware: organizzatore → dashboard, altri → `/me`.
+- **Invito account**: `POST people/{person}/account-invite` genera un link
+  di set-password (broker `people`), condivisibile via email/WhatsApp/copia
+  come il magic link. L'email è obbligatoria (chiave dell'account).
+- **`assigned_by`** ora riferisce `people` (non più `users`).
+- **Iscrizione universale**: le rotte di iscrizione sono sotto `auth`, quindi
+  ogni ruolo (organizzatore incluso) può iscriversi ai turni.
+- **Roster**: la pagina Persone esclude gli organizzatori (tengono l'account
+  ma non sono nel roster che amministrano); riga roster con `hasAccount`.
+
+Punto aperto (non nel MVP di D19): al passo 5 i responsabili usano ancora la
+pagina `/me` scoped (toolkit responsabile), non pagine dedicate separate.
 
 ## 3. Glossario ed entità di dominio
 

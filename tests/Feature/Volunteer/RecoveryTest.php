@@ -4,7 +4,6 @@ namespace Tests\Feature\Volunteer;
 
 use App\Models\Person;
 use App\Models\Tenant;
-use App\Models\User;
 use App\Notifications\MagicLinkRecovery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -64,7 +63,7 @@ class RecoveryTest extends TestCase
 
     public function test_generating_a_new_link_clears_the_pending_request()
     {
-        $user = User::factory()->for(Tenant::factory())->create();
+        $user = Person::factory()->organizer()->for(Tenant::factory())->create();
         $person = Person::factory()->create([
             'tenant_id' => $user->tenant_id,
             'link_requested_at' => now(),

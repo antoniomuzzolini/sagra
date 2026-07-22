@@ -52,14 +52,14 @@ class OverlapAndMembershipTest extends TestCase
         $overlapping = $this->shift($this->parking, '20:00', '23:00');
         $contiguous = $this->shift($this->parking, '22:00', '23:30');
 
-        $response = $this->actingAs($this->person, 'volunteer')->get('/me');
+        $response = $this->actingAs($this->person)->get('/me');
 
         $shifts = collect($response->inertiaPage()['props']['shifts']);
         $this->assertStringContainsString('Cucina', $shifts->firstWhere('id', $overlapping->id)['myOverlap']);
         $this->assertNull($shifts->firstWhere('id', $contiguous->id)['myOverlap']);
 
         // Allowed, but flagged: signing up still works.
-        $this->actingAs($this->person, 'volunteer')
+        $this->actingAs($this->person)
             ->post("/me/shifts/{$overlapping->id}/signup")
             ->assertRedirect();
     }
@@ -79,7 +79,7 @@ class OverlapAndMembershipTest extends TestCase
         $elsewhere = $this->shift($this->parking, '20:00', '23:00');
         ShiftSignup::factory()->for($elsewhere)->for($this->person)->create(['status' => SignupStatus::Assigned]);
 
-        $response = $this->actingAs($manager, 'volunteer')->get('/me');
+        $response = $this->actingAs($manager)->get('/me');
 
         $shifts = collect($response->inertiaPage()['props']['shifts']);
         $signup = collect($shifts->firstWhere('id', $kitchenShift->id)['signups'])
@@ -95,7 +95,7 @@ class OverlapAndMembershipTest extends TestCase
         $otherKitchenShift = $this->shift($this->kitchen, '12:00', '15:00');
         $parkingShift = $this->shift($this->parking, '12:00', '15:00');
 
-        $response = $this->actingAs($this->person, 'volunteer')->get('/me');
+        $response = $this->actingAs($this->person)->get('/me');
 
         $shifts = collect($response->inertiaPage()['props']['shifts']);
         $this->assertTrue($shifts->firstWhere('id', $otherKitchenShift->id)['isMyArea']);
@@ -112,7 +112,7 @@ class OverlapAndMembershipTest extends TestCase
         $parkingShift = $this->shift($this->parking, '18:00', '22:00');
         $kitchenShift = $this->shift($this->kitchen, '18:00', '22:00');
 
-        $response = $this->actingAs($this->person, 'volunteer')->get('/me');
+        $response = $this->actingAs($this->person)->get('/me');
 
         $shifts = collect($response->inertiaPage()['props']['shifts']);
         $this->assertTrue($shifts->firstWhere('id', $parkingShift->id)['isMyArea']);
@@ -123,7 +123,7 @@ class OverlapAndMembershipTest extends TestCase
     {
         $this->shift($this->kitchen, '18:00', '22:00');
 
-        $response = $this->actingAs($this->person, 'volunteer')->get('/me');
+        $response = $this->actingAs($this->person)->get('/me');
 
         $shifts = collect($response->inertiaPage()['props']['shifts']);
         $this->assertFalse($shifts->first()['isMyArea']);

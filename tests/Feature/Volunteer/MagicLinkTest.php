@@ -4,7 +4,6 @@ namespace Tests\Feature\Volunteer;
 
 use App\Models\Person;
 use App\Models\Tenant;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -20,7 +19,7 @@ class MagicLinkTest extends TestCase
         $response = $this->get("/v/{$token}");
 
         $response->assertRedirect(route('volunteer.home'));
-        $this->assertAuthenticatedAs($person, 'volunteer');
+        $this->assertAuthenticatedAs($person);
         $this->assertNotNull($person->magicLinks()->first()->last_used_at);
     }
 
@@ -37,7 +36,7 @@ class MagicLinkTest extends TestCase
     public function test_an_unknown_token_shows_a_friendly_error()
     {
         $this->get('/v/not-a-real-token')->assertNotFound();
-        $this->assertGuest('volunteer');
+        $this->assertGuest();
     }
 
     public function test_an_expired_link_no_longer_works()
@@ -46,7 +45,7 @@ class MagicLinkTest extends TestCase
         $token = $person->createMagicLink(now()->subDay());
 
         $this->get("/v/{$token}")->assertNotFound();
-        $this->assertGuest('volunteer');
+        $this->assertGuest();
     }
 
     public function test_regenerating_the_link_revokes_the_previous_one()
@@ -56,10 +55,10 @@ class MagicLinkTest extends TestCase
         $newToken = $person->createMagicLink();
 
         $this->get("/v/{$oldToken}")->assertNotFound();
-        $this->assertGuest('volunteer');
+        $this->assertGuest();
 
         $this->get("/v/{$newToken}")->assertRedirect(route('volunteer.home'));
-        $this->assertAuthenticatedAs($person, 'volunteer');
+        $this->assertAuthenticatedAs($person);
     }
 
     public function test_a_magic_link_works_only_once()
@@ -73,7 +72,7 @@ class MagicLinkTest extends TestCase
         $this->app['auth']->forgetGuards();
         $this->flushSession();
         $this->get("/v/{$token}")->assertNotFound();
-        $this->assertGuest('volunteer');
+        $this->assertGuest();
     }
 
     public function test_a_used_link_reopened_on_the_same_device_goes_home()
@@ -83,7 +82,7 @@ class MagicLinkTest extends TestCase
 
         $this->get("/v/{$token}");
         $this->get("/v/{$token}")->assertRedirect(route('volunteer.home'));
-        $this->assertAuthenticatedAs($person, 'volunteer');
+        $this->assertAuthenticatedAs($person);
     }
 
     public function test_links_expire_after_seven_days_by_default()
@@ -94,7 +93,7 @@ class MagicLinkTest extends TestCase
         $this->travel(8)->days();
 
         $this->get("/v/{$token}")->assertNotFound();
-        $this->assertGuest('volunteer');
+        $this->assertGuest();
     }
 
     public function test_opening_anothers_link_asks_before_switching()
@@ -112,12 +111,12 @@ class MagicLinkTest extends TestCase
                 ->where('currentName', 'Mario')
                 ->where('newName', 'Luigia')
         );
-        $this->assertAuthenticatedAs($mario, 'volunteer');
+        $this->assertAuthenticatedAs($mario);
         $this->assertNull($luigia->magicLinks()->first()->last_used_at);
 
         // Explicit confirmation hands the device over.
         $this->post("/v/{$luigiaToken}/switch")->assertRedirect(route('volunteer.home'));
-        $this->assertAuthenticatedAs($luigia, 'volunteer');
+        $this->assertAuthenticatedAs($luigia);
         $this->assertNotNull($luigia->magicLinks()->first()->last_used_at);
     }
 
@@ -138,25 +137,15 @@ class MagicLinkTest extends TestCase
             ->assertRedirect(route('magic-link.invalid'));
     }
 
-    public function test_an_organizer_on_a_volunteer_route_goes_to_their_dashboard()
+    public function test_an_account_holder_can_open_their_own_shifts_page()
     {
-        // E.g. a stale intended URL pointing at /me after the web login:
-        // that's not a broken magic link, it's the wrong home.
-        $organizer = User::factory()->for(Tenant::factory())->create();
+        // One identity, one guard (D19): an organizer or area manager is
+        // already signed in, so /me ("i miei turni") is theirs to open —
+        // no magic link, no redirect.
+        $organizer = Person::factory()->organizer()->for(Tenant::factory())->create();
 
         $this->actingAs($organizer)
             ->get(route('volunteer.home'))
-            ->assertRedirect(route('dashboard'));
-    }
-
-    public function test_a_magic_link_does_not_authenticate_the_web_guard()
-    {
-        $person = Person::factory()->create();
-        $token = $person->createMagicLink();
-
-        $this->get("/v/{$token}");
-
-        $this->assertAuthenticatedAs($person, 'volunteer');
-        $this->assertGuest('web');
+            ->assertOk();
     }
 }

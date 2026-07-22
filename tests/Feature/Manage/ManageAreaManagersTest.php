@@ -8,7 +8,6 @@ use App\Models\Event;
 use App\Models\Person;
 use App\Models\PersonRole;
 use App\Models\Tenant;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -16,7 +15,7 @@ class ManageAreaManagersTest extends TestCase
 {
     use RefreshDatabase;
 
-    private User $user;
+    private Person $user;
 
     private Area $area;
 
@@ -27,7 +26,7 @@ class ManageAreaManagersTest extends TestCase
         parent::setUp();
 
         $tenant = Tenant::factory()->create();
-        $this->user = User::factory()->for($tenant)->create();
+        $this->user = Person::factory()->organizer()->for($tenant)->create();
         $event = Event::factory()->create(['tenant_id' => $tenant->id]);
         $this->area = Area::factory()->for($event)->create(['tenant_id' => $tenant->id]);
         $this->person = Person::factory()->create(['tenant_id' => $tenant->id]);
@@ -82,7 +81,7 @@ class ManageAreaManagersTest extends TestCase
 
     public function test_cross_tenant_roles_cannot_be_removed()
     {
-        $foreignUser = User::factory()->for(Tenant::factory())->create();
+        $foreignUser = Person::factory()->organizer()->for(Tenant::factory())->create();
         $role = PersonRole::factory()->for($this->person)->create([
             'tenant_id' => $this->area->tenant_id,
             'event_id' => $this->area->event_id,

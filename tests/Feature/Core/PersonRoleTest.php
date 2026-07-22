@@ -35,17 +35,4 @@ class PersonRoleTest extends TestCase
 
         $this->assertTrue($role->exists);
     }
-
-    public function test_an_organizer_role_cannot_be_scoped_to_an_area()
-    {
-        $event = Event::factory()->create();
-        $area = Area::factory()->for($event)->create();
-
-        $this->expectException(DomainException::class);
-
-        PersonRole::factory()->for($event)->create([
-            'role' => Role::Organizer,
-            'area_id' => $area->id,
-        ]);
-    }
 }

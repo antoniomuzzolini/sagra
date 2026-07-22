@@ -33,7 +33,7 @@ class JoinController extends Controller
             'token' => $token,
             // Tell, don't block (D17): the device may legitimately serve
             // more than one volunteer.
-            'currentName' => $request->user('volunteer')?->name,
+            'currentName' => $request->user()?->name,
         ]);
     }
 
@@ -58,7 +58,7 @@ class JoinController extends Controller
             'phone' => $data['phone'] ?? null,
         ]);
 
-        Auth::guard('volunteer')->login($person, remember: true);
+        Auth::login($person, remember: true);
         $request->session()->regenerate();
 
         return redirect()->route('volunteer.home');

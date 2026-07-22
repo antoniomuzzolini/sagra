@@ -33,7 +33,7 @@ class SignupFlowTest extends TestCase
 
     private function actingAsVolunteer(): static
     {
-        return $this->actingAs($this->person, 'volunteer');
+        return $this->actingAs($this->person);
     }
 
     public function test_the_home_lists_upcoming_shifts_of_the_own_tenant_only()

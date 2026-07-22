@@ -15,7 +15,7 @@ class MagicLinkController extends Controller
     {
         $link = MagicLink::findByToken($token);
         $person = $link?->person;
-        $current = $request->user('volunteer');
+        $current = $request->user();
 
         if ($link === null || $person === null || $link->isExpired()) {
             return $this->invalid($request, 'unknown');
@@ -65,7 +65,7 @@ class MagicLinkController extends Controller
 
         // Remember the session: a volunteer taps the link once and
         // stays in, no password and no repeated logins (D6).
-        Auth::guard('volunteer')->login($link->person, remember: true);
+        Auth::login($link->person, remember: true);
         $request->session()->regenerate();
     }
 

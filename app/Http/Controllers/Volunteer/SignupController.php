@@ -22,7 +22,7 @@ class SignupController extends Controller
      */
     public function store(Request $request, Shift $shift): RedirectResponse
     {
-        $person = $request->user('volunteer');
+        $person = $request->user();
 
         abort_unless($shift->tenant_id === $person->tenant_id, 404);
 
@@ -54,7 +54,7 @@ class SignupController extends Controller
      */
     public function destroy(Request $request, Shift $shift): RedirectResponse
     {
-        $person = $request->user('volunteer');
+        $person = $request->user();
 
         abort_unless($shift->tenant_id === $person->tenant_id, 404);
 
@@ -71,7 +71,7 @@ class SignupController extends Controller
      */
     public function requestSubstitution(Request $request, Shift $shift): RedirectResponse
     {
-        $person = $request->user('volunteer');
+        $person = $request->user();
 
         abort_unless($shift->tenant_id === $person->tenant_id, 404);
 
@@ -93,7 +93,7 @@ class SignupController extends Controller
 
     public function cancelSubstitution(Request $request, Shift $shift): RedirectResponse
     {
-        $person = $request->user('volunteer');
+        $person = $request->user();
 
         abort_unless($shift->tenant_id === $person->tenant_id, 404);
 
@@ -143,7 +143,7 @@ class SignupController extends Controller
      */
     public function assign(Request $request, Shift $shift): RedirectResponse
     {
-        $manager = $request->user('volunteer');
+        $manager = $request->user();
 
         abort_unless(
             $shift->tenant_id === $manager->tenant_id
@@ -173,7 +173,7 @@ class SignupController extends Controller
 
     private function authorizeManager(Request $request, ShiftSignup $signup): Person
     {
-        $person = $request->user('volunteer');
+        $person = $request->user();
 
         abort_unless(
             $signup->tenant_id === $person->tenant_id

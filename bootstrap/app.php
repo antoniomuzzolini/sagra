@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureOrganizer;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -27,16 +28,15 @@ return Application::configure(basePath: dirname(__DIR__))
             AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        // Volunteers have no login page: without a valid session the
-        // only way in is a fresh magic link. An organizer landing on a
-        // volunteer route (e.g. via a stale intended URL after login)
-        // isn't a broken link though — send them to their own home.
-        $middleware->redirectGuestsTo(function (Request $request) {
-            if ($request->routeIs('volunteer.*')) {
-                return $request->user() ? route('dashboard') : route('magic-link.invalid');
-            }
+        $middleware->alias(['organizer' => EnsureOrganizer::class]);
 
-            return route('login');
+        // Simple volunteers have no login page: without a valid session the
+        // only way in is a fresh magic link (D6/D17). Account holders
+        // (organizers, area managers) land on the login page instead.
+        $middleware->redirectGuestsTo(function (Request $request) {
+            return $request->routeIs('volunteer.*')
+                ? route('magic-link.invalid')
+                : route('login');
         });
     })
     ->withExceptions(function (Exceptions $exceptions) {

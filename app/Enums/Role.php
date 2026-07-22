@@ -2,8 +2,11 @@
 
 namespace App\Enums;
 
+/**
+ * Scoped roles held in `person_roles`. The tenant-wide organizer
+ * capability is not here — it's a flag on the person (D19).
+ */
 enum Role: string
 {
-    case Organizer = 'organizer';
     case AreaManager = 'area_manager';
 }

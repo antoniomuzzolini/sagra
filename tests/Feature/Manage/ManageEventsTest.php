@@ -8,7 +8,6 @@ use App\Models\Person;
 use App\Models\Shift;
 use App\Models\ShiftSignup;
 use App\Models\Tenant;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -16,12 +15,12 @@ class ManageEventsTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function organizer(): User
+    private function organizer(): Person
     {
-        return User::factory()->for(Tenant::factory())->create();
+        return Person::factory()->organizer()->for(Tenant::factory())->create();
     }
 
-    private function eventInYear(User $user, int $year, string $name): Event
+    private function eventInYear(Person $user, int $year, string $name): Event
     {
         $event = Event::factory()->create(['tenant_id' => $user->tenant_id, 'name' => $name]);
         $event->phases()->create([

@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\Person;
-use App\Models\User;
 
 return [
 
@@ -18,7 +17,7 @@ return [
 
     'defaults' => [
         'guard' => env('AUTH_GUARD', 'web'),
-        'passwords' => env('AUTH_PASSWORD_BROKER', 'users'),
+        'passwords' => env('AUTH_PASSWORD_BROKER', 'people'),
     ],
 
     /*
@@ -39,15 +38,11 @@ return [
     */
 
     'guards' => [
+        // One identity, one guard (D19). A person signs in with a password
+        // if they have one (organizers, area managers) or with a magic link
+        // if they don't (simple volunteers). The remember cookie lasts a
+        // year (D17): links are single-use, the long session keeps people in.
         'web' => [
-            'driver' => 'session',
-            'provider' => 'users',
-        ],
-
-        // Volunteers authenticate via magic link (D6), never via password.
-        // The remember cookie lasts a year (D17): links are single-use,
-        // the long session is what keeps volunteers in.
-        'volunteer' => [
             'driver' => 'session',
             'provider' => 'people',
             'remember' => 60 * 24 * 365,
@@ -72,20 +67,10 @@ return [
     */
 
     'providers' => [
-        'users' => [
-            'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', User::class),
-        ],
-
         'people' => [
             'driver' => 'eloquent',
-            'model' => Person::class,
+            'model' => env('AUTH_MODEL', Person::class),
         ],
-
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
     ],
 
     /*
@@ -108,8 +93,8 @@ return [
     */
 
     'passwords' => [
-        'users' => [
-            'provider' => 'users',
+        'people' => [
+            'provider' => 'people',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
             'expire' => 60,
             'throttle' => 60,

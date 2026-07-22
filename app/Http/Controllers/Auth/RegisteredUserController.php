@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Person;
 use App\Models\Tenant;
-use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -37,30 +37,32 @@ class RegisteredUserController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'association' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+            'email' => 'required|string|lowercase|email|max:255|unique:people,email',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ], [
             'association.required' => 'Il nome dell\'associazione è obbligatorio.',
         ]);
 
-        // Registering creates the association (tenant) the user belongs to.
-        $user = DB::transaction(function () use ($request) {
+        // Registering creates the association (tenant) and its organizer —
+        // one identity in `people`, with a password and the organizer flag (D19).
+        $person = DB::transaction(function () use ($request) {
             $tenant = Tenant::create([
                 'name' => $request->association,
                 'slug' => $this->uniqueSlug($request->association),
             ]);
 
-            return User::create([
+            return Person::create([
                 'tenant_id' => $tenant->id,
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
+                'is_organizer' => true,
             ]);
         });
 
-        event(new Registered($user));
+        event(new Registered($person));
 
-        Auth::login($user);
+        Auth::login($person);
 
         return to_route('dashboard');
     }

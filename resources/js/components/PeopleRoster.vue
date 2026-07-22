@@ -15,6 +15,7 @@ export interface PersonRosterRow {
     role: PersonRole;
     areas: string[];
     shiftsCount: number;
+    hasAccount: boolean;
     hasLink: boolean;
     linkLastUsedAt: string | null;
     linkRequested: boolean;

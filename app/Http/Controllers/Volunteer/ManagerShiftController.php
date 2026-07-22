@@ -59,7 +59,7 @@ class ManagerShiftController extends Controller
 
     private function authorizeAreaManager(Request $request, int $tenantId, int $areaId): void
     {
-        $person = $request->user('volunteer');
+        $person = $request->user();
 
         abort_unless(
             $tenantId === $person->tenant_id && $person->managesArea($areaId),

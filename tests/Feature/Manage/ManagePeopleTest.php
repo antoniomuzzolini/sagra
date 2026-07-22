@@ -11,17 +11,17 @@ use App\Models\PersonRole;
 use App\Models\Shift;
 use App\Models\ShiftSignup;
 use App\Models\Tenant;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Password;
 use Tests\TestCase;
 
 class ManagePeopleTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function organizer(): User
+    private function organizer(): Person
     {
-        return User::factory()->for(Tenant::factory())->create();
+        return Person::factory()->organizer()->for(Tenant::factory())->create();
     }
 
     public function test_guests_cannot_see_the_people_page()
@@ -40,7 +40,8 @@ class ManagePeopleTest extends TestCase
             ->assertOk()
             ->assertSee('Mario Rossi');
 
-        $this->assertSame(1, Person::where('tenant_id', $user->tenant_id)->count());
+        $this->assertSame(1, Person::where('tenant_id', $user->tenant_id)
+            ->where('is_organizer', false)->count());
     }
 
     public function test_the_roster_derives_role_areas_and_shift_count()
@@ -139,5 +140,66 @@ class ManagePeopleTest extends TestCase
             ->assertNotFound();
         $this->actingAs($user)->delete("/people/{$foreign->id}")->assertNotFound();
         $this->actingAs($user)->post("/people/{$foreign->id}/magic-link")->assertNotFound();
+        $this->actingAs($user)->post("/people/{$foreign->id}/account-invite")->assertNotFound();
+    }
+
+    public function test_inviting_a_person_as_an_account_flashes_a_set_password_link()
+    {
+        $user = $this->organizer();
+        $person = Person::factory()->create([
+            'tenant_id' => $user->tenant_id,
+            'phone' => null,
+            'email' => 'bea@example.com',
+        ]);
+
+        $response = $this->actingAs($user)->post("/people/{$person->id}/account-invite");
+
+        $response->assertSessionHasNoErrors()->assertSessionHas('accountInvite');
+        $this->assertStringContainsString('reset-password', session('accountInvite')['url']);
+        $this->assertDatabaseHas('password_reset_tokens', ['email' => 'bea@example.com']);
+    }
+
+    public function test_a_contactless_person_needs_an_email_to_get_an_account()
+    {
+        $user = $this->organizer();
+        $person = Person::factory()->create(['tenant_id' => $user->tenant_id, 'phone' => '+39333', 'email' => null]);
+
+        $this->actingAs($user)->post("/people/{$person->id}/account-invite")
+            ->assertSessionHasErrors('email');
+
+        // Supplying the email in the same step both saves it and issues the link.
+        $this->actingAs($user)->post("/people/{$person->id}/account-invite", ['email' => 'new@example.com'])
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('accountInvite');
+
+        $this->assertSame('new@example.com', $person->fresh()->email);
+    }
+
+    public function test_the_invited_person_can_set_a_password_and_log_in()
+    {
+        $user = $this->organizer();
+        $person = Person::factory()->create([
+            'tenant_id' => $user->tenant_id,
+            'phone' => null,
+            'email' => 'resp@example.com',
+        ]);
+
+        // The token is what the invite's set-password link carries (the invite
+        // endpoint itself is covered above).
+        $token = Password::broker('people')->createToken($person);
+
+        // The invited person opens the link as a guest and picks a password.
+        $this->post('/reset-password', [
+            'token' => $token,
+            'email' => 'resp@example.com',
+            'password' => 'secretpassword',
+            'password_confirmation' => 'secretpassword',
+        ])->assertSessionHasNoErrors()->assertRedirect(route('login'));
+
+        // From then on they log in with email + password (D19); without the
+        // organizer role they land on their own shifts, not the dashboard.
+        $this->post('/login', ['email' => 'resp@example.com', 'password' => 'secretpassword'])
+            ->assertRedirect(route('volunteer.home'));
+        $this->assertAuthenticatedAs($person->fresh());
     }
 }

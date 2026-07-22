@@ -27,7 +27,7 @@ Route::get('manifest.webmanifest', function () {
 })->name('pwa.manifest');
 
 Route::get('dashboard', DashboardController::class)
-    ->middleware(['auth', 'verified'])->name('dashboard');
+    ->middleware(['auth', 'verified', 'organizer'])->name('dashboard');
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

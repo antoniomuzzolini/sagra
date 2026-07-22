@@ -15,7 +15,8 @@ return new class extends Migration
             $table->foreignId('person_id')->constrained('people')->restrictOnDelete();
             $table->string('status')->default('available');
             $table->timestampTz('assigned_at')->nullable();
-            $table->foreignId('assigned_by')->nullable()->constrained('users')->nullOnDelete();
+            // Who confirmed the assignment — a person with the right (D19).
+            $table->foreignId('assigned_by')->nullable()->constrained('people')->nullOnDelete();
             $table->timestamps();
 
             $table->unique(['shift_id', 'person_id']);

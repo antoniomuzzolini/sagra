@@ -34,7 +34,7 @@ class SubstitutionTest extends TestCase
     {
         $signup = ShiftSignup::factory()->assigned()->for($this->shift)->for($this->person)->create();
 
-        $this->actingAs($this->person, 'volunteer')
+        $this->actingAs($this->person)
             ->post("/me/shifts/{$this->shift->id}/substitution")
             ->assertRedirect();
 
@@ -45,7 +45,7 @@ class SubstitutionTest extends TestCase
     {
         $signup = ShiftSignup::factory()->for($this->shift)->for($this->person)->create();
 
-        $this->actingAs($this->person, 'volunteer')->post("/me/shifts/{$this->shift->id}/substitution");
+        $this->actingAs($this->person)->post("/me/shifts/{$this->shift->id}/substitution");
 
         $this->assertNull($signup->fresh()->substitution_requested_at);
     }
@@ -56,7 +56,7 @@ class SubstitutionTest extends TestCase
             'substitution_requested_at' => now(),
         ]);
 
-        $this->actingAs($this->person, 'volunteer')
+        $this->actingAs($this->person)
             ->delete("/me/shifts/{$this->shift->id}/substitution");
 
         $this->assertNull($signup->fresh()->substitution_requested_at);

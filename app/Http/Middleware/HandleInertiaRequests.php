@@ -47,6 +47,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'flash' => [
                 'magicLink' => fn () => $request->session()->get('magicLink'),
+                'accountInvite' => fn () => $request->session()->get('accountInvite'),
                 'recoveryRequested' => fn () => $request->session()->get('recoveryRequested'),
             ],
         ]);

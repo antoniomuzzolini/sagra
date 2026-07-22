@@ -74,7 +74,12 @@ class DashboardController extends Controller
                 ->where('tenant_id', $tenantId)
                 ->whereNotNull('link_requested_at')
                 ->count(),
-            'volunteersCount' => Person::query()->where('tenant_id', $tenantId)->count(),
+            // Organizers hold an account but aren't part of the volunteer
+            // roster they manage (D19).
+            'volunteersCount' => Person::query()
+                ->where('tenant_id', $tenantId)
+                ->where('is_organizer', false)
+                ->count(),
         ]);
     }
 }

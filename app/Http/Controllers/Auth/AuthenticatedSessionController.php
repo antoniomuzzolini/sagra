@@ -33,7 +33,13 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        // Role-aware home (D19): organizers run the event from the dashboard;
+        // area managers and other account holders land on their own shifts.
+        $home = $request->user()->isOrganizer()
+            ? route('dashboard', absolute: false)
+            : route('volunteer.home', absolute: false);
+
+        return redirect()->intended($home);
     }
 
     /**
