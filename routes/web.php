@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Manage\ManagerAreaController;
 use Illuminate\Support\Facades\Route;
@@ -29,6 +30,11 @@ Route::get('manifest.webmanifest', function () {
 
 Route::get('dashboard', DashboardController::class)
     ->middleware(['auth', 'verified', 'organizer'])->name('dashboard');
+
+// The organizer's tenant-wide calendar (D19: same "Calendario" the manager
+// has, scoped to the whole event instead of one area).
+Route::get('calendar', CalendarController::class)
+    ->middleware(['auth', 'organizer'])->name('calendar');
 
 // Area-manager pages (D19): the same sidebar shell as the organizer, scoped
 // to the areas the person runs. Read views for now — editing stays on /me.

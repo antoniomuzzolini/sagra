@@ -132,6 +132,27 @@ class ManageEventsTest extends TestCase
         $this->assertSame(2, $event->phases()->count());
     }
 
+    public function test_the_organizer_calendar_lists_every_areas_shifts()
+    {
+        $user = $this->organizer();
+        $event = Event::factory()->create(['tenant_id' => $user->tenant_id]);
+        $kitchen = Area::factory()->for($event)->create(['tenant_id' => $user->tenant_id, 'name' => 'Cucina']);
+        $bar = Area::factory()->for($event)->create(['tenant_id' => $user->tenant_id, 'name' => 'Bar']);
+        Shift::factory()->for($kitchen)->create(['tenant_id' => $user->tenant_id, 'starts_at' => '2026-07-11 18:00', 'ends_at' => '2026-07-11 22:00']);
+        Shift::factory()->for($bar)->create(['tenant_id' => $user->tenant_id, 'starts_at' => '2026-07-11 18:00', 'ends_at' => '2026-07-11 23:00']);
+
+        $this->actingAs($user)->get('/calendar')->assertOk()->assertInertia(
+            fn ($page) => $page->component('Manage/Calendar')->has('schedule.areas', 2)
+        );
+    }
+
+    public function test_a_volunteer_cannot_open_the_organizer_calendar()
+    {
+        $volunteer = Person::factory()->create();
+
+        $this->actingAs($volunteer)->get('/calendar')->assertForbidden();
+    }
+
     public function test_the_event_page_shows_areas_and_shifts()
     {
         $user = $this->organizer();

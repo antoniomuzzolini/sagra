@@ -15,7 +15,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Persone', href: '/manage/people
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <div>
-                <h1 class="text-xl font-semibold">Persone</h1>
+                <h1 class="text-xl font-semibold">Volontari</h1>
                 <p class="text-sm text-muted-foreground">
                     Chi lavora nelle aree che gestisci. Per creare turni e assegnare, usa "I miei turni".
                 </p>

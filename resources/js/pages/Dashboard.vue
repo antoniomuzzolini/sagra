@@ -26,7 +26,7 @@ defineProps<{
     volunteersCount: number;
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Dashboard', href: '/dashboard' }];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Panoramica', href: '/dashboard' }];
 
 const nextStepCopy = {
     event: {
@@ -52,7 +52,7 @@ function dayLabel(datetime: string): string {
 </script>
 
 <template>
-    <Head title="Dashboard" />
+    <Head title="Panoramica" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">

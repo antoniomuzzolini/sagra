@@ -4,24 +4,27 @@ import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { CalendarDays, LayoutGrid, ListChecks, Users } from 'lucide-vue-next';
+import { CalendarCog, CalendarDays, LayoutGrid, ListChecks, Users } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
 
 const page = usePage<SharedData>();
 
-// One shell, role-aware nav (D19): the organizer runs the whole event, the
-// area manager gets the same views scoped to the areas they run.
+// One shell, one menu (D19): the organizer and the area manager see the same
+// entries in the same order — same views, different scope. The manager just
+// doesn't set up events, so "Eventi" is the only organizer-only item.
 const organizerNav: NavItem[] = [
-    { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
+    { title: 'Panoramica', href: '/dashboard', icon: LayoutGrid },
+    { title: 'Calendario', href: '/calendar', icon: CalendarDays },
     { title: 'Volontari', href: '/people', icon: Users },
-    { title: 'Eventi', href: '/events', icon: CalendarDays },
+    { title: 'I miei turni', href: '/me', icon: ListChecks },
+    { title: 'Eventi', href: '/events', icon: CalendarCog },
 ];
 
 const managerNav: NavItem[] = [
     { title: 'Panoramica', href: '/manage/overview', icon: LayoutGrid },
     { title: 'Calendario', href: '/manage/calendar', icon: CalendarDays },
-    { title: 'Persone', href: '/manage/people', icon: Users },
+    { title: 'Volontari', href: '/manage/people', icon: Users },
     { title: 'I miei turni', href: '/me', icon: ListChecks },
 ];
 

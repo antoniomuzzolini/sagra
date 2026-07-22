@@ -58,7 +58,17 @@ const props = defineProps<{
 // Managers land on the overview, then one tab per area, a cross-area
 // schedule, and their personal one; everyone else just sees the personal
 // view, no tab bar.
+const page = usePage<SharedData>();
+
 const activeTab = ref<number | 'me'>('me');
+
+// /me renders outside the sidebar shell, so account holders get a link back
+// to their home (D19). Plain volunteers have nowhere else to go.
+const backLink = computed(() => {
+    if (page.props.auth.role === 'organizer') return { href: '/dashboard', label: '← Panoramica' };
+    if (page.props.auth.role === 'manager') return { href: '/manage/overview', label: '← Gestione' };
+    return null;
+});
 
 // Profile: contacts are editable any time — they unlock reminders
 // and self-service recovery (D16).
@@ -142,7 +152,6 @@ function submitVolunteer() {
 }
 
 // The freshly created volunteer's magic link, flashed once.
-const page = usePage<SharedData>();
 const magicLink = ref<MagicLinkFlash | null>(null);
 const linkCopied = ref(false);
 
@@ -249,7 +258,7 @@ function cancelSubstitution(shift: VolunteerShift) {
     <div class="mx-auto flex min-h-screen max-w-lg flex-col gap-4 bg-background p-4 pb-16">
         <header class="flex items-start gap-2 pt-2">
             <div class="min-w-0 flex-1">
-                <Link v-if="manager" href="/manage/overview" class="text-sm text-muted-foreground hover:text-foreground">← Gestione</Link>
+                <Link v-if="backLink" :href="backLink.href" class="text-sm text-muted-foreground hover:text-foreground">{{ backLink.label }}</Link>
                 <h1 class="text-2xl font-semibold text-foreground">Ciao, {{ person.name }}!</h1>
                 <p class="text-muted-foreground">{{ tenant.name }}</p>
             </div>
