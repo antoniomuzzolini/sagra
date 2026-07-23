@@ -129,10 +129,11 @@ class D19IdentityTest extends TestCase
             ->post("/me/shifts/{$shift->id}/signup")
             ->assertRedirect();
 
+        // An organizer runs every area, so their "ci sono" is confirmed at once.
         $this->assertDatabaseHas('shift_signups', [
             'shift_id' => $shift->id,
             'person_id' => $organizer->id,
-            'status' => SignupStatus::Available->value,
+            'status' => SignupStatus::Assigned->value,
         ]);
     }
 }

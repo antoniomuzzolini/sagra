@@ -2,10 +2,12 @@
 
 namespace Tests\Feature\Volunteer;
 
+use App\Enums\Role;
 use App\Enums\SignupStatus;
 use App\Models\Area;
 use App\Models\Event;
 use App\Models\Person;
+use App\Models\PersonRole;
 use App\Models\Shift;
 use App\Models\ShiftSignup;
 use App\Models\Tenant;
@@ -34,6 +36,49 @@ class SignupFlowTest extends TestCase
     private function actingAsVolunteer(): static
     {
         return $this->actingAs($this->person);
+    }
+
+    public function test_a_manager_signing_up_for_their_own_area_is_auto_confirmed()
+    {
+        $area = $this->shift->area;
+        $manager = Person::factory()->create(['tenant_id' => $this->shift->tenant_id]);
+        PersonRole::factory()->for($manager)->for($area->event)->create([
+            'tenant_id' => $this->shift->tenant_id,
+            'role' => Role::AreaManager,
+            'area_id' => $area->id,
+        ]);
+
+        $this->actingAs($manager)->post("/me/shifts/{$this->shift->id}/signup")->assertRedirect();
+
+        $signup = ShiftSignup::where('shift_id', $this->shift->id)->where('person_id', $manager->id)->first();
+        $this->assertSame(SignupStatus::Assigned, $signup->status);
+        $this->assertNotNull($signup->assigned_at);
+    }
+
+    public function test_an_organizer_signing_up_is_auto_confirmed()
+    {
+        $organizer = Person::factory()->organizer()->create(['tenant_id' => $this->shift->tenant_id]);
+
+        $this->actingAs($organizer)->post("/me/shifts/{$this->shift->id}/signup");
+
+        $signup = ShiftSignup::where('shift_id', $this->shift->id)->where('person_id', $organizer->id)->first();
+        $this->assertSame(SignupStatus::Assigned, $signup->status);
+    }
+
+    public function test_a_manager_signing_up_outside_their_area_stays_available()
+    {
+        $otherArea = Area::factory()->for($this->shift->area->event)->create(['tenant_id' => $this->shift->tenant_id]);
+        $manager = Person::factory()->create(['tenant_id' => $this->shift->tenant_id]);
+        PersonRole::factory()->for($manager)->for($this->shift->area->event)->create([
+            'tenant_id' => $this->shift->tenant_id,
+            'role' => Role::AreaManager,
+            'area_id' => $otherArea->id,
+        ]);
+
+        $this->actingAs($manager)->post("/me/shifts/{$this->shift->id}/signup");
+
+        $signup = ShiftSignup::where('shift_id', $this->shift->id)->where('person_id', $manager->id)->first();
+        $this->assertSame(SignupStatus::Available, $signup->status);
     }
 
     public function test_the_home_lists_upcoming_shifts_of_the_own_tenant_only()

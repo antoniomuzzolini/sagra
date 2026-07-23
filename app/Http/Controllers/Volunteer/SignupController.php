@@ -19,6 +19,10 @@ class SignupController extends Controller
     /**
      * Declare availability for a shift. Idempotent: tapping twice is
      * fine, and a previously declined signup becomes available again.
+     *
+     * If the person runs that area (an organizer, or the area's manager),
+     * their "ci sono" is confirmed on the spot — they're the one who would
+     * confirm it anyway, so it needs no further moderation.
      */
     public function store(Request $request, Shift $shift): RedirectResponse
     {
@@ -26,19 +30,33 @@ class SignupController extends Controller
 
         abort_unless($shift->tenant_id === $person->tenant_id, 404);
 
+        $confirmed = $person->managesArea($shift->area_id);
+        $status = $confirmed ? SignupStatus::Assigned : SignupStatus::Available;
+
         $signup = $person->signups()->firstOrCreate(
             ['shift_id' => $shift->id],
-            ['tenant_id' => $person->tenant_id, 'status' => SignupStatus::Available],
+            [
+                'tenant_id' => $person->tenant_id,
+                'status' => $status,
+                'assigned_at' => $confirmed ? now() : null,
+                'assigned_by' => $confirmed ? $person->id : null,
+            ],
         );
 
         $isNew = $signup->wasRecentlyCreated;
 
         if ($signup->status === SignupStatus::Declined) {
-            $signup->update(['status' => SignupStatus::Available]);
+            $signup->update([
+                'status' => $status,
+                'assigned_at' => $confirmed ? now() : null,
+                'assigned_by' => $confirmed ? $person->id : null,
+            ]);
             $isNew = true;
         }
 
-        if ($isNew) {
+        // Only a plain availability needs a manager to confirm it, so only
+        // then do we nudge them.
+        if ($isNew && ! $confirmed) {
             Notification::send(
                 $shift->area->managers()->reject(fn (Person $manager) => $manager->is($person)),
                 new AvailabilityReceived($person, $shift),
