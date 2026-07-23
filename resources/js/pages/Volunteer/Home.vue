@@ -6,11 +6,12 @@ import Pill from '@/components/Pill.vue';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import AppLayout from '@/layouts/AppLayout.vue';
 import { areaColors } from '@/lib/colors';
 import { formatDayLong, formatDayShort, formatTime } from '@/lib/event-helpers';
 import { enablePush, pushDenied, pushSupported } from '@/lib/push';
-import { type MagicLinkFlash, type SharedData } from '@/types';
-import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { type BreadcrumbItem, type MagicLinkFlash, type SharedData } from '@/types';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { Bell, CalendarCheck, Check, Copy, Hand, Pencil, Plus, Share2, Trash2, Undo2, UserPlus, UserRound } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
@@ -62,13 +63,11 @@ const page = usePage<SharedData>();
 
 const activeTab = ref<number | 'me'>('me');
 
-// /me renders outside the sidebar shell, so account holders get a link back
-// to their home (D19). Plain volunteers have nowhere else to go.
-const backLink = computed(() => {
-    if (page.props.auth.role === 'organizer') return { href: '/dashboard', label: '← Panoramica' };
-    if (page.props.auth.role === 'manager') return { href: '/manage/overview', label: '← Gestione' };
-    return null;
-});
+// Account holders (organizer, area manager) get the shell — same sidebar as
+// the rest of the site (D19). Plain volunteers keep the focused standalone
+// page: a sidebar with a single entry would be noise for them.
+const isAccountHolder = computed(() => page.props.auth.role === 'organizer' || page.props.auth.role === 'manager');
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'I miei turni', href: '/me' }];
 
 // Profile: contacts are editable any time — they unlock reminders
 // and self-service recovery (D16).
@@ -255,13 +254,17 @@ function cancelSubstitution(shift: VolunteerShift) {
 <template>
     <Head title="I miei turni" />
 
-    <div class="mx-auto flex min-h-screen max-w-lg flex-col gap-4 bg-background p-4 pb-16">
-        <header class="flex items-start gap-2 pt-2">
-            <div class="min-w-0 flex-1">
-                <Link v-if="backLink" :href="backLink.href" class="text-sm text-muted-foreground hover:text-foreground">{{ backLink.label }}</Link>
-                <h1 class="text-2xl font-semibold text-foreground">Ciao, {{ person.name }}!</h1>
-                <p class="text-muted-foreground">{{ tenant.name }}</p>
-            </div>
+    <component
+        :is="isAccountHolder ? AppLayout : 'div'"
+        :breadcrumbs="isAccountHolder ? breadcrumbs : undefined"
+        :class="isAccountHolder ? undefined : 'mx-auto flex min-h-screen max-w-lg flex-col gap-4 bg-background p-4 pb-16'"
+    >
+        <div :class="isAccountHolder ? 'mx-auto flex w-full max-w-2xl flex-col gap-4 p-4 pb-16' : 'contents'">
+            <header class="flex items-start gap-2 pt-2">
+                <div class="min-w-0 flex-1">
+                    <h1 class="text-2xl font-semibold text-foreground">Ciao, {{ person.name }}!</h1>
+                    <p class="text-muted-foreground">{{ tenant.name }}</p>
+                </div>
             <Button v-if="showPushBell" variant="ghost" size="icon" aria-label="Attiva le notifiche" :disabled="pushBusy" @click="activatePush">
                 <Bell class="h-5 w-5" />
             </Button>
@@ -562,5 +565,6 @@ function cancelSubstitution(shift: VolunteerShift) {
                 </form>
             </DialogContent>
         </Dialog>
-    </div>
+        </div>
+    </component>
 </template>

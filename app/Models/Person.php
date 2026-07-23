@@ -96,8 +96,20 @@ class Person extends Authenticatable
         return $this->hasMany(MagicLink::class);
     }
 
+    /**
+     * The areas a person may run. An organizer runs the whole event, so they
+     * manage every area of their tenant (D19: "responsabile di tutti i
+     * reparti"); everyone else manages the areas their roles are scoped to.
+     */
     public function managesArea(int $areaId): bool
     {
+        if ($this->isOrganizer()) {
+            return Area::query()
+                ->whereKey($areaId)
+                ->where('tenant_id', $this->tenant_id)
+                ->exists();
+        }
+
         return $this->roles()
             ->where('role', Role::AreaManager)
             ->where('area_id', $areaId)
@@ -109,6 +121,10 @@ class Person extends Authenticatable
      */
     public function managedAreaIds(): Collection
     {
+        if ($this->isOrganizer()) {
+            return Area::query()->where('tenant_id', $this->tenant_id)->pluck('id');
+        }
+
         return $this->roles()
             ->where('role', Role::AreaManager)
             ->pluck('area_id');

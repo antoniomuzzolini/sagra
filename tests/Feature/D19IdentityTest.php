@@ -80,6 +80,38 @@ class D19IdentityTest extends TestCase
         $this->actingAs($organizer)->get('/people')->assertOk();
     }
 
+    public function test_the_organizer_runs_every_area_like_a_manager()
+    {
+        $tenant = $this->tenant();
+        $event = Event::factory()->for($tenant)->create();
+        $kitchen = Area::factory()->for($event)->create(['tenant_id' => $tenant->id]);
+        Area::factory()->for($event)->create(['tenant_id' => $tenant->id]); // a second area
+        $shift = Shift::factory()->for($kitchen)->create([
+            'tenant_id' => $tenant->id,
+            'starts_at' => now()->addDays(2)->setTime(18, 0),
+            'ends_at' => now()->addDays(2)->setTime(22, 0),
+        ]);
+        $organizer = Person::factory()->organizer()->for($tenant)->create();
+        $volunteer = Person::factory()->for($tenant)->create();
+
+        // The organizer's shifts page gives them the manager toolkit over
+        // every area, not the plain volunteer view.
+        $this->actingAs($organizer)->get('/me')->assertInertia(
+            fn ($page) => $page->component('Volunteer/Home')->has('manager.areas', 2)
+        );
+
+        // And they can assign people in any area, like a manager.
+        $this->actingAs($organizer)
+            ->post("/me/shifts/{$shift->id}/assign", ['person_id' => $volunteer->id])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('shift_signups', [
+            'shift_id' => $shift->id,
+            'person_id' => $volunteer->id,
+            'status' => SignupStatus::Assigned->value,
+        ]);
+    }
+
     public function test_anyone_can_sign_up_for_a_shift_regardless_of_role()
     {
         $tenant = $this->tenant();
