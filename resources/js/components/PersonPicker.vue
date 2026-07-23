@@ -114,9 +114,10 @@ async function importFromContacts() {
                     <Search class="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                         ref="searchInput"
-                        v-model="query"
+                        :model-value="query"
                         placeholder="Cerca un nome…"
                         class="pl-8"
+                        @input="query = ($event.target as HTMLInputElement).value"
                         @keydown.enter.prevent="onSearchEnter"
                         @keydown.down.prevent="moveActive(1)"
                         @keydown.up.prevent="moveActive(-1)"
