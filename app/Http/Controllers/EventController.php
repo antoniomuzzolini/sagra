@@ -3,9 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\PhaseType;
-use App\Enums\SignupStatus;
 use App\Models\Event;
-use App\Models\Person;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -75,24 +73,14 @@ class EventController extends Controller
     {
         $this->authorizeTenant($request, $event);
 
+        // The edition editor (D20): name + phases. Areas, responsabili and
+        // shifts are managed in the dedicated Aree and Gestione turni pages.
         $event->load([
             'phases' => fn ($query) => $query->orderBy('starts_on'),
             'areas' => fn ($query) => $query->orderBy('name'),
-            'areas.managerRoles.person' => fn ($query) => $query->withTrashed(),
-            'areas.shifts' => fn ($query) => $query
-                ->withCount(['signups as assigned_count' => fn ($q) => $q->where('status', SignupStatus::Assigned)])
-                ->orderBy('starts_at'),
-            'areas.shifts.signups' => fn ($query) => $query
-                ->with(['person' => fn ($q) => $q->withTrashed()])
-                ->orderBy('created_at'),
         ]);
 
         return Inertia::render('Events/Show', [
-            'people' => Person::query()
-                ->where('tenant_id', $request->user()->tenant_id)
-                ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn ($person) => ['id' => $person->id, 'name' => $person->name]),
             'event' => [
                 'id' => $event->id,
                 'name' => $event->name,
@@ -102,34 +90,7 @@ class EventController extends Controller
                     'starts_on' => $phase->starts_on->toDateString(),
                     'ends_on' => $phase->ends_on->toDateString(),
                 ]),
-                'areas' => $event->areas->map(fn ($area) => [
-                    'id' => $area->id,
-                    'name' => $area->name,
-                    'family' => $area->family?->value,
-                    'managers' => $area->managerRoles->map(fn ($role) => [
-                        'id' => $role->id,
-                        'personId' => $role->person_id,
-                        'name' => $role->person->name,
-                        'phone' => $role->person->phone,
-                        'email' => $role->person->email,
-                    ]),
-                    'shifts' => $area->shifts->map(fn ($shift) => [
-                        'id' => $shift->id,
-                        'starts_at' => $shift->starts_at->toIso8601String(),
-                        'ends_at' => $shift->ends_at->toIso8601String(),
-                        'needed_people' => $shift->needed_people,
-                        'assigned_count' => $shift->assigned_count,
-                        'notes' => $shift->notes,
-                        'signups' => $shift->signups->map(fn ($signup) => [
-                            'id' => $signup->id,
-                            'personName' => $signup->person->name,
-                            'personPhone' => $signup->person->phone,
-                            'personEmail' => $signup->person->email,
-                            'status' => $signup->status->value,
-                            'substitutionRequested' => $signup->substitution_requested_at !== null,
-                        ]),
-                    ]),
-                ]),
+                'areas' => $event->areas->map(fn ($area) => ['id' => $area->id, 'name' => $area->name]),
             ],
         ]);
     }
