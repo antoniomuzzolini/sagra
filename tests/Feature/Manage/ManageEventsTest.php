@@ -153,6 +153,28 @@ class ManageEventsTest extends TestCase
         $this->actingAs($volunteer)->get('/calendar')->assertForbidden();
     }
 
+    public function test_the_areas_page_lists_the_current_events_areas()
+    {
+        $user = $this->organizer();
+        $event = $this->eventInYear($user, now()->year, 'Sagra corrente');
+        Area::factory()->for($event)->create(['tenant_id' => $user->tenant_id, 'name' => 'Cucina']);
+        // An area of another edition must stay out.
+        $other = $this->eventInYear($user, now()->year - 3, 'Vecchia');
+        Area::factory()->for($other)->create(['tenant_id' => $user->tenant_id, 'name' => 'Bar Vecchio']);
+
+        $this->actingAs($user)->get('/manage/areas')->assertOk()->assertInertia(
+            fn ($page) => $page->component('Manage/Areas')
+                ->where('event.name', 'Sagra corrente')
+                ->has('areas', 1)
+                ->where('areas.0.name', 'Cucina')
+        );
+    }
+
+    public function test_a_volunteer_cannot_open_the_areas_page()
+    {
+        $this->actingAs(Person::factory()->create())->get('/manage/areas')->assertForbidden();
+    }
+
     public function test_the_event_page_shows_areas_and_shifts()
     {
         $user = $this->organizer();

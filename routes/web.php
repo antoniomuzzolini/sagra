@@ -3,6 +3,7 @@
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EventContextController;
+use App\Http\Controllers\Manage\AreaManagementController;
 use App\Http\Controllers\Manage\ManagerAreaController;
 use App\Http\Controllers\Manage\ShiftManagementController;
 use Illuminate\Support\Facades\Route;
@@ -36,6 +37,10 @@ Route::get('dashboard', DashboardController::class)
 // The organizer's calendar, scoped to the current event (D20).
 Route::get('calendar', CalendarController::class)
     ->middleware(['auth', 'organizer'])->name('calendar');
+
+// Gestione aree of the current event (D20): organizer defines areas + managers.
+Route::get('manage/areas', AreaManagementController::class)
+    ->middleware(['auth', 'organizer'])->name('manage.areas');
 
 // Switch the current event (D20).
 Route::post('current-event', [EventContextController::class, 'update'])
