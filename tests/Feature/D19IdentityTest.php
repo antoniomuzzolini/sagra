@@ -94,10 +94,9 @@ class D19IdentityTest extends TestCase
         $organizer = Person::factory()->organizer()->for($tenant)->create();
         $volunteer = Person::factory()->for($tenant)->create();
 
-        // The organizer's shifts page gives them the manager toolkit over
-        // every area, not the plain volunteer view.
-        $this->actingAs($organizer)->get('/me')->assertInertia(
-            fn ($page) => $page->component('Volunteer/Home')->has('manager.areas', 2)
+        // Gestione turni gives the organizer every area of the event to run.
+        $this->actingAs($organizer)->get('/manage/shifts')->assertInertia(
+            fn ($page) => $page->component('Manage/Shifts')->has('areas', 2)
         );
 
         // And they can assign people in any area, like a manager.

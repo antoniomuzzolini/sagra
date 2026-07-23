@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureManager;
 use App\Http\Middleware\EnsureOrganizer;
+use App\Http\Middleware\EnsureStaff;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -32,6 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'organizer' => EnsureOrganizer::class,
             'manager' => EnsureManager::class,
+            'staff' => EnsureStaff::class,
         ]);
 
         // Simple volunteers have no login page: without a valid session the

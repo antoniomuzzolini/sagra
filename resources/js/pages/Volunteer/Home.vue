@@ -1,19 +1,18 @@
 <script setup lang="ts">
-import ModeratedSignupList, { type ModeratedSignup } from '@/components/ModeratedSignupList.vue';
+import { type ModeratedSignup } from '@/components/ModeratedSignupList.vue';
 import { type OverviewArea } from '@/components/OverviewDashboard.vue';
 import { type PersonRosterRow } from '@/components/PeopleRoster.vue';
-import Pill from '@/components/Pill.vue';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { areaColors } from '@/lib/colors';
-import { formatDayLong, formatDayShort, formatTime } from '@/lib/event-helpers';
+import { formatDayLong, formatTime } from '@/lib/event-helpers';
 import { enablePush, pushDenied, pushSupported } from '@/lib/push';
-import { type BreadcrumbItem, type MagicLinkFlash, type SharedData } from '@/types';
+import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { Bell, CalendarCheck, Check, Copy, Hand, Pencil, Plus, Share2, Trash2, Undo2, UserPlus, UserRound } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
+import { Bell, CalendarCheck, Hand, Undo2, UserRound } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 
 interface VolunteerShift {
     id: number;
@@ -56,12 +55,7 @@ const props = defineProps<{
     shifts: VolunteerShift[];
 }>();
 
-// Managers land on the overview, then one tab per area, a cross-area
-// schedule, and their personal one; everyone else just sees the personal
-// view, no tab bar.
 const page = usePage<SharedData>();
-
-const activeTab = ref<number | 'me'>('me');
 
 // Account holders (organizer, area manager) get the shell — same sidebar as
 // the rest of the site (D19). Plain volunteers keep the focused standalone
@@ -81,122 +75,8 @@ function saveContact() {
     });
 }
 
-// Manager toolkit (D18): every shift of the area, organizer-created
-// ones included.
-function areaShifts(areaId: number): VolunteerShift[] {
-    return props.shifts.filter((s) => s.areaId === areaId);
-}
-
-const shiftFormOpen = ref(false);
-const shiftForm = useForm({ date: '', start_time: '', end_time: '', needed_people: 2, notes: '' });
-
-function toggleShiftForm() {
-    shiftFormOpen.value = !shiftFormOpen.value;
-    volunteerFormOpen.value = false;
-    shiftForm.reset();
-    shiftForm.clearErrors();
-}
-
-function submitShift(areaId: number) {
-    shiftForm.post(route('volunteer.shifts.store', areaId), {
-        preserveScroll: true,
-        onSuccess: () => (shiftFormOpen.value = false),
-    });
-}
-
-function destroyShift(shift: VolunteerShift) {
-    if (confirm(`Eliminare il turno di ${shortDayLabel(shift.starts_at)} (${formatTime(shift.starts_at)}–${formatTime(shift.ends_at)})?`)) {
-        router.delete(route('volunteer.shifts.destroy', shift.id), { preserveScroll: true });
-    }
-}
-
-const editingShift = ref<VolunteerShift | null>(null);
-const editForm = useForm({ date: '', start_time: '', end_time: '', needed_people: 2, notes: '' });
-
-function openEditShift(shift: VolunteerShift) {
-    editingShift.value = shift;
-    editForm.date = shift.starts_at.slice(0, 10);
-    editForm.start_time = shift.starts_at.slice(11, 16);
-    editForm.end_time = shift.ends_at.slice(11, 16);
-    editForm.needed_people = shift.needed_people;
-    editForm.notes = shift.notes ?? '';
-    editForm.clearErrors();
-}
-
-function submitEditShift() {
-    if (editingShift.value) {
-        editForm.put(route('volunteer.shifts.update', editingShift.value.id), {
-            preserveScroll: true,
-            onSuccess: () => (editingShift.value = null),
-        });
-    }
-}
-
-// New volunteer, recruited in person: created here, link in hand.
-const volunteerFormOpen = ref(false);
-const volunteerForm = useForm({ name: '', phone: '' });
-
-function toggleVolunteerForm() {
-    volunteerFormOpen.value = !volunteerFormOpen.value;
-    shiftFormOpen.value = false;
-    volunteerForm.reset();
-    volunteerForm.clearErrors();
-}
-
-function submitVolunteer() {
-    volunteerForm.post(route('volunteer.people.store'), {
-        preserveScroll: true,
-        onSuccess: () => (volunteerFormOpen.value = false),
-    });
-}
-
-// The freshly created volunteer's magic link, flashed once.
-const magicLink = ref<MagicLinkFlash | null>(null);
-const linkCopied = ref(false);
-
-watch(
-    () => page.props.flash.magicLink,
-    (value) => {
-        if (value) {
-            magicLink.value = value;
-            linkCopied.value = false;
-        }
-    },
-    { immediate: true },
-);
-
-async function copyMagicLink() {
-    if (magicLink.value) {
-        await navigator.clipboard.writeText(magicLink.value.url);
-        linkCopied.value = true;
-    }
-}
-
-const magicLinkWhatsappUrl = computed(() => {
-    if (!magicLink.value) return '#';
-    const text = encodeURIComponent(`Ciao ${magicLink.value.personName}! Ecco il tuo link personale per i turni: ${magicLink.value.url}`);
-    const phone = magicLink.value.personPhone?.replace(/[^0-9]/g, '');
-    return phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`;
-});
-
-const inviteDialogOpen = ref(false);
-const inviteCopied = ref(false);
-
-async function copyInvite() {
-    if (props.manager) {
-        await navigator.clipboard.writeText(props.manager.inviteUrl);
-        inviteCopied.value = true;
-        setTimeout(() => (inviteCopied.value = false), 2000);
-    }
-}
-
-const inviteWhatsappUrl = computed(() => {
-    if (!props.manager) return '#';
-    return 'https://wa.me/?text=' + encodeURIComponent(`Dai una mano anche tu a ${props.tenant.name}! Registrati qui: ${props.manager.inviteUrl}`);
-});
-
-// The personal view: my commitments anywhere, plus open shifts of the
-// areas I do not manage (managed ones live in their own tab).
+// My commitments anywhere, plus open shifts I can still sign up for
+// (those I manage are handled in "Gestione turni", not here).
 const mine = computed(() => props.shifts.filter((s) => s.myStatus === 'assigned'));
 const pending = computed(() => props.shifts.filter((s) => s.myStatus === 'available'));
 const open = computed(() => props.shifts.filter((s) => s.myStatus !== 'assigned' && s.myStatus !== 'available' && !s.canModerate));
@@ -223,7 +103,6 @@ const mainOpen = computed(() => (splitByArea.value ? openPreferred.value : open.
 const showOthers = ref(false);
 
 const dayLabel = formatDayLong;
-const shortDayLabel = formatDayShort;
 
 function groupByDay(shifts: VolunteerShift[]): [string, VolunteerShift[]][] {
     const groups = new Map<string, VolunteerShift[]>();
@@ -274,96 +153,9 @@ function cancelSubstitution(shift: VolunteerShift) {
             </Button>
         </header>
 
-        <!-- Tab bar, managers only. The read views (Panoramica/Calendario/
-             Persone) now live in the sidebar shell (D19 phase 1); here stay
-             the per-area editing tabs and the personal view. -->
-        <nav v-if="manager" class="flex flex-wrap gap-1 border-b pb-2">
-            <Button :variant="activeTab === 'me' ? 'secondary' : 'ghost'" size="sm" @click="activeTab = 'me'">I miei turni</Button>
-            <Button
-                v-for="area in manager.areas"
-                :key="area.id"
-                :variant="activeTab === area.id ? 'secondary' : 'ghost'"
-                size="sm"
-                @click="activeTab = area.id"
-            >
-                {{ area.name }}
-            </Button>
-        </nav>
-
-        <!-- Area management tabs (D18) -->
-        <template v-for="area in manager?.areas ?? []" :key="area.id">
-            <div v-if="activeTab === area.id" class="grid gap-4">
-                <div class="flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" @click="toggleShiftForm"><Plus class="h-4 w-4" /> Turno</Button>
-                    <Button variant="outline" size="sm" @click="toggleVolunteerForm"><UserPlus class="h-4 w-4" /> Volontario</Button>
-                    <span class="flex-1"></span>
-                    <Button variant="outline" size="sm" @click="inviteDialogOpen = true"><Share2 class="h-4 w-4" /> Invita volontari</Button>
-                </div>
-
-                <form v-if="shiftFormOpen" class="grid gap-2 rounded-xl border border-dashed p-3" @submit.prevent="submitShift(area.id)">
-                    <p class="text-sm font-medium">Nuovo turno in {{ area.name }}</p>
-                    <Input v-model="shiftForm.date" type="date" required aria-label="Data" />
-                    <p v-if="shiftForm.errors.date" class="text-sm text-red-600">{{ shiftForm.errors.date }}</p>
-                    <div class="flex items-center gap-2">
-                        <Input v-model="shiftForm.start_time" type="time" required aria-label="Inizio" />
-                        <span class="text-muted-foreground">→</span>
-                        <Input v-model="shiftForm.end_time" type="time" required aria-label="Fine" />
-                    </div>
-                    <p v-if="shiftForm.errors.start_time || shiftForm.errors.end_time" class="text-sm text-red-600">
-                        {{ shiftForm.errors.start_time || shiftForm.errors.end_time }}
-                    </p>
-                    <div class="flex items-center gap-2">
-                        <Input v-model.number="shiftForm.needed_people" type="number" min="1" required class="w-20" aria-label="Persone" />
-                        <span class="text-sm text-muted-foreground">persone</span>
-                    </div>
-                    <p v-if="shiftForm.errors.needed_people" class="text-sm text-red-600">{{ shiftForm.errors.needed_people }}</p>
-                    <Input v-model="shiftForm.notes" placeholder="Note (facoltative)" aria-label="Note" />
-                    <Button type="submit" size="sm" :disabled="shiftForm.processing">Crea turno</Button>
-                </form>
-
-                <form v-if="volunteerFormOpen" class="grid gap-2 rounded-xl border border-dashed p-3" @submit.prevent="submitVolunteer">
-                    <p class="text-sm font-medium">Nuovo volontario</p>
-                    <Input v-model="volunteerForm.name" required placeholder="Nome e cognome" aria-label="Nome" />
-                    <p v-if="volunteerForm.errors.name" class="text-sm text-red-600">{{ volunteerForm.errors.name }}</p>
-                    <Input v-model="volunteerForm.phone" type="tel" placeholder="Telefono (facoltativo)" aria-label="Telefono" />
-                    <p v-if="volunteerForm.errors.phone" class="text-sm text-red-600">{{ volunteerForm.errors.phone }}</p>
-                    <Button type="submit" size="sm" :disabled="volunteerForm.processing">Aggiungi e crea il link</Button>
-                </form>
-
-                <p v-if="areaShifts(area.id).length === 0" class="text-sm text-muted-foreground">Nessun turno in programma. Creane uno!</p>
-
-                <div v-for="shift in areaShifts(area.id)" :key="shift.id" class="rounded-xl border p-3">
-                    <div class="flex items-start gap-2">
-                        <div class="min-w-0 flex-1">
-                            <p class="font-medium text-foreground first-letter:uppercase">
-                                {{ shortDayLabel(shift.starts_at) }} · {{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }}
-                            </p>
-                            <div class="mt-0.5 flex items-center gap-2 text-sm">
-                                <Pill :variant="shift.assigned_count >= shift.needed_people ? 'good' : 'warn'">
-                                    {{
-                                        shift.assigned_count >= shift.needed_people
-                                            ? 'Completo'
-                                            : `Servono ${shift.needed_people - shift.assigned_count}`
-                                    }}
-                                </Pill>
-                                <span class="text-muted-foreground">{{ shift.assigned_count }}/{{ shift.needed_people }}</span>
-                            </div>
-                            <p v-if="shift.notes" class="text-sm text-muted-foreground">{{ shift.notes }}</p>
-                        </div>
-                        <Button variant="ghost" size="icon" aria-label="Modifica turno" @click="openEditShift(shift)">
-                            <Pencil class="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" aria-label="Elimina turno" @click="destroyShift(shift)">
-                            <Trash2 class="h-4 w-4" />
-                        </Button>
-                    </div>
-                    <ModeratedSignupList :signups="shift.signups" :shift-id="shift.id" :people="manager?.people" />
-                </div>
-            </div>
-        </template>
-
-        <!-- Personal view -->
-        <div v-if="activeTab === 'me'" class="grid gap-4">
+        <!-- Prenotazione turni (D20): the participative view, identical for
+             every role. Managing shifts lives in "Gestione turni". -->
+        <div class="grid gap-4">
             <!-- Confirmed shifts -->
             <section v-if="mine.length > 0" class="grid gap-2">
                 <h2 class="flex items-center gap-2 font-medium text-foreground"><CalendarCheck class="h-4 w-4 text-green-600" /> I tuoi turni</h2>
@@ -476,30 +268,6 @@ function cancelSubstitution(shift: VolunteerShift) {
             </section>
         </div>
 
-        <!-- Invite link dialog (managers) -->
-        <Dialog v-model:open="inviteDialogOpen">
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Invita volontari</DialogTitle>
-                    <DialogDescription>
-                        Condividi questo link, ad esempio nel gruppo WhatsApp: chi lo apre si registra da solo con il suo nome e arriva subito ai
-                        turni.
-                    </DialogDescription>
-                </DialogHeader>
-                <p class="break-all rounded-md bg-muted p-3 font-mono text-sm">{{ manager?.inviteUrl }}</p>
-                <DialogFooter class="gap-2">
-                    <Button variant="outline" @click="copyInvite">
-                        <Check v-if="inviteCopied" class="h-4 w-4" />
-                        <Copy v-else class="h-4 w-4" />
-                        {{ inviteCopied ? 'Copiato!' : 'Copia' }}
-                    </Button>
-                    <Button as-child>
-                        <a :href="inviteWhatsappUrl" target="_blank" rel="noopener">Condividi su WhatsApp</a>
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-
         <!-- Profile / contacts dialog -->
         <Dialog v-model:open="contactFormOpen">
             <DialogContent>
@@ -517,54 +285,6 @@ function cancelSubstitution(shift: VolunteerShift) {
             </DialogContent>
         </Dialog>
 
-        <!-- Magic link of a freshly added volunteer -->
-        <Dialog :open="magicLink !== null" @update:open="magicLink = null">
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Link d'accesso per {{ magicLink?.personName }}</DialogTitle>
-                    <DialogDescription> Mandaglielo: toccandolo entra nei suoi turni, senza password. Funziona una volta sola. </DialogDescription>
-                </DialogHeader>
-                <p class="break-all rounded-md bg-muted p-3 font-mono text-sm">{{ magicLink?.url }}</p>
-                <DialogFooter class="gap-2">
-                    <Button variant="outline" @click="copyMagicLink">
-                        <Check v-if="linkCopied" class="h-4 w-4" />
-                        <Copy v-else class="h-4 w-4" />
-                        {{ linkCopied ? 'Copiato!' : 'Copia' }}
-                    </Button>
-                    <Button as-child>
-                        <a :href="magicLinkWhatsappUrl" target="_blank" rel="noopener">Invia su WhatsApp</a>
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-
-        <!-- Shift edit dialog (managers) -->
-        <Dialog :open="editingShift !== null" @update:open="(open: boolean) => !open && (editingShift = null)">
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Modifica turno · {{ editingShift?.area }}</DialogTitle>
-                </DialogHeader>
-                <form class="grid gap-2" @submit.prevent="submitEditShift">
-                    <Input v-model="editForm.date" type="date" required aria-label="Data" />
-                    <p v-if="editForm.errors.date" class="text-sm text-red-600">{{ editForm.errors.date }}</p>
-                    <div class="flex items-center gap-2">
-                        <Input v-model="editForm.start_time" type="time" required aria-label="Inizio" />
-                        <span class="text-muted-foreground">→</span>
-                        <Input v-model="editForm.end_time" type="time" required aria-label="Fine" />
-                    </div>
-                    <p v-if="editForm.errors.start_time || editForm.errors.end_time" class="text-sm text-red-600">
-                        {{ editForm.errors.start_time || editForm.errors.end_time }}
-                    </p>
-                    <div class="flex items-center gap-2">
-                        <Input v-model.number="editForm.needed_people" type="number" min="1" required class="w-20" aria-label="Persone" />
-                        <span class="text-sm text-muted-foreground">persone</span>
-                    </div>
-                    <p v-if="editForm.errors.needed_people" class="text-sm text-red-600">{{ editForm.errors.needed_people }}</p>
-                    <Input v-model="editForm.notes" placeholder="Note (facoltative)" aria-label="Note" />
-                    <Button type="submit" :disabled="editForm.processing">Salva modifiche</Button>
-                </form>
-            </DialogContent>
-        </Dialog>
         </div>
     </component>
 </template>

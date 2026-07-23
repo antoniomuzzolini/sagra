@@ -4,6 +4,7 @@ use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EventContextController;
 use App\Http\Controllers\Manage\ManagerAreaController;
+use App\Http\Controllers\Manage\ShiftManagementController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -39,6 +40,10 @@ Route::get('calendar', CalendarController::class)
 // Switch the current event (D20).
 Route::post('current-event', [EventContextController::class, 'update'])
     ->middleware('auth')->name('current-event.update');
+
+// Gestione turni (D20): organizer or area manager, scoped to the current event.
+Route::get('manage/shifts', ShiftManagementController::class)
+    ->middleware(['auth', 'staff'])->name('manage.shifts');
 
 // Area-manager pages (D19): the same sidebar shell as the organizer, scoped
 // to the areas the person runs. Read views for now — editing stays on /me.

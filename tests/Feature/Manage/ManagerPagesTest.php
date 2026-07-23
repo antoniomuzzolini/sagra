@@ -80,6 +80,17 @@ class ManagerPagesTest extends TestCase
         $this->actingAs($volunteer)->get('/manage/overview')->assertForbidden();
         $this->actingAs($volunteer)->get('/manage/calendar')->assertForbidden();
         $this->actingAs($volunteer)->get('/manage/people')->assertForbidden();
+        $this->actingAs($volunteer)->get('/manage/shifts')->assertForbidden();
+    }
+
+    public function test_gestione_turni_lists_the_managed_areas_shifts()
+    {
+        [$manager, $area] = $this->managerWithArea();
+        Shift::factory()->for($area)->create(['tenant_id' => $area->tenant_id, 'starts_at' => '2026-07-11 18:00', 'ends_at' => '2026-07-11 22:00']);
+
+        $this->actingAs($manager)->get('/manage/shifts')->assertOk()->assertInertia(
+            fn ($page) => $page->component('Manage/Shifts')->has('areas', 1)->where('areas.0.name', 'Cucina')->has('shifts', 1)
+        );
     }
 
     public function test_an_organizer_without_areas_cannot_open_the_manager_pages()
