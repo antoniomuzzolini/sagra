@@ -2,14 +2,12 @@
 
 namespace Tests\Feature\Volunteer;
 
-use App\Enums\PhaseType;
 use App\Enums\Role;
 use App\Enums\SignupStatus;
 use App\Models\Area;
 use App\Models\Event;
 use App\Models\Person;
 use App\Models\PersonRole;
-use App\Models\Phase;
 use App\Models\Shift;
 use App\Models\ShiftSignup;
 use App\Models\Tenant;
@@ -201,112 +199,5 @@ class ManagerPowersTest extends TestCase
         $this->actingAs($this->manager)
             ->post('/me/people', ['name' => 'Luigia Verdi', 'phone' => '+39 333 9876543'])
             ->assertSessionHasErrors('phone');
-    }
-
-    public function test_the_home_exposes_volunteer_contacts_in_the_managed_signups()
-    {
-        // The contact popup needs phone/email alongside the name, but only
-        // for areas the manager runs.
-        $shift = Shift::factory()->for($this->area)->create(['tenant_id' => $this->area->tenant_id, 'starts_at' => now()->addDay()]);
-        $volunteer = Person::factory()->create([
-            'tenant_id' => $this->area->tenant_id,
-            'phone' => '+39 333 1112223',
-            'email' => 'volontario@esempio.it',
-        ]);
-        ShiftSignup::factory()->for($shift)->for($volunteer)->create(['status' => SignupStatus::Available]);
-
-        $this->actingAs($this->manager)->get('/me')->assertInertia(
-            fn ($page) => $page
-                ->where('shifts.0.signups.0.personName', $volunteer->name)
-                ->where('shifts.0.signups.0.personPhone', '+39 333 1112223')
-                ->where('shifts.0.signups.0.personEmail', 'volontario@esempio.it')
-        );
-    }
-
-    public function test_the_home_roster_is_scoped_to_people_in_the_managed_areas()
-    {
-        $tenant = $this->area->tenant_id;
-
-        $here = Person::factory()->create(['tenant_id' => $tenant, 'name' => 'Dentro Area']);
-        $hereShift = Shift::factory()->for($this->area)->create(['tenant_id' => $tenant]);
-        ShiftSignup::factory()->for($hereShift)->for($here)->create(['tenant_id' => $tenant, 'status' => SignupStatus::Available]);
-
-        $elsewhere = Person::factory()->create(['tenant_id' => $tenant, 'name' => 'Solo Altrove']);
-        $otherShift = Shift::factory()->for($this->otherArea)->create(['tenant_id' => $tenant]);
-        ShiftSignup::factory()->for($otherShift)->for($elsewhere)->create(['tenant_id' => $tenant, 'status' => SignupStatus::Available]);
-
-        $this->actingAs($this->manager)->get('/me')->assertInertia(
-            fn ($page) => $page->where('manager.roster', function ($roster) {
-                $names = collect($roster)->pluck('name');
-
-                // The volunteer in her area and herself (co-manager) are in;
-                // the one who only works elsewhere is out.
-                return $names->contains('Dentro Area')
-                    && $names->contains($this->manager->name)
-                    && ! $names->contains('Solo Altrove');
-            })
-        );
-    }
-
-    public function test_the_home_includes_a_scoped_overview_for_the_managed_areas()
-    {
-        $shift = Shift::factory()->for($this->area)->create(['tenant_id' => $this->area->tenant_id, 'needed_people' => 3]);
-        $volunteer = Person::factory()->create(['tenant_id' => $this->area->tenant_id, 'name' => 'Gigi Volont']);
-        ShiftSignup::factory()->for($shift)->for($volunteer)->create(['tenant_id' => $this->area->tenant_id, 'status' => SignupStatus::Assigned]);
-
-        $this->actingAs($this->manager)->get('/me')->assertInertia(
-            fn ($page) => $page
-                ->has('manager.overview', 1)
-                ->where('manager.overview.0.id', $this->area->id)
-                ->where('manager.overview.0.needed', 3)
-                ->where('manager.overview.0.filled', 1)
-                ->where('manager.overview.0.people', ['Gigi Volont'])
-                ->where('manager.overview.0.managers', [$this->manager->name])
-        );
-    }
-
-    public function test_the_home_includes_a_scoped_schedule_for_the_managed_areas()
-    {
-        $event = $this->area->event;
-        Phase::factory()->for($event)->create([
-            'tenant_id' => $this->area->tenant_id,
-            'type' => PhaseType::Service,
-            'starts_on' => '2026-07-11',
-            'ends_on' => '2026-07-13',
-        ]);
-        $shift = Shift::factory()->for($this->area)->create([
-            'tenant_id' => $this->area->tenant_id,
-            'starts_at' => '2026-07-12 18:00',
-            'ends_at' => '2026-07-12 22:00',
-        ]);
-        // A shift in an area she does not manage must stay out of her schedule.
-        Shift::factory()->for($this->otherArea)->create(['tenant_id' => $this->area->tenant_id]);
-
-        $this->actingAs($this->manager)->get('/me')->assertInertia(
-            fn ($page) => $page
-                ->has('manager.schedule.areas', 1)
-                ->where('manager.schedule.areas.0.id', $this->area->id)
-                ->has('manager.schedule.areas.0.shifts', 1)
-                ->where('manager.schedule.areas.0.shifts.0.id', $shift->id)
-                ->has('manager.schedule.phases', 1)
-                ->where('manager.schedule.phases.0.type', 'service')
-        );
-    }
-
-    public function test_the_home_ships_the_manager_toolkit_only_to_managers()
-    {
-        $volunteer = Person::factory()->create(['tenant_id' => $this->area->tenant_id]);
-
-        $this->actingAs($this->manager)->get('/me')->assertInertia(
-            fn ($page) => $page
-                ->has('manager.areas', 1)
-                ->where('manager.areas.0.id', $this->area->id)
-                ->has('manager.people')
-                ->has('manager.inviteUrl')
-        );
-
-        $this->actingAs($volunteer)->get('/me')->assertInertia(
-            fn ($page) => $page->where('manager', null)
-        );
     }
 }

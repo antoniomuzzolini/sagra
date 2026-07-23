@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import { type ModeratedSignup } from '@/components/ModeratedSignupList.vue';
-import { type OverviewArea } from '@/components/OverviewDashboard.vue';
-import { type PersonRosterRow } from '@/components/PeopleRoster.vue';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -29,28 +26,11 @@ interface VolunteerShift {
     mySubstitutionRequested: boolean;
     isMyArea: boolean;
     myOverlap: string | null;
-    canModerate: boolean;
-    signups: ModeratedSignup[];
-}
-
-interface ScheduleArea {
-    id: number;
-    name: string;
-    family: string | null;
-    shifts: { id: number; starts_at: string; ends_at: string; needed_people: number; assigned_count: number; notes: string | null }[];
 }
 
 const props = defineProps<{
     person: { name: string; phone: string | null; email: string | null; needsContact: boolean; hasPush: boolean };
     tenant: { name: string };
-    manager: {
-        areas: { id: number; name: string }[];
-        people: { id: number; name: string }[];
-        inviteUrl: string;
-        overview: OverviewArea[];
-        roster: PersonRosterRow[];
-        schedule: { areas: ScheduleArea[]; phases: { type: string; starts_on: string; ends_on: string }[] };
-    } | null;
     vapidPublicKey: string | null;
     shifts: VolunteerShift[];
 }>();
@@ -79,7 +59,9 @@ function saveContact() {
 // (those I manage are handled in "Gestione turni", not here).
 const mine = computed(() => props.shifts.filter((s) => s.myStatus === 'assigned'));
 const pending = computed(() => props.shifts.filter((s) => s.myStatus === 'available'));
-const open = computed(() => props.shifts.filter((s) => s.myStatus !== 'assigned' && s.myStatus !== 'available' && !s.canModerate));
+// Every shift I'm not already on, mine to book (D20: Prenotazione is
+// universal — a manager can work a shift in their own area too).
+const open = computed(() => props.shifts.filter((s) => s.myStatus !== 'assigned' && s.myStatus !== 'available'));
 
 // Push: one tap on the bell next to the name (D10). Once enabled —
 // or denied — the bell disappears.

@@ -91,24 +91,4 @@ class ModerationTest extends TestCase
             ->delete("/me/signups/{$this->signup->id}")
             ->assertNotFound();
     }
-
-    public function test_the_home_exposes_signup_details_only_for_managed_areas()
-    {
-        $this->actingAs($this->manager)
-            ->get('/me')
-            ->assertInertia(fn ($page) => $page
-                ->component('Volunteer/Home')
-                ->where('shifts.0.canModerate', true)
-                ->has('shifts.0.signups', 1)
-            );
-
-        $volunteer = Person::factory()->create(['tenant_id' => $this->area->tenant_id]);
-
-        $this->actingAs($volunteer)
-            ->get('/me')
-            ->assertInertia(fn ($page) => $page
-                ->where('shifts.0.canModerate', false)
-                ->has('shifts.0.signups', 0)
-            );
-    }
 }

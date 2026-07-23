@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Area;
 use App\Models\Person;
 use App\Models\Shift;
+use App\Models\ShiftSignup;
 use App\Support\CurrentEvent;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -36,15 +37,24 @@ class ShiftManagementController extends Controller
             ->orderBy('starts_at')
             ->get();
 
-        // Overlap warnings (D18): the intervals each person is committed to
-        // across these shifts, flagged so the manager sees clashes.
+        // Overlap warnings (D18): a person on a managed shift may also be
+        // committed elsewhere in the event — even in an area this person
+        // doesn't run — so gather each involved person's commitments
+        // tenant-wide, not just within these shifts.
+        $personIds = $shifts->flatMap(fn (Shift $shift) => $shift->signups->pluck('person_id'))->unique();
+
         $commitments = [];
-        foreach ($shifts as $shift) {
-            foreach ($shift->signups as $signup) {
-                if (in_array($signup->status, [SignupStatus::Available, SignupStatus::Assigned], true)) {
-                    $commitments[$signup->person_id][] = $shift;
-                }
-            }
+        if ($personIds->isNotEmpty()) {
+            ShiftSignup::query()
+                ->whereIn('person_id', $personIds)
+                ->whereIn('status', [SignupStatus::Available, SignupStatus::Assigned])
+                ->with('shift.area')
+                ->get()
+                ->each(function (ShiftSignup $signup) use (&$commitments) {
+                    if ($signup->shift) {
+                        $commitments[$signup->person_id][] = $signup->shift;
+                    }
+                });
         }
 
         $overlapFor = function (int $personId, Shift $shift) use ($commitments): ?string {

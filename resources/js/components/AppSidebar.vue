@@ -1,7 +1,16 @@
 <script setup lang="ts">
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
+import {
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarHeader,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    SidebarSeparator,
+} from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { CalendarCog, CalendarDays, ClipboardList, LayoutGrid, ListChecks, Users } from 'lucide-vue-next';
@@ -11,30 +20,31 @@ import AppLogo from './AppLogo.vue';
 const page = usePage<SharedData>();
 
 // One shell, one menu (D19/D20): organizer and area manager see the same
-// entries in the same order — same views, different scope. Turni are split by
-// responsibility: "Gestione turni" (create/assign) vs "Prenotazione turni"
-// (declare availability), the latter universal. Only "Eventi" is
-// organizer-only (the manager doesn't set up editions).
-const organizerNav: NavItem[] = [
-    { title: 'Panoramica', href: '/dashboard', icon: LayoutGrid },
-    { title: 'Calendario', href: '/calendar', icon: CalendarDays },
+// entries in the same order — same views, different scope. The menu is in two
+// groups: the current event (Panoramica, Calendario, Gestione turni,
+// Prenotazione turni) and, below a separator, the cross-event pages
+// (Volontari, and Eventi for the organizer). Turni are split by
+// responsibility — "Gestione turni" (create/assign) vs "Prenotazione turni"
+// (declare availability, universal).
+const isManager = computed(() => page.props.auth.role === 'manager');
+
+const eventNav = computed<NavItem[]>(() => [
+    { title: 'Panoramica', href: isManager.value ? '/manage/overview' : '/dashboard', icon: LayoutGrid },
+    { title: 'Calendario', href: isManager.value ? '/manage/calendar' : '/calendar', icon: CalendarDays },
     { title: 'Gestione turni', href: '/manage/shifts', icon: ClipboardList },
     { title: 'Prenotazione turni', href: '/me', icon: ListChecks },
-    { title: 'Volontari', href: '/people', icon: Users },
-    { title: 'Eventi', href: '/events', icon: CalendarCog },
-];
+]);
 
-const managerNav: NavItem[] = [
-    { title: 'Panoramica', href: '/manage/overview', icon: LayoutGrid },
-    { title: 'Calendario', href: '/manage/calendar', icon: CalendarDays },
-    { title: 'Gestione turni', href: '/manage/shifts', icon: ClipboardList },
-    { title: 'Prenotazione turni', href: '/me', icon: ListChecks },
-    { title: 'Volontari', href: '/manage/people', icon: Users },
-];
+const crossNav = computed<NavItem[]>(() =>
+    isManager.value
+        ? [{ title: 'Volontari', href: '/manage/people', icon: Users }]
+        : [
+              { title: 'Volontari', href: '/people', icon: Users },
+              { title: 'Eventi', href: '/events', icon: CalendarCog },
+          ],
+);
 
-const mainNavItems = computed<NavItem[]>(() => (page.props.auth.role === 'manager' ? managerNav : organizerNav));
-
-const homeHref = computed(() => (page.props.auth.role === 'manager' ? '/manage/overview' : '/dashboard'));
+const homeHref = computed(() => (isManager.value ? '/manage/overview' : '/dashboard'));
 </script>
 
 <template>
@@ -52,7 +62,9 @@ const homeHref = computed(() => (page.props.auth.role === 'manager' ? '/manage/o
         </SidebarHeader>
 
         <SidebarContent>
-            <NavMain :items="mainNavItems" />
+            <NavMain :items="eventNav" />
+            <SidebarSeparator />
+            <NavMain :items="crossNav" />
         </SidebarContent>
 
         <SidebarFooter>

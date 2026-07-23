@@ -79,7 +79,8 @@ class OverlapAndMembershipTest extends TestCase
         $elsewhere = $this->shift($this->parking, '20:00', '23:00');
         ShiftSignup::factory()->for($elsewhere)->for($this->person)->create(['status' => SignupStatus::Assigned]);
 
-        $response = $this->actingAs($manager)->get('/me');
+        // Gestione turni is where the manager sees the availabilities (D20).
+        $response = $this->actingAs($manager)->get('/manage/shifts');
 
         $shifts = collect($response->inertiaPage()['props']['shifts']);
         $signup = collect($shifts->firstWhere('id', $kitchenShift->id)['signups'])
