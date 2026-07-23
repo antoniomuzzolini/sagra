@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Enums\SignupStatus;
-use App\Models\Event;
 use App\Models\Person;
 use App\Models\Shift;
 use App\Models\ShiftSignup;
+use App\Support\CurrentEvent;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,17 +21,14 @@ class DashboardController extends Controller
     {
         $tenantId = $request->user()->tenant_id;
 
-        $currentEvent = Event::query()
-            ->where('tenant_id', $tenantId)
-            ->with('phases')
-            ->withCount('areas')
-            ->get()
-            ->filter(fn (Event $event) => $event->endsOn() === null || $event->endsOn()->gte(today()))
-            ->sortBy(fn (Event $event) => $event->startsOn() ?? today())
-            ->first();
+        // Panoramica is scoped to the current event (D20); the volunteer roster
+        // counts stay tenant-wide, since people cross editions.
+        $currentEvent = CurrentEvent::resolve($request->user(), $request->session()->get('current_event_id'));
+        $eventAreaIds = $currentEvent ? $currentEvent->areas()->pluck('id') : collect();
 
         $upcomingShifts = Shift::query()
             ->where('tenant_id', $tenantId)
+            ->whereIn('area_id', $eventAreaIds)
             ->where('starts_at', '>=', now())
             ->with('area')
             ->withCount(['signups as assigned_count' => fn ($q) => $q->where('status', SignupStatus::Assigned)])
@@ -42,7 +39,7 @@ class DashboardController extends Controller
 
         $nextStep = match (true) {
             $currentEvent === null => 'event',
-            $currentEvent->areas_count === 0 => 'areas',
+            $eventAreaIds->isEmpty() => 'areas',
             $upcomingShifts->isEmpty() => 'shifts',
             default => null,
         };
@@ -62,13 +59,13 @@ class DashboardController extends Controller
             'pendingCount' => ShiftSignup::query()
                 ->where('tenant_id', $tenantId)
                 ->where('status', SignupStatus::Available)
-                ->whereHas('shift', fn ($q) => $q->where('starts_at', '>=', now()))
+                ->whereHas('shift', fn ($q) => $q->where('starts_at', '>=', now())->whereIn('area_id', $eventAreaIds))
                 ->count(),
             'substitutionCount' => ShiftSignup::query()
                 ->where('tenant_id', $tenantId)
                 ->where('status', SignupStatus::Assigned)
                 ->whereNotNull('substitution_requested_at')
-                ->whereHas('shift', fn ($q) => $q->where('starts_at', '>=', now()))
+                ->whereHas('shift', fn ($q) => $q->where('starts_at', '>=', now())->whereIn('area_id', $eventAreaIds))
                 ->count(),
             'linkRequestsCount' => Person::query()
                 ->where('tenant_id', $tenantId)

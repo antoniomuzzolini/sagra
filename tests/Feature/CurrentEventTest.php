@@ -49,6 +49,26 @@ class CurrentEventTest extends TestCase
         $this->assertNotNull($upcoming); // (both editions exist)
     }
 
+    public function test_the_panoramica_counts_follow_the_selected_event()
+    {
+        $tenant = Tenant::factory()->create();
+        $organizer = Person::factory()->organizer()->for($tenant)->create();
+
+        // Nearest edition (2027) has two uncovered shifts; the later one (2028) has one.
+        $soon = $this->eventWithShift($tenant, 'Vicina', '2027-07-01', '2027-07-03', '2027-07-02');
+        Shift::factory()->for($soon->areas()->first())->create(['tenant_id' => $tenant->id, 'starts_at' => '2027-07-02 11:00', 'ends_at' => '2027-07-02 15:00', 'needed_people' => 2]);
+        $later = $this->eventWithShift($tenant, 'Lontana', '2028-07-01', '2028-07-03', '2028-07-02');
+
+        $this->actingAs($organizer)->get('/dashboard')->assertInertia(
+            fn ($page) => $page->where('uncoveredCount', 2)->where('event.name', 'Vicina')
+        );
+
+        $this->actingAs($organizer)->post('/current-event', ['event_id' => $later->id]);
+        $this->actingAs($organizer)->get('/dashboard')->assertInertia(
+            fn ($page) => $page->where('uncoveredCount', 1)->where('event.name', 'Lontana')
+        );
+    }
+
     public function test_the_event_context_lists_the_options_for_an_organizer()
     {
         $tenant = Tenant::factory()->create();
