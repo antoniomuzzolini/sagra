@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Person;
+use App\Support\CurrentEvent;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -54,7 +55,39 @@ class HandleInertiaRequests extends Middleware
                 'accountInvite' => fn () => $request->session()->get('accountInvite'),
                 'recoveryRequested' => fn () => $request->session()->get('recoveryRequested'),
             ],
+            // Current-event context + selector options (D20), for account
+            // holders only — volunteers use cross-event pages.
+            'eventContext' => fn () => $this->eventContext($request),
         ]);
+    }
+
+    /**
+     * @return array{current: array{id: int, name: string}|null, options: array<int, array{id: int, name: string}>}|null
+     */
+    private function eventContext(Request $request): ?array
+    {
+        $person = $request->user();
+
+        if ($person === null || $person->tenant_id === null) {
+            return null;
+        }
+
+        if (! $person->isOrganizer() && $person->managedAreaIds()->isEmpty()) {
+            return null;
+        }
+
+        $options = CurrentEvent::options($person);
+
+        if ($options->isEmpty()) {
+            return null;
+        }
+
+        $current = CurrentEvent::resolve($person, $request->session()->get('current_event_id'));
+
+        return [
+            'current' => $current ? ['id' => $current->id, 'name' => $current->name] : null,
+            'options' => $options->map(fn ($event) => ['id' => $event->id, 'name' => $event->name])->values()->all(),
+        ];
     }
 
     /**

@@ -40,6 +40,7 @@ prodotto, non un dettaglio.
 | D17 | Link magici personali **monouso** con scadenza breve (7 giorni); la permanenza è data dalla sessione remember lunga (~1 anno); rigenerare il link revoca link e sessioni remember (kill switch); su un dispositivo già collegato a un'altra persona il link **chiede** ("continua come X / entra come Y"), mai blocca o scambia in silenzio | Il link viaggia su WhatsApp e può essere inoltrato; il telefono condiviso in famiglia è un caso legittimo e frequente |
 | D18 | Gerarchia organizzatore → responsabili d'area → volontari con **delega facoltativa**: l'organizzatore può tutto, il responsabile gestisce turni e volontari del proprio reparto (via link magico, senza account); appartenenza dei volontari ai reparti **morbida e derivata dalla storia delle iscrizioni** (niente da dichiarare o amministrare: prima i turni dei reparti dove hai già lavorato, i buchi altrui restano visibili); sovrapposizioni di turno permesse ma **segnalate** (al volontario e al responsabile che conferma) | Rispecchia l'organizzazione reale delle sagre; la divisione rigida sprecherebbe la flessibilità dei volontari, che è la risorsa principale |
 | D19 | **Identità unica con ruoli ortogonali** (rivede D14 e D18). Una sola entità persona, non più lo split `users`/`people`: password **facoltativa**, ruoli separati dall'identità (organizzatore / responsabile d'area / volontario). **Chiunque può iscriversi ai turni**, a prescindere dal ruolo. Volontari semplici: accesso solo con **link magico** (D6/D17). Responsabili e organizzatori: **account con password** (email + password). Il responsabile **non entra più via link magico** (supera la delega senza account di D18). Invito account (organizzatore → responsabile) con **link a scelta del canale**: email, WhatsApp o copia-incolla (riusa il pattern di condivisione dei link già presente) | Lo split a due tabelle era la radice dell'attrito (responsabile "a metà" tra i due mondi, bug cross-guard). Un'unica identità con password opzionale rispecchia la realtà — è la stessa persona con ruoli diversi — e semplifica auth, sessioni e viste |
+| D20 | **Un guscio, contesto "evento corrente", turni divisi per responsabilità.** Navigazione unica (sidebar) uguale per organizzatore e responsabile; le voci cambiano solo lo *scope*. Un **selettore di evento corrente** in alto (tenuto in sessione, default = edizione più vicina a oggi per D15; per i responsabili mostra solo gli eventi in cui hanno un ruolo; nascosto/passivo con un solo evento). Voci **evento-scoped**: Panoramica, Calendario, Gestione turni, Prenotazione turni. Voci **cross-evento** (separatore, in basso): Volontari, Eventi (solo organizzatore, dove si definiscono eventi → aree → responsabili). **Split dei turni per responsabilità** (Opzione 1): *Gestione turni* (org/responsabile, scoped alle aree gestite) crea/configura turni, vede le disponibilità e **assegna/modera**; *Prenotazione turni* (**chiunque, identica per ruolo**) dà disponibilità ("ci sono"), recap dei propri impegni, sostituzioni | Separa due compiti mentali diversi ("allestire il tabellone" vs "prenotarsi per lavorare"); l'assegnazione è una **decisione di gestione**, coerente con la distinzione Disponibilità/Assegnazione del glossario; tiene *Prenotazione* universale e semplice (D19/D5), senza rami per ruolo; l'evento corrente rende esplicito il filtro per edizione già previsto (D15) |
 
 ### Piano D19 — implementazione (sessione dedicata)
 
@@ -81,6 +82,22 @@ Realizzato come da piano, con questi affinamenti (fonte di verità = codice):
 
 Punto aperto (non nel MVP di D19): al passo 5 i responsabili usano ancora la
 pagina `/me` scoped (toolkit responsabile), non pagine dedicate separate.
+**Chiuso da D20**: responsabili e volontari sono ora nel guscio con sidebar;
+i menu di organizzatore e responsabile coincidono (scope diverso).
+
+### Piano D20 — implementazione (per fasi)
+
+1. **Evento corrente**: id in sessione (default: edizione più vicina a oggi,
+   D15), esposto come prop Inertia condivisa (come `role`); selettore in alto
+   (nascosto con un solo evento; per i responsabili solo gli eventi in cui
+   hanno un ruolo).
+2. **Scoping**: Panoramica, Calendario e Gestione turni filtrano per evento
+   corrente (il responsabile resta scoped anche alle sue aree).
+3. **Split turni**: nuova **Gestione turni** che assorbe la gestione oggi
+   sparsa in `Events/Show` e nelle tab-area di `/me`; **Prenotazione turni**
+   = l'attuale `/me` partecipativo, reso identico per ogni ruolo.
+4. **Menu**: separatore tra voci evento-scoped e cross-evento (Volontari,
+   Eventi); riordino.
 
 ## 3. Glossario ed entità di dominio
 

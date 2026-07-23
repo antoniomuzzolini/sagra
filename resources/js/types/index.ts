@@ -7,6 +7,16 @@ export interface Auth {
     role: UserRole | null;
 }
 
+export interface EventOption {
+    id: number;
+    name: string;
+}
+
+export interface EventContext {
+    current: EventOption | null;
+    options: EventOption[];
+}
+
 export interface BreadcrumbItem {
     title: string;
     href: string;
@@ -43,6 +53,7 @@ export interface SharedData {
         accountInvite: AccountInviteFlash | null;
         recoveryRequested: boolean | null;
     };
+    eventContext: EventContext | null;
     ziggy: {
         location: string;
         url: string;

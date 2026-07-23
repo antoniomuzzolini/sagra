@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EventSwitcher from '@/components/EventSwitcher.vue';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import type { BreadcrumbItemType } from '@/types';
@@ -34,5 +35,6 @@ defineProps<{
                 </Breadcrumb>
             </template>
         </div>
+        <EventSwitcher class="ml-auto" />
     </header>
 </template>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\SignupStatus;
 use App\Models\Area;
+use App\Support\CurrentEvent;
 use App\Support\ManagerScope;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -18,8 +19,11 @@ class CalendarController extends Controller
 {
     public function __invoke(Request $request): Response
     {
+        $current = CurrentEvent::resolve($request->user(), $request->session()->get('current_event_id'));
+
         $areas = Area::query()
             ->where('tenant_id', $request->user()->tenant_id)
+            ->when($current, fn ($query) => $query->where('event_id', $current->id))
             ->whereHas('shifts')
             ->with([
                 'event.phases' => fn ($query) => $query->orderBy('starts_on'),
