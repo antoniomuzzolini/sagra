@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import InputError from '@/components/InputError.vue';
 import PersonContact from '@/components/PersonContact.vue';
+import PersonPicker from '@/components/PersonPicker.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -48,12 +49,12 @@ function destroyArea(area: AreaRow) {
     }
 }
 
-function addManager(area: AreaRow, event: Event) {
-    const select = event.target as HTMLSelectElement;
-    if (select.value) {
-        router.post(route('areas.managers.store', area.id), { person_id: Number(select.value) }, { preserveScroll: true });
-        select.value = '';
-    }
+function addManagerExisting(area: AreaRow, id: number) {
+    router.post(route('areas.managers.store', area.id), { person_id: id }, { preserveScroll: true });
+}
+
+function addManagerNew(area: AreaRow, name: string) {
+    router.post(route('areas.managers.store', area.id), { name }, { preserveScroll: true });
 }
 
 function removeManager(manager: ManagerRow) {
@@ -121,16 +122,14 @@ function removeManager(manager: ManagerRow) {
                                 ×
                             </button>
                         </span>
-                        <select class="h-7 rounded-md border border-input bg-transparent px-2 text-xs" @change="addManager(area, $event)">
-                            <option value="">+ aggiungi…</option>
-                            <option
-                                v-for="person in people.filter((p) => !area.managers.some((m) => m.personId === p.id))"
-                                :key="person.id"
-                                :value="person.id"
-                            >
-                                {{ person.name }}
-                            </option>
-                        </select>
+                        <PersonPicker
+                            :people="people"
+                            :exclude="area.managers.map((m) => m.personId)"
+                            label="Aggiungi"
+                            title="Responsabile per l'area"
+                            @pick="(id) => addManagerExisting(area, id)"
+                            @create="(name) => addManagerNew(area, name)"
+                        />
                     </div>
                     <p class="text-xs text-muted-foreground">Per farlo accedere come responsabile, invita l'account dalla pagina Volontari (🔑).</p>
                 </div>

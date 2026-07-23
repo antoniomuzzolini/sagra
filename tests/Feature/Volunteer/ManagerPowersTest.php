@@ -139,6 +139,20 @@ class ManagerPowersTest extends TestCase
         $this->assertNull($signup->assigned_by);
     }
 
+    public function test_a_manager_can_assign_a_volunteer_created_on_the_spot()
+    {
+        $shift = Shift::factory()->for($this->area)->create(['tenant_id' => $this->area->tenant_id]);
+
+        $this->actingAs($this->manager)
+            ->post("/me/shifts/{$shift->id}/assign", ['name' => 'Nuovo Arrivato'])
+            ->assertRedirect();
+
+        $person = Person::where('tenant_id', $this->area->tenant_id)->where('name', 'Nuovo Arrivato')->first();
+        $this->assertNotNull($person);
+        $signup = ShiftSignup::where('shift_id', $shift->id)->where('person_id', $person->id)->first();
+        $this->assertSame(SignupStatus::Assigned, $signup->status);
+    }
+
     public function test_assigning_promotes_an_existing_availability()
     {
         $shift = Shift::factory()->for($this->area)->create(['tenant_id' => $this->area->tenant_id]);

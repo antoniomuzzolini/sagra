@@ -15,11 +15,19 @@ class AreaManagerController extends Controller
     {
         $this->authorizeTenant($request, $area);
 
-        $data = $request->validate(['person_id' => ['required', 'integer']]);
+        $data = $request->validate([
+            'person_id' => ['required_without:name', 'integer'],
+            'name' => ['required_without:person_id', 'string', 'max:255'],
+        ], [
+            'name.required_without' => 'Scegli una persona o scrivi un nome.',
+        ]);
 
-        $person = Person::query()
-            ->where('tenant_id', $request->user()->tenant_id)
-            ->findOrFail($data['person_id']);
+        // Pick an existing person, or create one on the spot to put in charge.
+        $person = filled($data['name'] ?? null)
+            ? Person::create(['tenant_id' => $area->tenant_id, 'name' => $data['name']])
+            : Person::query()
+                ->where('tenant_id', $request->user()->tenant_id)
+                ->findOrFail($data['person_id']);
 
         PersonRole::firstOrCreate([
             'person_id' => $person->id,

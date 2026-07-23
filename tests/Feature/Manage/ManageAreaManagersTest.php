@@ -46,6 +46,21 @@ class ManageAreaManagersTest extends TestCase
         ]);
     }
 
+    public function test_an_organizer_can_appoint_a_brand_new_person()
+    {
+        $this->actingAs($this->user)
+            ->post("/areas/{$this->area->id}/managers", ['name' => 'Nuova Responsabile'])
+            ->assertRedirect();
+
+        $person = Person::where('tenant_id', $this->area->tenant_id)->where('name', 'Nuova Responsabile')->first();
+        $this->assertNotNull($person);
+        $this->assertDatabaseHas('person_roles', [
+            'person_id' => $person->id,
+            'area_id' => $this->area->id,
+            'role' => 'area_manager',
+        ]);
+    }
+
     public function test_appointing_twice_creates_a_single_role()
     {
         $this->actingAs($this->user)->post("/areas/{$this->area->id}/managers", ['person_id' => $this->person->id]);

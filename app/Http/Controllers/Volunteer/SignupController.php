@@ -169,11 +169,18 @@ class SignupController extends Controller
             404,
         );
 
-        $data = $request->validate(['person_id' => ['required', 'integer']]);
+        $data = $request->validate([
+            'person_id' => ['required_without:name', 'integer'],
+            'name' => ['required_without:person_id', 'string', 'max:255'],
+        ], [
+            'name.required_without' => 'Scegli una persona o scrivi un nome.',
+        ]);
 
-        $person = Person::query()
-            ->where('tenant_id', $shift->tenant_id)
-            ->findOrFail($data['person_id']);
+        // Pick an existing person, or create the volunteer on the spot and put
+        // them straight on the shift (D20 usability).
+        $person = filled($data['name'] ?? null)
+            ? Person::create(['tenant_id' => $shift->tenant_id, 'name' => $data['name']])
+            : Person::query()->where('tenant_id', $shift->tenant_id)->findOrFail($data['person_id']);
 
         ShiftSignup::updateOrCreate(
             ['shift_id' => $shift->id, 'person_id' => $person->id],
