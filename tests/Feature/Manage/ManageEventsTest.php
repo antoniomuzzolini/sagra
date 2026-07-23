@@ -43,7 +43,7 @@ class ManageEventsTest extends TestCase
             fn ($page) => $page
                 ->component('Events/Index')
                 ->where('selectedYear', now()->year)
-                ->where('years', [now()->year, now()->year - 2])
+                ->where('years', [now()->year - 2, now()->year])
                 ->has('events', 1)
                 ->where('events.0.id', $current->id)
         );

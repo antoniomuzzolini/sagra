@@ -26,7 +26,7 @@ class EventController extends Controller
         $years = $events->map(fn (Event $event) => $event->year())
             ->filter()
             ->unique()
-            ->sortDesc()
+            ->sort()
             ->values();
 
         $requested = $request->integer('year');

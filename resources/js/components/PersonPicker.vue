@@ -67,7 +67,9 @@ function onEnter() {
     <Button variant="outline" size="sm" @click="openPicker"><Plus class="h-4 w-4" /> {{ label }}</Button>
 
     <Dialog v-model:open="open">
-        <DialogContent>
+        <!-- Anchored to the top on mobile so the on-screen keyboard doesn't
+             cover the results; centered on larger screens. -->
+        <DialogContent class="top-[5vh] max-h-[90vh] translate-y-0 overflow-y-auto sm:top-1/2 sm:-translate-y-1/2">
             <DialogHeader>
                 <DialogTitle>{{ title }}</DialogTitle>
             </DialogHeader>
