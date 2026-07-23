@@ -172,14 +172,19 @@ class SignupController extends Controller
         $data = $request->validate([
             'person_id' => ['required_without:name', 'integer'],
             'name' => ['required_without:person_id', 'string', 'max:255'],
+            'phone' => [
+                'nullable', 'string', 'max:30',
+                Rule::unique('people')->where('tenant_id', $shift->tenant_id)->withoutTrashed(),
+            ],
         ], [
             'name.required_without' => 'Scegli una persona o scrivi un nome.',
+            'phone.unique' => 'C\'è già una persona con questo numero.',
         ]);
 
         // Pick an existing person, or create the volunteer on the spot and put
         // them straight on the shift (D20 usability).
         $person = filled($data['name'] ?? null)
-            ? Person::create(['tenant_id' => $shift->tenant_id, 'name' => $data['name']])
+            ? Person::create(['tenant_id' => $shift->tenant_id, 'name' => $data['name'], 'phone' => $data['phone'] ?? null])
             : Person::query()->where('tenant_id', $shift->tenant_id)->findOrFail($data['person_id']);
 
         ShiftSignup::updateOrCreate(

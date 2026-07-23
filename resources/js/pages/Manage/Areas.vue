@@ -53,8 +53,8 @@ function addManagerExisting(area: AreaRow, id: number) {
     router.post(route('areas.managers.store', area.id), { person_id: id }, { preserveScroll: true });
 }
 
-function addManagerNew(area: AreaRow, name: string) {
-    router.post(route('areas.managers.store', area.id), { name }, { preserveScroll: true });
+function addManagerNew(area: AreaRow, payload: { name: string; phone: string | null }) {
+    router.post(route('areas.managers.store', area.id), payload, { preserveScroll: true });
 }
 
 function removeManager(manager: ManagerRow) {
@@ -128,7 +128,7 @@ function removeManager(manager: ManagerRow) {
                             label="Aggiungi"
                             title="Responsabile per l'area"
                             @pick="(id) => addManagerExisting(area, id)"
-                            @create="(name) => addManagerNew(area, name)"
+                            @create="(payload) => addManagerNew(area, payload)"
                         />
                     </div>
                     <p class="text-xs text-muted-foreground">Per farlo accedere come responsabile, invita l'account dalla pagina Volontari (🔑).</p>

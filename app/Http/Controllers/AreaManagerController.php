@@ -8,6 +8,7 @@ use App\Models\Person;
 use App\Models\PersonRole;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class AreaManagerController extends Controller
 {
@@ -18,13 +19,18 @@ class AreaManagerController extends Controller
         $data = $request->validate([
             'person_id' => ['required_without:name', 'integer'],
             'name' => ['required_without:person_id', 'string', 'max:255'],
+            'phone' => [
+                'nullable', 'string', 'max:30',
+                Rule::unique('people')->where('tenant_id', $area->tenant_id)->withoutTrashed(),
+            ],
         ], [
             'name.required_without' => 'Scegli una persona o scrivi un nome.',
+            'phone.unique' => 'C\'è già una persona con questo numero.',
         ]);
 
         // Pick an existing person, or create one on the spot to put in charge.
         $person = filled($data['name'] ?? null)
-            ? Person::create(['tenant_id' => $area->tenant_id, 'name' => $data['name']])
+            ? Person::create(['tenant_id' => $area->tenant_id, 'name' => $data['name'], 'phone' => $data['phone'] ?? null])
             : Person::query()
                 ->where('tenant_id', $request->user()->tenant_id)
                 ->findOrFail($data['person_id']);

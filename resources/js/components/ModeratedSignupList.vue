@@ -37,8 +37,8 @@ function assignExisting(id: number) {
     router.post(route('volunteer.signups.assign', props.shiftId), { person_id: id }, { preserveScroll: true });
 }
 
-function assignNew(name: string) {
-    router.post(route('volunteer.signups.assign', props.shiftId), { name }, { preserveScroll: true });
+function assignNew(payload: { name: string; phone: string | null }) {
+    router.post(route('volunteer.signups.assign', props.shiftId), payload, { preserveScroll: true });
 }
 </script>
 

@@ -153,6 +153,21 @@ class ManagerPowersTest extends TestCase
         $this->assertSame(SignupStatus::Assigned, $signup->status);
     }
 
+    public function test_a_new_volunteer_keeps_the_phone_and_rejects_a_duplicate()
+    {
+        $shift = Shift::factory()->for($this->area)->create(['tenant_id' => $this->area->tenant_id]);
+        Person::factory()->create(['tenant_id' => $this->area->tenant_id, 'phone' => '+39 333 0000000']);
+
+        $this->actingAs($this->manager)
+            ->post("/me/shifts/{$shift->id}/assign", ['name' => 'Con Telefono', 'phone' => '+39 333 1230000'])
+            ->assertRedirect();
+        $this->assertSame('+39 333 1230000', Person::where('name', 'Con Telefono')->first()->phone);
+
+        $this->actingAs($this->manager)
+            ->post("/me/shifts/{$shift->id}/assign", ['name' => 'Doppione', 'phone' => '+39 333 0000000'])
+            ->assertSessionHasErrors('phone');
+    }
+
     public function test_assigning_promotes_an_existing_availability()
     {
         $shift = Shift::factory()->for($this->area)->create(['tenant_id' => $this->area->tenant_id]);
