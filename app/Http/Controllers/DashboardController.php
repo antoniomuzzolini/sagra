@@ -22,9 +22,11 @@ class DashboardController extends Controller
         $currentEvent = CurrentEvent::resolve($request->user(), $request->session()->get('current_event_id'));
         $eventAreaIds = $currentEvent ? $currentEvent->areas()->pluck('id') : collect();
 
+        // "Do shifts exist for this edition" — not date-bound, or a past
+        // edition (e.g. a duplicate placed in the past) would look empty and
+        // fall back to the "create shifts" prompt.
         $hasShifts = $eventAreaIds->isNotEmpty() && Shift::query()
             ->whereIn('area_id', $eventAreaIds)
-            ->where('starts_at', '>=', now())
             ->exists();
 
         $nextStep = match (true) {

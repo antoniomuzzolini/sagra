@@ -66,7 +66,7 @@ class DashboardTest extends TestCase
         );
     }
 
-    public function test_areas_without_upcoming_shifts_point_to_shifts()
+    public function test_areas_without_any_shifts_point_to_shifts()
     {
         $user = $this->organizer();
         $event = $this->eventWithPhase($user);
@@ -74,6 +74,24 @@ class DashboardTest extends TestCase
 
         $this->actingAs($user)->get('/dashboard')->assertInertia(
             fn ($page) => $page->where('nextStep', 'shifts')
+        );
+    }
+
+    public function test_a_past_edition_with_shifts_shows_the_overview()
+    {
+        $user = $this->organizer();
+        $event = $this->eventWithPhase($user);
+        $area = Area::factory()->for($event)->create(['tenant_id' => $user->tenant_id]);
+        // Only past shifts (e.g. a duplicated edition placed in the past):
+        // the overview should still render, not the "create shifts" prompt.
+        Shift::factory()->for($area)->create([
+            'tenant_id' => $user->tenant_id,
+            'starts_at' => now()->subDays(10)->setTime(18, 0),
+            'ends_at' => now()->subDays(10)->setTime(22, 0),
+        ]);
+
+        $this->actingAs($user)->get('/dashboard')->assertInertia(
+            fn ($page) => $page->where('nextStep', null)->has('areas', 1)
         );
     }
 
