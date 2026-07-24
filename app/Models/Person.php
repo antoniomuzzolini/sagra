@@ -108,6 +108,51 @@ class Person extends Authenticatable
     }
 
     /**
+     * The tenant would be left without an admin if this organizer left: used
+     * to block the last organizer from erasing themselves.
+     */
+    public function isLastOrganizer(): bool
+    {
+        return $this->is_organizer
+            && static::query()
+                ->where('tenant_id', $this->tenant_id)
+                ->where('is_organizer', true)
+                ->whereKeyNot($this->id)
+                ->doesntExist();
+    }
+
+    /**
+     * GDPR right to erasure: scrub the personal data but keep the row and the
+     * past signups as anonymized history for the per-year aggregates (§6).
+     * Future commitments are cancelled (the person is leaving), access is
+     * revoked, and the row is soft-deleted so it drops out of active lists.
+     */
+    public function anonymize(): void
+    {
+        $this->signups()
+            ->whereHas('shift', fn ($query) => $query->where('starts_at', '>=', now()))
+            ->delete();
+
+        $this->magicLinks()->delete();
+        $this->pushSubscriptions()->delete();
+        $this->roles()->delete();
+
+        $this->forceFill([
+            'name' => 'Utente rimosso',
+            'phone' => null,
+            'email' => null,
+            'password' => null,
+            'email_verified_at' => null,
+            'link_requested_at' => null,
+            'remember_token' => null,
+            'notification_preferences' => null,
+            'is_organizer' => false,
+        ])->save();
+
+        $this->delete();
+    }
+
+    /**
      * The areas a person may run. An organizer runs the whole event, so they
      * manage every area of their tenant (D19: "responsabile di tutti i
      * reparti"); everyone else manages the areas their roles are scoped to.

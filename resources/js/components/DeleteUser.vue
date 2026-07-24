@@ -44,7 +44,7 @@ const closeModal = () => {
 
 <template>
     <div class="space-y-6">
-        <HeadingSmall title="Elimina account" description="Elimina il tuo account e tutti i suoi dati" />
+        <HeadingSmall title="Elimina account" description="Rimuovi i tuoi dati personali e chiudi l'accesso" />
         <div class="space-y-4 rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-200/10 dark:bg-red-700/10">
             <div class="relative space-y-0.5 text-red-600 dark:text-red-100">
                 <p class="font-medium">Attenzione</p>
@@ -59,8 +59,8 @@ const closeModal = () => {
                         <DialogHeader class="space-y-3">
                             <DialogTitle>Vuoi davvero eliminare il tuo account?</DialogTitle>
                             <DialogDescription>
-                                Una volta eliminato l'account, tutti i suoi dati verranno cancellati definitivamente. Inserisci la password per
-                                confermare che vuoi eliminare l'account in modo permanente.
+                                I tuoi dati personali (nome, contatti) verranno rimossi in modo permanente e non potrai più accedere. Lo storico
+                                anonimo dei turni resta per le statistiche. Inserisci la password per confermare.
                             </DialogDescription>
                         </DialogHeader>
 

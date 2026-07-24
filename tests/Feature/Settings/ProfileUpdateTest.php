@@ -64,6 +64,8 @@ class ProfileUpdateTest extends TestCase
     public function test_user_can_delete_their_account()
     {
         $user = Person::factory()->organizer()->create();
+        // A co-organizer, so erasing isn't blocked as the last admin.
+        Person::factory()->organizer()->create(['tenant_id' => $user->tenant_id]);
 
         $response = $this
             ->actingAs($user)
@@ -76,9 +78,11 @@ class ProfileUpdateTest extends TestCase
             ->assertRedirect('/');
 
         $this->assertGuest();
-        // A person is soft-deleted (D19: identities carry signup history that
-        // must survive an account closure), so the row lingers, deactivated.
+        // Erasure anonymizes then soft-deletes (D19: identities carry signup
+        // history that must survive an account closure), so the row lingers,
+        // deactivated and scrubbed of personal data.
         $this->assertSoftDeleted($user);
+        $this->assertSame('Utente rimosso', $user->fresh()->name);
     }
 
     public function test_correct_password_must_be_provided_to_delete_account()

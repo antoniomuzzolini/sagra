@@ -8,6 +8,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -41,7 +42,9 @@ class ProfileController extends Controller
     }
 
     /**
-     * Delete the user's profile.
+     * Erase the account (GDPR): scrub the personal data (anonymize) rather
+     * than a bare soft delete that would keep name, phone and email around.
+     * The sole organizer is blocked — the tenant needs an admin.
      */
     public function destroy(Request $request): RedirectResponse
     {
@@ -51,9 +54,15 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
+        if ($user->isLastOrganizer()) {
+            throw ValidationException::withMessages([
+                'password' => 'Sei l\'unico organizzatore: nomina prima un altro organizzatore.',
+            ]);
+        }
+
         Auth::logout();
 
-        $user->delete();
+        $user->anonymize();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

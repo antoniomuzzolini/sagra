@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Volunteer;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class ProfileController extends Controller
 {
@@ -63,5 +65,29 @@ class ProfileController extends Controller
         ]);
 
         return back();
+    }
+
+    /**
+     * GDPR self-service erasure: the person anonymizes their own data and is
+     * logged out. The sole organizer is blocked — the tenant can't be left
+     * without an admin.
+     */
+    public function erase(Request $request): RedirectResponse
+    {
+        $person = $request->user();
+
+        if ($person->isLastOrganizer()) {
+            throw ValidationException::withMessages([
+                'erase' => 'Sei l\'unico organizzatore: nomina prima un altro organizzatore.',
+            ]);
+        }
+
+        $person->anonymize();
+
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect('/');
     }
 }

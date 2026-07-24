@@ -75,6 +75,13 @@ function saveNotifications() {
     notificationForm.put(route('volunteer.notifications'), { preserveScroll: true });
 }
 
+// GDPR self-erasure: scrub my data and log me out. Irreversible, so confirm.
+function eraseMe() {
+    if (confirm('Vuoi eliminare i tuoi dati? Nome e contatti verranno rimossi e uscirai. L\'operazione non è reversibile.')) {
+        router.delete(route('volunteer.erase'));
+    }
+}
+
 // My commitments anywhere, plus open shifts I can still sign up for
 // (those I manage are handled in "Gestione turni", not here).
 const mine = computed(() => props.shifts.filter((s) => s.myStatus === 'assigned'));
@@ -329,6 +336,13 @@ function cancelSubstitution(shift: VolunteerShift) {
                             <span class="block text-sm text-muted-foreground">Ti avvisiamo se un turno pieno torna scoperto.</span>
                         </span>
                     </Label>
+                </div>
+
+                <!-- GDPR: erase my data -->
+                <div class="mt-2 border-t pt-4">
+                    <Button variant="ghost" size="sm" class="text-red-600 hover:text-red-700" @click="eraseMe">
+                        Elimina i miei dati
+                    </Button>
                 </div>
             </DialogContent>
         </Dialog>
