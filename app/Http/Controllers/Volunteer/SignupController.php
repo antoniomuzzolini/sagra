@@ -10,6 +10,7 @@ use App\Models\ShiftSignup;
 use App\Notifications\AssignmentConfirmed;
 use App\Notifications\AvailabilityReceived;
 use App\Notifications\SubstitutionRequested;
+use App\Support\SeatFreedNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
@@ -151,14 +152,26 @@ class SignupController extends Controller
             $signup->person->notify(new AssignmentConfirmed($signup->shift));
         }
 
+        // Demoting an assignment frees a seat.
+        if ($wasAssigned && $status !== SignupStatus::Assigned) {
+            SeatFreedNotifier::maybeNotify($signup->shift, $person);
+        }
+
         return back();
     }
 
     public function remove(Request $request, ShiftSignup $signup): RedirectResponse
     {
-        $this->authorizeManager($request, $signup);
+        $person = $this->authorizeManager($request, $signup);
+
+        $freedSeat = $signup->status === SignupStatus::Assigned;
+        $shift = $signup->shift;
 
         $signup->delete();
+
+        if ($freedSeat) {
+            SeatFreedNotifier::maybeNotify($shift, $person);
+        }
 
         return back();
     }

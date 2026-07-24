@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Volunteer;
 use App\Enums\SignupStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Shift;
+use App\Support\CurrentEvent;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -20,8 +21,13 @@ class HomeController extends Controller
     {
         $person = $request->user();
 
+        // Account holders follow the current-event selector like every other
+        // page (D20); plain volunteers have no selector and see everything.
+        $current = CurrentEvent::resolve($person, $request->session()->get('current_event_id'));
+
         $shifts = Shift::query()
             ->where('tenant_id', $person->tenant_id)
+            ->when($current, fn ($query) => $query->whereHas('area', fn ($q) => $q->where('event_id', $current->id)))
             ->where('starts_at', '>=', now())
             ->with('area.event')
             ->withCount(['signups as assigned_count' => fn ($query) => $query->where('status', SignupStatus::Assigned)])

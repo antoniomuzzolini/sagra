@@ -16,7 +16,24 @@ class Tenant extends Model
     protected $fillable = [
         'name',
         'slug',
+        'settings',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'settings' => 'array',
+        ];
+    }
+
+    /**
+     * An organization-wide setting (D5: a handful of switches, not a
+     * config tree). Unset keys fall back to their default.
+     */
+    public function setting(string $key, mixed $default = null): mixed
+    {
+        return $this->settings[$key] ?? $default;
+    }
 
     /**
      * The shareable invite token (D16): volunteers self-register through

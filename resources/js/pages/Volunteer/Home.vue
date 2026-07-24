@@ -225,9 +225,9 @@ function cancelSubstitution(shift: VolunteerShift) {
                                 ⚠ Si sovrappone con {{ shift.myOverlap }}
                             </p>
                         </div>
-                        <Button size="sm" :variant="shift.assigned_count >= shift.needed_people ? 'outline' : 'default'" @click="signUp(shift)">
-                            {{ shift.assigned_count >= shift.needed_people ? 'Ci sono, se serve' : 'Ci sono!' }}
-                        </Button>
+                        <Button v-if="shift.assigned_count < shift.needed_people" size="sm" @click="signUp(shift)">Ci sono!</Button>
+                        <Button v-else-if="!isAccountHolder" size="sm" variant="outline" @click="signUp(shift)">Ci sono, se serve</Button>
+                        <span v-else class="text-xs font-medium text-muted-foreground">Completo</span>
                     </div>
                 </div>
 
@@ -258,9 +258,9 @@ function cancelSubstitution(shift: VolunteerShift) {
                                     ⚠ Si sovrappone con {{ shift.myOverlap }}
                                 </p>
                             </div>
-                            <Button size="sm" :variant="shift.assigned_count >= shift.needed_people ? 'outline' : 'default'" @click="signUp(shift)">
-                            {{ shift.assigned_count >= shift.needed_people ? 'Ci sono, se serve' : 'Ci sono!' }}
-                        </Button>
+                            <Button v-if="shift.assigned_count < shift.needed_people" size="sm" @click="signUp(shift)">Ci sono!</Button>
+                        <Button v-else-if="!isAccountHolder" size="sm" variant="outline" @click="signUp(shift)">Ci sono, se serve</Button>
+                        <span v-else class="text-xs font-medium text-muted-foreground">Completo</span>
                         </div>
                     </div>
                 </template>

@@ -6,6 +6,7 @@ use App\Http\Controllers\EventContextController;
 use App\Http\Controllers\Manage\AreaManagementController;
 use App\Http\Controllers\Manage\ManagerAreaController;
 use App\Http\Controllers\Manage\ShiftManagementController;
+use App\Http\Controllers\OrganizationController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -41,6 +42,12 @@ Route::get('calendar', CalendarController::class)
 // Gestione aree of the current event (D20): organizer defines areas + managers.
 Route::get('manage/areas', AreaManagementController::class)
     ->middleware(['auth', 'organizer'])->name('manage.areas');
+
+// Organization-wide settings (organizer only).
+Route::middleware(['auth', 'organizer'])->group(function () {
+    Route::get('organization', [OrganizationController::class, 'edit'])->name('organization.edit');
+    Route::put('organization', [OrganizationController::class, 'update'])->name('organization.update');
+});
 
 // Switch the current event (D20).
 Route::post('current-event', [EventContextController::class, 'update'])

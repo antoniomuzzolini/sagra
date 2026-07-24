@@ -89,6 +89,39 @@ class CurrentEventTest extends TestCase
         $this->actingAs($organizer)->post('/current-event', ['event_id' => $foreignEvent->id])->assertForbidden();
     }
 
+    public function test_prenotazione_follows_the_selected_event_for_account_holders()
+    {
+        $tenant = Tenant::factory()->create();
+        $organizer = Person::factory()->organizer()->for($tenant)->create();
+        $near = $this->eventWithShift($tenant, 'Vicina', now()->addDays(5)->toDateString(), now()->addDays(7)->toDateString(), now()->addDays(6)->toDateString());
+        $far = $this->eventWithShift($tenant, 'Lontana', now()->addDays(30)->toDateString(), now()->addDays(32)->toDateString(), now()->addDays(31)->toDateString());
+
+        // Default: only the nearest edition's shifts.
+        $this->actingAs($organizer)->get('/me')->assertInertia(
+            fn ($page) => $page->has('shifts', 1)->where('shifts.0.event', 'Vicina')
+        );
+
+        $this->actingAs($organizer)->post('/current-event', ['event_id' => $far->id]);
+        $this->actingAs($organizer)->get('/me')->assertInertia(
+            fn ($page) => $page->has('shifts', 1)->where('shifts.0.event', 'Lontana')
+        );
+
+        $this->assertNotNull($near);
+    }
+
+    public function test_a_plain_volunteer_still_sees_every_events_shifts()
+    {
+        $tenant = Tenant::factory()->create();
+        $volunteer = Person::factory()->for($tenant)->create();
+        $this->eventWithShift($tenant, 'Vicina', now()->addDays(5)->toDateString(), now()->addDays(7)->toDateString(), now()->addDays(6)->toDateString());
+        $this->eventWithShift($tenant, 'Lontana', now()->addDays(30)->toDateString(), now()->addDays(32)->toDateString(), now()->addDays(31)->toDateString());
+
+        // No selector for plain volunteers: nothing gets hidden.
+        $this->actingAs($volunteer)->get('/me')->assertInertia(
+            fn ($page) => $page->has('shifts', 2)
+        );
+    }
+
     public function test_a_volunteer_has_no_event_context()
     {
         $volunteer = Person::factory()->create();

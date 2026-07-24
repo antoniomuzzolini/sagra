@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\SignupStatus;
 use App\Models\ShiftSignup;
 use App\Notifications\AssignmentConfirmed;
+use App\Support\SeatFreedNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -37,6 +38,11 @@ class SignupController extends Controller
             $signup->person->notify(new AssignmentConfirmed($signup->shift));
         }
 
+        // Demoting an assignment frees a seat.
+        if ($wasAssigned && $status !== SignupStatus::Assigned) {
+            SeatFreedNotifier::maybeNotify($signup->shift, $request->user());
+        }
+
         return back();
     }
 
@@ -48,7 +54,14 @@ class SignupController extends Controller
     {
         $this->authorizeTenant($request, $signup);
 
+        $freedSeat = $signup->status === SignupStatus::Assigned;
+        $shift = $signup->shift;
+
         $signup->delete();
+
+        if ($freedSeat) {
+            SeatFreedNotifier::maybeNotify($shift, $request->user());
+        }
 
         return back();
     }

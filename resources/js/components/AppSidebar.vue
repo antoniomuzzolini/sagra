@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Boxes, CalendarCog, CalendarDays, ClipboardList, LayoutGrid, ListChecks, Users } from 'lucide-vue-next';
+import { Boxes, CalendarCog, CalendarDays, ClipboardList, LayoutGrid, ListChecks, Settings2, Users } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
 
@@ -43,6 +43,7 @@ const crossNav = computed<NavItem[]>(() =>
         : [
               { title: 'Volontari', href: '/people', icon: Users },
               { title: 'Eventi', href: '/events', icon: CalendarCog },
+              { title: 'Impostazioni', href: '/organization', icon: Settings2 },
           ],
 );
 
