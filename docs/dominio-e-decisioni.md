@@ -274,9 +274,14 @@ evento), Prenotazioni tavoli (customer-facing), Magazzino/inventario
 
 ### Ordine di costruzione consigliato
 
-Prima i **leggeri e a basso rischio** (Forniture, Statistiche) per rodare
-l'infrastruttura moduli; poi **Ordini/Cassa** quando si affronta il nodo
-fiscale.
+**Forniture** per primo (fatto), leggero e a basso rischio, per rodare
+l'infrastruttura moduli. Poi **Ordini/Cassa** (il grosso, con il nodo
+fiscale), che è anche ciò che produce i numeri interessanti. **Statistiche
+per ultimo**: aggrega ciò che gli altri moduli generano, quindi ha senso
+solo quando quel dato esiste (D13). Sarà **pull, non push** — legge le
+tabelle dei moduli *attraverso il core* al momento del report; niente
+"layer di push" da instrumentare in anticipo. Se servirà pre-aggregare per
+performance, si aggiunge allora.
 
 ### Nodi strutturali del kernel
 
