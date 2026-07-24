@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <title inertia>{{ config('app.name', 'Laravel') }}</title>
+        <title inertia>{{ config('app.name', 'Fieste') }}</title>
 
         <link rel="manifest" href="{{ route('pwa.manifest') }}">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">

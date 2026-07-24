@@ -1,7 +1,8 @@
 # CLAUDE.md
 
-Gestionale modulare open source per sagre ed eventi gestiti da volontari,
-con offerta SaaS (open core). Sviluppatore singolo. Rispondi in italiano.
+**Fieste**: gestionale modulare open source per sagre ed eventi gestiti da
+volontari, con offerta SaaS (open core). Sviluppatore singolo. Rispondi in
+italiano.
 
 ## Contesto obbligatorio
 

@@ -1,4 +1,4 @@
-# Gestionale modulare per sagre ed eventi con volontari
+# Fieste — gestionale modulare per sagre ed eventi con volontari
 
 > Documento di dominio e decisioni. Versione 0.1 — giugno 2026.
 > Da tenere aggiornato: è la fonte di verità del progetto, pensato per la
@@ -41,6 +41,7 @@ prodotto, non un dettaglio.
 | D18 | Gerarchia organizzatore → responsabili d'area → volontari con **delega facoltativa**: l'organizzatore può tutto, il responsabile gestisce turni e volontari del proprio reparto (via link magico, senza account); appartenenza dei volontari ai reparti **morbida e derivata dalla storia delle iscrizioni** (niente da dichiarare o amministrare: prima i turni dei reparti dove hai già lavorato, i buchi altrui restano visibili); sovrapposizioni di turno permesse ma **segnalate** (al volontario e al responsabile che conferma) | Rispecchia l'organizzazione reale delle sagre; la divisione rigida sprecherebbe la flessibilità dei volontari, che è la risorsa principale |
 | D19 | **Identità unica con ruoli ortogonali** (rivede D14 e D18). Una sola entità persona, non più lo split `users`/`people`: password **facoltativa**, ruoli separati dall'identità (organizzatore / responsabile d'area / volontario). **Chiunque può iscriversi ai turni**, a prescindere dal ruolo. Volontari semplici: accesso solo con **link magico** (D6/D17). Responsabili e organizzatori: **account con password** (email + password). Il responsabile **non entra più via link magico** (supera la delega senza account di D18). Invito account (organizzatore → responsabile) con **link a scelta del canale**: email, WhatsApp o copia-incolla (riusa il pattern di condivisione dei link già presente) | Lo split a due tabelle era la radice dell'attrito (responsabile "a metà" tra i due mondi, bug cross-guard). Un'unica identità con password opzionale rispecchia la realtà — è la stessa persona con ruoli diversi — e semplifica auth, sessioni e viste |
 | D20 | **Un guscio, contesto "evento corrente", turni divisi per responsabilità.** Navigazione unica (sidebar) uguale per organizzatore e responsabile; le voci cambiano solo lo *scope*. Un **selettore di evento corrente** in alto (tenuto in sessione, default = edizione più vicina a oggi per D15; per i responsabili mostra solo gli eventi in cui hanno un ruolo; nascosto/passivo con un solo evento). Voci **evento-scoped**: Panoramica, Calendario, Gestione turni, Prenotazione turni. Voci **cross-evento** (separatore, in basso): Volontari, Eventi (solo organizzatore, dove si definiscono eventi → aree → responsabili). **Split dei turni per responsabilità** (Opzione 1): *Gestione turni* (org/responsabile, scoped alle aree gestite) crea/configura turni, vede le disponibilità e **assegna/modera**; *Prenotazione turni* (**chiunque, identica per ruolo**) dà disponibilità ("ci sono"), recap dei propri impegni, sostituzioni | Separa due compiti mentali diversi ("allestire il tabellone" vs "prenotarsi per lavorare"); l'assegnazione è una **decisione di gestione**, coerente con la distinzione Disponibilità/Assegnazione del glossario; tiene *Prenotazione* universale e semplice (D19/D5), senza rami per ruolo; l'evento corrente rende esplicito il filtro per edizione già previsto (D15) |
+| D21 | **I turni sono una capacità *orizzontale* del core, attivabile per evento — non un modulo verticale.** Tre livelli, non due: (1) **kernel** sempre attivo (identità, eventi, fasi, aree, ruoli, notifiche, API); (2) **capacità orizzontali del core, attivabili** — i turni stanno qui: substrato condiviso ma spegnibile per evento (una sagra che vuole solo casse/comande li disattiva); (3) **moduli verticali** (comande, casse, magazzino: il "cosa sai fare"). I verticali consumano le capacità orizzontali **attraverso il core** (modulo→core, permesso da D3) e **degradano con grazia** quando una capacità è spenta (es. comande lavora a livello di area se i turni sono off); **mai** modulo→modulo. Per l'MVP i turni sono sempre attivi (Fieste = gestore turni); il toggle per evento arriva con l'abilitazione dei moduli | Risolve l'asimmetria "comande si abilita, i turni no": la simmetria si ottiene rendendo i turni *attivabili*, non facendone un verticale. Farne un verticale costringerebbe comande a dipendere dai turni (viola D3); tenerli come capacità del core esposta lascia che ogni verticale li condivida senza accoppiarsi. Riafferma la linea del glossario: core = "chi lavora, dove, quando", moduli = "cosa ci fai" |
 
 ### Piano D19 — implementazione (sessione dedicata)
 
@@ -215,7 +216,10 @@ rimappa i turni sulle nuove date in modo relativo, mai le disponibilità).
   conservando i numeri aggregati).
 - Canali notifiche oltre il push web (e-mail di servizio? Telegram?
   WhatsApp Business API più avanti?).
-- Nome del progetto.
+
+**Chiuse:**
+- Nome del progetto: **Fieste** (impostato come `APP_NAME`, da cui derivano
+  brand in-app, `<title>` e manifest PWA).
 
 ## 7. Catalogo delle aree tipiche
 
