@@ -41,7 +41,7 @@ const page = usePage<SharedData>();
 // the rest of the site (D19). Plain volunteers keep the focused standalone
 // page: a sidebar with a single entry would be noise for them.
 const isAccountHolder = computed(() => page.props.auth.role === 'organizer' || page.props.auth.role === 'manager');
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'I miei turni', href: '/me' }];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Prenotazione turni', href: '/me' }];
 
 // Profile: contacts are editable any time — they unlock reminders
 // and self-service recovery (D16).
@@ -113,7 +113,7 @@ function cancelSubstitution(shift: VolunteerShift) {
 </script>
 
 <template>
-    <Head title="I miei turni" />
+    <Head title="Prenotazione turni" />
 
     <component
         :is="isAccountHolder ? AppLayout : 'div'"
@@ -121,19 +121,31 @@ function cancelSubstitution(shift: VolunteerShift) {
         :class="isAccountHolder ? undefined : 'mx-auto flex min-h-screen max-w-lg flex-col gap-4 bg-background p-4 pb-16'"
     >
         <div :class="isAccountHolder ? 'mx-auto flex w-full max-w-2xl flex-col gap-4 p-4 pb-16' : 'contents'">
-            <header class="flex items-start gap-2 pt-2">
+            <!-- Account holders get the standard page header, like every other
+                 page in the shell; the greeting + profile button belong to the
+                 volunteer's standalone page (their only page). -->
+            <header v-if="isAccountHolder" class="flex items-start gap-2">
+                <div class="min-w-0 flex-1">
+                    <h1 class="text-xl font-semibold">Prenotazione turni</h1>
+                    <p class="text-sm text-muted-foreground">I tuoi impegni e i turni aperti: tocca "Ci sono!" per prenotarti.</p>
+                </div>
+                <Button v-if="showPushBell" variant="ghost" size="icon" aria-label="Attiva le notifiche" :disabled="pushBusy" @click="activatePush">
+                    <Bell class="h-5 w-5" />
+                </Button>
+            </header>
+            <header v-else class="flex items-start gap-2 pt-2">
                 <div class="min-w-0 flex-1">
                     <h1 class="text-2xl font-semibold text-foreground">Ciao, {{ person.name }}!</h1>
                     <p class="text-muted-foreground">{{ tenant.name }}</p>
                 </div>
-            <Button v-if="showPushBell" variant="ghost" size="icon" aria-label="Attiva le notifiche" :disabled="pushBusy" @click="activatePush">
-                <Bell class="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon" class="relative" aria-label="I tuoi dati" @click="contactFormOpen = true">
-                <UserRound class="h-5 w-5" />
-                <span v-if="person.needsContact" class="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-amber-500" aria-hidden="true"></span>
-            </Button>
-        </header>
+                <Button v-if="showPushBell" variant="ghost" size="icon" aria-label="Attiva le notifiche" :disabled="pushBusy" @click="activatePush">
+                    <Bell class="h-5 w-5" />
+                </Button>
+                <Button variant="ghost" size="icon" class="relative" aria-label="I tuoi dati" @click="contactFormOpen = true">
+                    <UserRound class="h-5 w-5" />
+                    <span v-if="person.needsContact" class="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-amber-500" aria-hidden="true"></span>
+                </Button>
+            </header>
 
         <!-- Prenotazione turni (D20): the participative view, identical for
              every role. Managing shifts lives in "Gestione turni". -->

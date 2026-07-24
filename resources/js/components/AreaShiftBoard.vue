@@ -105,6 +105,20 @@ function submitShift(areaId: number) {
     });
 }
 
+// Clone: open the create form prefilled with an existing shift, ready to
+// tweak the day or time before saving.
+function cloneShift(shift: ManagerShift) {
+    volunteerFormOpen.value = false;
+    shiftForm.date = shift.starts_at.slice(0, 10);
+    shiftForm.start_time = shift.starts_at.slice(11, 16);
+    shiftForm.end_time = shift.ends_at.slice(11, 16);
+    shiftForm.needed_people = shift.needed_people;
+    shiftForm.notes = shift.notes ?? '';
+    shiftForm.clearErrors();
+    shiftFormOpen.value = true;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 function destroyShift(shift: ManagerShift) {
     if (confirm(`Eliminare il turno di ${shortDayLabel(shift.starts_at)} (${formatTime(shift.starts_at)}–${formatTime(shift.ends_at)})?`)) {
         router.delete(route('volunteer.shifts.destroy', shift.id), { preserveScroll: true });
@@ -264,6 +278,9 @@ const inviteWhatsappUrl = computed(() => 'https://wa.me/?text=' + encodeURICompo
                                 </div>
                                 <p v-if="shift.notes" class="text-sm text-muted-foreground">{{ shift.notes }}</p>
                             </div>
+                            <Button variant="ghost" size="icon" aria-label="Clona turno" @click="cloneShift(shift)">
+                                <Copy class="h-4 w-4" />
+                            </Button>
                             <Button variant="ghost" size="icon" aria-label="Modifica turno" @click="openEditShift(shift)">
                                 <Pencil class="h-4 w-4" />
                             </Button>

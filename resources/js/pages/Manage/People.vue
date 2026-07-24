@@ -6,18 +6,18 @@ import { Head } from '@inertiajs/vue3';
 
 defineProps<{ people: PersonRosterRow[] }>();
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Persone', href: '/manage/people' }];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Volontari', href: '/manage/people' }];
 </script>
 
 <template>
-    <Head title="Persone" />
+    <Head title="Volontari" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <div>
                 <h1 class="text-xl font-semibold">Volontari</h1>
                 <p class="text-sm text-muted-foreground">
-                    Chi lavora nelle aree che gestisci. Per creare turni e assegnare, usa "I miei turni".
+                    Chi lavora nelle aree che gestisci. Per creare turni e assegnare, usa "Gestione turni".
                 </p>
             </div>
             <PeopleRoster v-if="people.length" :people="people" />
