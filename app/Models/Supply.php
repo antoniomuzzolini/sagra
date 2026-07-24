@@ -7,6 +7,7 @@ use Database\Factories\SupplyFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A supply entry (Forniture): something bought/rented/borrowed for an edition,
@@ -41,9 +42,23 @@ class Supply extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        // Remove attachment files via Eloquent before the DB cascade drops
+        // the rows (a raw cascade would orphan the files on disk).
+        static::deleting(function (Supply $supply) {
+            $supply->attachments->each->delete();
+        });
+    }
+
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(SupplyAttachment::class);
     }
 
     public function event(): BelongsTo

@@ -8,6 +8,7 @@ use App\Http\Controllers\Manage\ManagerAreaController;
 use App\Http\Controllers\Manage\ShiftManagementController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\SupplyAttachmentController;
 use App\Http\Controllers\SupplyController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -71,6 +72,10 @@ Route::middleware(['auth', 'staff'])->group(function () {
     Route::post('suppliers', [SupplierController::class, 'store'])->name('suppliers.store');
     Route::put('suppliers/{supplier}', [SupplierController::class, 'update'])->name('suppliers.update');
     Route::delete('suppliers/{supplier}', [SupplierController::class, 'destroy'])->name('suppliers.destroy');
+
+    Route::post('supplies/{supply}/attachments', [SupplyAttachmentController::class, 'store'])->name('supply-attachments.store');
+    Route::get('supply-attachments/{attachment}', [SupplyAttachmentController::class, 'download'])->name('supply-attachments.download');
+    Route::delete('supply-attachments/{attachment}', [SupplyAttachmentController::class, 'destroy'])->name('supply-attachments.destroy');
 });
 
 // Area-manager pages (D19): the same sidebar shell as the organizer, scoped

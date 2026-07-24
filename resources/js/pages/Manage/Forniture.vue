@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { Pencil, Plus, Trash2 } from 'lucide-vue-next';
+import { Paperclip, Pencil, Plus, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 
 interface SubAreaOpt {
@@ -38,6 +38,7 @@ interface SupplyRow {
     subArea: string | null;
     supplierId: number | null;
     supplier: string | null;
+    attachments: { id: number; name: string; url: string }[];
 }
 
 const props = defineProps<{
@@ -103,6 +104,22 @@ function deleteSupply(supply: SupplyRow) {
     if (confirm(`Eliminare "${supply.description}"?`)) {
         router.delete(route('supplies.destroy', supply.id), { preserveScroll: true });
     }
+}
+
+// --- Attachments (invoices/notes) ---
+function uploadAttachment(supply: SupplyRow, event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    router.post(
+        route('supply-attachments.store', supply.id),
+        { file },
+        { forceFormData: true, preserveScroll: true, onFinish: () => (input.value = '') },
+    );
+}
+
+function deleteAttachment(id: number) {
+    router.delete(route('supply-attachments.destroy', id), { preserveScroll: true });
 }
 
 // --- Suppliers (address book) ---
@@ -238,6 +255,27 @@ function deleteSupplier(supplier: SupplierRow) {
                                 <span v-if="supply.acquiredOn">{{ supply.acquiredOn }}</span>
                             </p>
                             <p v-if="supply.notes" class="text-sm text-muted-foreground">{{ supply.notes }}</p>
+                            <div class="mt-1 flex flex-wrap items-center gap-2">
+                                <span
+                                    v-for="att in supply.attachments"
+                                    :key="att.id"
+                                    class="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs"
+                                >
+                                    <a :href="att.url" class="flex items-center gap-1 hover:underline"><Paperclip class="h-3 w-3" /> {{ att.name }}</a>
+                                    <button
+                                        type="button"
+                                        class="text-muted-foreground hover:text-foreground"
+                                        aria-label="Rimuovi allegato"
+                                        @click="deleteAttachment(att.id)"
+                                    >
+                                        ×
+                                    </button>
+                                </span>
+                                <label class="flex cursor-pointer items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+                                    <Paperclip class="h-3 w-3" /> Allega
+                                    <input type="file" class="hidden" @change="uploadAttachment(supply, $event)" />
+                                </label>
+                            </div>
                         </div>
                         <Button variant="ghost" size="icon" aria-label="Modifica" @click="openEdit(supply)"><Pencil class="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" aria-label="Elimina" @click="deleteSupply(supply)"><Trash2 class="h-4 w-4" /></Button>

@@ -33,7 +33,7 @@ class SupplyController extends Controller
             ? Supply::query()
                 ->where('event_id', $current->id)
                 ->when(! $person->isOrganizer(), fn ($q) => $q->whereIn('area_id', $areaIds))
-                ->with(['area', 'subArea', 'supplier'])
+                ->with(['area', 'subArea', 'supplier', 'attachments'])
                 ->orderByDesc('acquired_on')
                 ->orderByDesc('id')
                 ->get()
@@ -61,6 +61,11 @@ class SupplyController extends Controller
                 'subArea' => $supply->subArea?->name,
                 'supplierId' => $supply->supplier_id,
                 'supplier' => $supply->supplier?->name,
+                'attachments' => $supply->attachments->map(fn ($a) => [
+                    'id' => $a->id,
+                    'name' => $a->name,
+                    'url' => route('supply-attachments.download', $a->id),
+                ])->values(),
             ]),
             'types' => collect(SupplyType::cases())->map(fn ($t) => $t->value),
         ]);
