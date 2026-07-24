@@ -33,6 +33,7 @@ class Person extends Authenticatable
         'email',
         'password',
         'is_organizer',
+        'notification_preferences',
     ];
 
     /**
@@ -53,7 +54,17 @@ class Person extends Authenticatable
             'email_verified_at' => 'datetime',
             'is_organizer' => 'boolean',
             'link_requested_at' => 'datetime',
+            'notification_preferences' => 'array',
         ];
+    }
+
+    /**
+     * Per-person notification opt-out: a missing key means "on", so a
+     * volunteer only ever stores the types they've deliberately muted.
+     */
+    public function wantsNotification(string $key): bool
+    {
+        return (bool) ($this->notification_preferences[$key] ?? true);
     }
 
     /**

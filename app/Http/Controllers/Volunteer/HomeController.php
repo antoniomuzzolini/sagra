@@ -70,6 +70,11 @@ class HomeController extends Controller
                 // unlocks reminders and self-service recovery.
                 'needsContact' => blank($person->phone) && blank($person->email),
                 'hasPush' => $person->pushSubscriptions()->exists(),
+                // Per-person opt-out for the broadcast nudges (default on).
+                'notifications' => [
+                    'seat_freed' => $person->wantsNotification('seat_freed'),
+                    'new_shifts' => $person->wantsNotification('new_shifts'),
+                ],
             ],
             'vapidPublicKey' => config('webpush.vapid.public_key'),
             'tenant' => ['name' => $person->tenant->name],

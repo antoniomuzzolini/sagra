@@ -21,8 +21,15 @@ class NewShiftsAvailable extends Notification implements ShouldQueue
 
     public function __construct(public Area $area) {}
 
+    /** Preference key for the per-person opt-out. */
+    public const PREFERENCE = 'new_shifts';
+
     public function via(object $notifiable): array
     {
+        if (! $notifiable->wantsNotification(self::PREFERENCE)) {
+            return [];
+        }
+
         return array_values(array_filter([
             $notifiable->pushSubscriptions()->exists() ? WebPushChannel::class : null,
             $notifiable->email ? 'mail' : null,

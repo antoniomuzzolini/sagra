@@ -20,8 +20,15 @@ class SeatFreed extends Notification implements ShouldQueue
 
     public function __construct(public Shift $shift) {}
 
+    /** Preference key for the per-person opt-out. */
+    public const PREFERENCE = 'seat_freed';
+
     public function via(object $notifiable): array
     {
+        if (! $notifiable->wantsNotification(self::PREFERENCE)) {
+            return [];
+        }
+
         return array_values(array_filter([
             $notifiable->pushSubscriptions()->exists() ? WebPushChannel::class : null,
             $notifiable->email ? 'mail' : null,

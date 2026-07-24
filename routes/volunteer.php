@@ -37,6 +37,7 @@ Route::middleware('auth')->group(function () {
     Route::put('me/signups/{signup}', [SignupController::class, 'moderate'])->name('volunteer.signups.moderate');
     Route::delete('me/signups/{signup}', [SignupController::class, 'remove'])->name('volunteer.signups.remove');
     Route::put('me/contact', [ProfileController::class, 'updateContact'])->name('volunteer.contact');
+    Route::put('me/notifications', [ProfileController::class, 'updateNotifications'])->name('volunteer.notifications');
     Route::post('me/push-subscriptions', [PushSubscriptionController::class, 'store'])->name('volunteer.push.store');
     Route::delete('me/push-subscriptions', [PushSubscriptionController::class, 'destroy'])->name('volunteer.push.destroy');
 

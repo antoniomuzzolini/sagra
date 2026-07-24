@@ -43,4 +43,25 @@ class ProfileController extends Controller
 
         return back();
     }
+
+    /**
+     * Per-person notification opt-out: the volunteer mutes the broadcast
+     * nudges they don't want. A missing key means "on", so we only store
+     * what was actually chosen, merged over any existing preferences.
+     */
+    public function updateNotifications(Request $request): RedirectResponse
+    {
+        $person = $request->user();
+
+        $data = $request->validate([
+            'seat_freed' => ['required', 'boolean'],
+            'new_shifts' => ['required', 'boolean'],
+        ]);
+
+        $person->update([
+            'notification_preferences' => array_merge($person->notification_preferences ?? [], $data),
+        ]);
+
+        return back();
+    }
 }

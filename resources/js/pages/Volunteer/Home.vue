@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { areaColors } from '@/lib/colors';
 import { formatDayLong, formatTime } from '@/lib/event-helpers';
@@ -29,7 +31,14 @@ interface VolunteerShift {
 }
 
 const props = defineProps<{
-    person: { name: string; phone: string | null; email: string | null; needsContact: boolean; hasPush: boolean };
+    person: {
+        name: string;
+        phone: string | null;
+        email: string | null;
+        needsContact: boolean;
+        hasPush: boolean;
+        notifications: { seat_freed: boolean; new_shifts: boolean };
+    };
     tenant: { name: string };
     vapidPublicKey: string | null;
     shifts: VolunteerShift[];
@@ -53,6 +62,17 @@ function saveContact() {
         preserveScroll: true,
         onSuccess: () => (contactFormOpen.value = false),
     });
+}
+
+// Notification opt-out: mute the broadcast nudges you don't want. Saved on
+// the spot as you toggle, so there's no extra button to hunt for.
+const notificationForm = useForm({
+    seat_freed: props.person.notifications.seat_freed,
+    new_shifts: props.person.notifications.new_shifts,
+});
+
+function saveNotifications() {
+    notificationForm.put(route('volunteer.notifications'), { preserveScroll: true });
 }
 
 // My commitments anywhere, plus open shifts I can still sign up for
@@ -281,6 +301,33 @@ function cancelSubstitution(shift: VolunteerShift) {
                     <p v-if="contactForm.errors.email" class="text-sm text-red-600">{{ contactForm.errors.email }}</p>
                     <Button type="submit" :disabled="contactForm.processing">Salva</Button>
                 </form>
+
+                <!-- Notification opt-out: mute the broadcast nudges -->
+                <div class="mt-2 grid gap-3 border-t pt-4">
+                    <p class="text-sm font-medium">Le mie notifiche</p>
+                    <Label class="flex items-start gap-3 font-normal">
+                        <Checkbox
+                            :checked="notificationForm.new_shifts"
+                            class="mt-0.5"
+                            @update:checked="(v: boolean) => { notificationForm.new_shifts = v; saveNotifications(); }"
+                        />
+                        <span>
+                            Quando escono nuovi turni
+                            <span class="block text-sm text-muted-foreground">Ti avvisiamo quando si apre il tabellone in un'area.</span>
+                        </span>
+                    </Label>
+                    <Label class="flex items-start gap-3 font-normal">
+                        <Checkbox
+                            :checked="notificationForm.seat_freed"
+                            class="mt-0.5"
+                            @update:checked="(v: boolean) => { notificationForm.seat_freed = v; saveNotifications(); }"
+                        />
+                        <span>
+                            Quando si libera un posto
+                            <span class="block text-sm text-muted-foreground">Ti avvisiamo se un turno pieno torna scoperto.</span>
+                        </span>
+                    </Label>
+                </div>
             </DialogContent>
         </Dialog>
 
