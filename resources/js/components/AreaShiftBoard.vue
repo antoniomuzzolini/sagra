@@ -52,6 +52,20 @@ function waitingCount(shift: ManagerShift): number {
     return shift.assigned_count >= shift.needed_people ? shift.signups.filter((s) => s.status === 'available').length : 0;
 }
 
+// Coverage at a glance for the active area, off the shifts already shown:
+// seats covered, shifts still short, and the substitute pool waiting.
+function areaSummary(areaId: number): { needed: number; filled: number; uncovered: number; waiting: number } {
+    return areaShifts(areaId).reduce(
+        (acc, shift) => ({
+            needed: acc.needed + shift.needed_people,
+            filled: acc.filled + Math.min(shift.assigned_count, shift.needed_people),
+            uncovered: acc.uncovered + (shift.assigned_count < shift.needed_people ? 1 : 0),
+            waiting: acc.waiting + waitingCount(shift),
+        }),
+        { needed: 0, filled: 0, uncovered: 0, waiting: 0 },
+    );
+}
+
 // Shifts of a day belong together: grouped view with per-day actions
 // (replicate the whole day, delete it).
 function areaDays(areaId: number): [string, ManagerShift[]][] {
@@ -233,6 +247,27 @@ const inviteWhatsappUrl = computed(() => 'https://wa.me/?text=' + encodeURICompo
 
         <template v-for="area in areas" :key="area.id">
             <div v-if="activeArea === area.id" class="grid gap-4">
+                <!-- Coverage summary for the area -->
+                <div v-if="areaShifts(area.id).length" class="flex flex-wrap gap-2 text-sm">
+                    <div class="rounded-lg border px-3 py-1.5">
+                        <span class="font-semibold">{{ areaSummary(area.id).filled }}/{{ areaSummary(area.id).needed }}</span>
+                        <span class="text-muted-foreground"> posti coperti</span>
+                    </div>
+                    <div
+                        class="rounded-lg border px-3 py-1.5"
+                        :class="areaSummary(area.id).uncovered > 0 ? 'border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950' : ''"
+                    >
+                        <span class="font-semibold" :class="areaSummary(area.id).uncovered > 0 ? 'text-amber-700 dark:text-amber-300' : ''">
+                            {{ areaSummary(area.id).uncovered }}
+                        </span>
+                        <span class="text-muted-foreground"> turni scoperti</span>
+                    </div>
+                    <div v-if="areaSummary(area.id).waiting > 0" class="rounded-lg border px-3 py-1.5">
+                        <span class="font-semibold">{{ areaSummary(area.id).waiting }}</span>
+                        <span class="text-muted-foreground"> in attesa</span>
+                    </div>
+                </div>
+
                 <div class="flex flex-wrap gap-2">
                     <Button variant="outline" size="sm" @click="toggleShiftForm"><Plus class="h-4 w-4" /> Turno</Button>
                     <Button variant="outline" size="sm" @click="toggleVolunteerForm"><UserPlus class="h-4 w-4" /> Volontario</Button>
