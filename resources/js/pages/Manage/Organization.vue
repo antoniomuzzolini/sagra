@@ -18,7 +18,7 @@ const props = defineProps<{
     vapidPublicKey: string | null;
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Impostazioni', href: '/organization' }];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Impostazioni organizzazione', href: '/organization' }];
 
 const form = useForm({
     name: props.organization.name,
@@ -65,12 +65,12 @@ function sendTest() {
 </script>
 
 <template>
-    <Head title="Impostazioni" />
+    <Head title="Impostazioni organizzazione" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <div>
-                <h1 class="text-xl font-semibold">Impostazioni</h1>
+                <h1 class="text-xl font-semibold">Impostazioni organizzazione</h1>
                 <p class="text-sm text-muted-foreground">Valgono per tutta l'organizzazione, su ogni evento.</p>
             </div>
 

@@ -43,7 +43,7 @@ const crossNav = computed<NavItem[]>(() =>
         : [
               { title: 'Volontari', href: '/people', icon: Users },
               { title: 'Eventi', href: '/events', icon: CalendarCog },
-              { title: 'Impostazioni', href: '/organization', icon: Settings2 },
+              { title: 'Impostazioni organizzazione', href: '/organization', icon: Settings2 },
           ],
 );
 
