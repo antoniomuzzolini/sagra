@@ -289,7 +289,9 @@ function cancelSubstitution(shift: VolunteerShift) {
 
         <!-- Profile / contacts dialog -->
         <Dialog v-model:open="contactFormOpen">
-            <DialogContent>
+            <!-- Don't autofocus the first field: on mobile the keyboard would
+                 pop up and hide the notification toggles below. -->
+            <DialogContent @open-auto-focus="(e: Event) => e.preventDefault()">
                 <DialogHeader>
                     <DialogTitle>I tuoi dati</DialogTitle>
                     <DialogDescription> Un recapito serve per i promemoria e per recuperare l'accesso da solo se cambi telefono. </DialogDescription>
