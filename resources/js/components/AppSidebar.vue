@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Boxes, CalendarCog, CalendarDays, ClipboardList, LayoutGrid, ListChecks, Settings2, Users } from 'lucide-vue-next';
+import { Boxes, CalendarCog, CalendarDays, ClipboardList, LayoutGrid, ListChecks, Package, Settings2, Users } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
 
@@ -35,6 +35,7 @@ const eventNav = computed<NavItem[]>(() => [
     ...(isManager.value ? [] : [{ title: 'Aree', href: '/manage/areas', icon: Boxes }]),
     { title: 'Gestione turni', href: '/manage/shifts', icon: ClipboardList },
     { title: 'Prenotazione turni', href: '/me', icon: ListChecks },
+    { title: 'Forniture', href: '/forniture', icon: Package },
 ]);
 
 const crossNav = computed<NavItem[]>(() =>

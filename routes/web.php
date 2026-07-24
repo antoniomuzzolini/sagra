@@ -7,6 +7,8 @@ use App\Http\Controllers\Manage\AreaManagementController;
 use App\Http\Controllers\Manage\ManagerAreaController;
 use App\Http\Controllers\Manage\ShiftManagementController;
 use App\Http\Controllers\OrganizationController;
+use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\SupplyController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -58,6 +60,18 @@ Route::post('current-event', [EventContextController::class, 'update'])
 // Gestione turni (D20): organizer or area manager, scoped to the current event.
 Route::get('manage/shifts', ShiftManagementController::class)
     ->middleware(['auth', 'staff'])->name('manage.shifts');
+
+// Forniture module (first vertical module, D21): organizer or area manager,
+// scoped to the current event and the areas the person runs.
+Route::middleware(['auth', 'staff'])->group(function () {
+    Route::get('forniture', [SupplyController::class, 'index'])->name('supplies.index');
+    Route::post('supplies', [SupplyController::class, 'store'])->name('supplies.store');
+    Route::put('supplies/{supply}', [SupplyController::class, 'update'])->name('supplies.update');
+    Route::delete('supplies/{supply}', [SupplyController::class, 'destroy'])->name('supplies.destroy');
+    Route::post('suppliers', [SupplierController::class, 'store'])->name('suppliers.store');
+    Route::put('suppliers/{supplier}', [SupplierController::class, 'update'])->name('suppliers.update');
+    Route::delete('suppliers/{supplier}', [SupplierController::class, 'destroy'])->name('suppliers.destroy');
+});
 
 // Area-manager pages (D19): the same sidebar shell as the organizer, scoped
 // to the areas the person runs. Read views for now — editing stays on /me.

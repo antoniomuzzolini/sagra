@@ -58,6 +58,11 @@ class Tenant extends Model
         return $this->hasMany(Person::class);
     }
 
+    public function suppliers(): HasMany
+    {
+        return $this->hasMany(Supplier::class);
+    }
+
     public function events(): HasMany
     {
         return $this->hasMany(Event::class);
