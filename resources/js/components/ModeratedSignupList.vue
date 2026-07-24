@@ -44,23 +44,10 @@ function assignNew(payload: { name: string; phone: string | null }) {
 
 <template>
     <div v-if="signups.length > 0 || people" class="mt-2 grid gap-1 border-t pt-2">
-        <div v-for="signup in signups" :key="signup.id" class="flex items-center gap-2 text-sm">
+        <div v-for="signup in signups" :key="signup.id" class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
             <Avatar :name="signup.personName" :size="24" />
             <span class="min-w-0 flex-1 truncate">
                 <PersonContact :name="signup.personName" :phone="signup.personPhone" :email="signup.personEmail" />
-                <span
-                    v-if="signup.substitutionRequested"
-                    class="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800 dark:bg-amber-900 dark:text-amber-100"
-                >
-                    cerca un sostituto
-                </span>
-                <span
-                    v-if="signup.overlapsWith"
-                    class="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800 dark:bg-amber-900 dark:text-amber-100"
-                    :title="`Si sovrappone con ${signup.overlapsWith}`"
-                >
-                    ⚠ anche su {{ signup.overlapsWith }}
-                </span>
             </span>
             <template v-if="signup.status === 'available'">
                 <Button size="sm" @click="moderate(signup, 'assigned')">Conferma</Button>
@@ -75,6 +62,24 @@ function assignNew(payload: { name: string; phone: string | null }) {
                 </Button>
             </template>
             <span v-else class="text-xs text-muted-foreground">rifiutato</span>
+
+            <!-- Badges get their own full-width line so a busy row (substitution
+                 + overlap + actions) never pushes the page wider on a phone. -->
+            <div v-if="signup.substitutionRequested || signup.overlapsWith" class="flex w-full min-w-0 flex-wrap gap-1 pl-8">
+                <span
+                    v-if="signup.substitutionRequested"
+                    class="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800 dark:bg-amber-900 dark:text-amber-100"
+                >
+                    cerca un sostituto
+                </span>
+                <span
+                    v-if="signup.overlapsWith"
+                    class="max-w-full truncate rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800 dark:bg-amber-900 dark:text-amber-100"
+                    :title="`Si sovrappone con ${signup.overlapsWith}`"
+                >
+                    ⚠ anche su {{ signup.overlapsWith }}
+                </span>
+            </div>
         </div>
         <PersonPicker
             v-if="people"

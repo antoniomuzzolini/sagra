@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Notifications\TestNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -22,7 +23,25 @@ class OrganizationController extends Controller
                 'name' => $tenant->name,
                 'notifySeatFreed' => (bool) $tenant->setting('notify_seat_freed', true),
             ],
+            // For the self-test button: what would actually be delivered.
+            'channels' => [
+                'push' => $request->user()->pushSubscriptions()->exists(),
+                'email' => filled($request->user()->email),
+            ],
+            'vapidConfigured' => filled(config('webpush.vapid.public_key')),
+            'vapidPublicKey' => config('webpush.vapid.public_key'),
         ]);
+    }
+
+    /**
+     * Send yourself a test notification to prove the pipeline works
+     * (VAPID keys, queue worker, subscription).
+     */
+    public function sendTest(Request $request): RedirectResponse
+    {
+        $request->user()->notify(new TestNotification);
+
+        return back()->with('testNotificationSent', true);
     }
 
     public function update(Request $request): RedirectResponse

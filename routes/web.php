@@ -47,6 +47,8 @@ Route::get('manage/areas', AreaManagementController::class)
 Route::middleware(['auth', 'organizer'])->group(function () {
     Route::get('organization', [OrganizationController::class, 'edit'])->name('organization.edit');
     Route::put('organization', [OrganizationController::class, 'update'])->name('organization.update');
+    Route::post('organization/test-notification', [OrganizationController::class, 'sendTest'])
+        ->name('organization.test-notification');
 });
 
 // Switch the current event (D20).
