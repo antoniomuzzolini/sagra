@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Boxes, CalendarCog, CalendarDays, ClipboardList, LayoutGrid, ListChecks, Package, Receipt, Settings2, Users } from 'lucide-vue-next';
+import { Boxes, CalendarCog, CalendarDays, ChefHat, ClipboardList, LayoutGrid, ListChecks, Package, Receipt, Settings2, Users } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
 
@@ -37,6 +37,7 @@ const eventNav = computed<NavItem[]>(() => [
     { title: 'Prenotazione turni', href: '/me', icon: ListChecks },
     { title: 'Forniture', href: '/forniture', icon: Package },
     { title: 'Cassa', href: '/cassa', icon: Receipt },
+    { title: 'Comande', href: '/comande', icon: ChefHat },
 ]);
 
 const crossNav = computed<NavItem[]>(() =>

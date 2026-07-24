@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\OrderItemStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -17,8 +18,10 @@ class OrderItem extends Model
         'name',
         'unit_price',
         'quantity',
+        'status',
         'area_id',
         'sub_area_id',
+        'ready_at',
     ];
 
     protected function casts(): array
@@ -26,6 +29,8 @@ class OrderItem extends Model
         return [
             'unit_price' => 'decimal:2',
             'quantity' => 'integer',
+            'status' => OrderItemStatus::class,
+            'ready_at' => 'datetime',
         ];
     }
 

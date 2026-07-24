@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\OrderItemStatus;
 use App\Models\Order;
 use App\Models\Product;
 use App\Support\CurrentEvent;
@@ -102,6 +103,9 @@ class OrderController extends Controller
                     'quantity' => $line['quantity'],
                     'area_id' => $product->area_id,
                     'sub_area_id' => $product->sub_area_id,
+                    // Nothing to prepare without an area (e.g. handed over at
+                    // the till): those lines skip the kitchen queue.
+                    'status' => $product->area_id === null ? OrderItemStatus::Served : OrderItemStatus::Pending,
                 ]);
             }
 

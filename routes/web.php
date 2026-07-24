@@ -3,6 +3,7 @@
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EventContextController;
+use App\Http\Controllers\KitchenController;
 use App\Http\Controllers\Manage\AreaManagementController;
 use App\Http\Controllers\Manage\ManagerAreaController;
 use App\Http\Controllers\Manage\ShiftManagementController;
@@ -86,6 +87,10 @@ Route::middleware(['auth', 'staff'])->group(function () {
     Route::get('cassa', [OrderController::class, 'index'])->name('orders.index');
     Route::post('orders', [OrderController::class, 'store'])->name('orders.store');
     Route::put('orders/{order}', [OrderController::class, 'update'])->name('orders.update');
+
+    // Comande / KDS: the kitchen screen, scoped to the areas the person runs.
+    Route::get('comande', [KitchenController::class, 'index'])->name('kitchen.index');
+    Route::put('order-items/{item}', [KitchenController::class, 'update'])->name('kitchen.update');
 });
 Route::middleware(['auth', 'organizer'])->group(function () {
     Route::post('products', [ProductController::class, 'store'])->name('products.store');
