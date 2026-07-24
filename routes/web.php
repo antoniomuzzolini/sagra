@@ -6,7 +6,9 @@ use App\Http\Controllers\EventContextController;
 use App\Http\Controllers\Manage\AreaManagementController;
 use App\Http\Controllers\Manage\ManagerAreaController;
 use App\Http\Controllers\Manage\ShiftManagementController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OrganizationController;
+use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplyAttachmentController;
 use App\Http\Controllers\SupplyController;
@@ -76,6 +78,19 @@ Route::middleware(['auth', 'staff'])->group(function () {
     Route::post('supplies/{supply}/attachments', [SupplyAttachmentController::class, 'store'])->name('supply-attachments.store');
     Route::get('supply-attachments/{attachment}', [SupplyAttachmentController::class, 'download'])->name('supply-attachments.download');
     Route::delete('supply-attachments/{attachment}', [SupplyAttachmentController::class, 'destroy'])->name('supply-attachments.destroy');
+});
+
+// Ordini/Cassa module (D21) — slice A. The till (POS) is open to any staff;
+// the listino is the organizer's setup.
+Route::middleware(['auth', 'staff'])->group(function () {
+    Route::get('cassa', [OrderController::class, 'index'])->name('orders.index');
+    Route::post('orders', [OrderController::class, 'store'])->name('orders.store');
+    Route::put('orders/{order}', [OrderController::class, 'update'])->name('orders.update');
+});
+Route::middleware(['auth', 'organizer'])->group(function () {
+    Route::post('products', [ProductController::class, 'store'])->name('products.store');
+    Route::put('products/{product}', [ProductController::class, 'update'])->name('products.update');
+    Route::delete('products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
 });
 
 // Area-manager pages (D19): the same sidebar shell as the organizer, scoped
