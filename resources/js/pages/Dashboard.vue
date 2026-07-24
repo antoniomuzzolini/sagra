@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import OverviewDashboard, { type OverviewArea } from '@/components/OverviewDashboard.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatTime } from '@/lib/event-helpers';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { ArrowRight, CalendarPlus, Hand, KeyRound, Repeat2, Users } from 'lucide-vue-next';
 
 interface UncoveredShift {
@@ -18,6 +19,7 @@ interface UncoveredShift {
 defineProps<{
     nextStep: 'event' | 'areas' | 'shifts' | null;
     event: { id: number; name: string } | null;
+    areas: OverviewArea[];
     uncoveredCount: number;
     uncoveredShifts: UncoveredShift[];
     pendingCount: number;
@@ -94,6 +96,16 @@ function dayLabel(datetime: string): string {
                     </p>
                 </Link>
             </div>
+
+            <!-- Area coverage at a glance -->
+            <section v-if="nextStep === null && areas.length" class="grid gap-2">
+                <h2 class="font-medium">Copertura per area</h2>
+                <OverviewDashboard
+                    :areas="areas"
+                    @select="router.visit('/manage/shifts')"
+                    @uncovered="router.visit('/manage/shifts')"
+                />
+            </section>
 
             <!-- Uncovered shifts -->
             <section v-if="nextStep === null" class="grid gap-2">

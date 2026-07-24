@@ -30,11 +30,13 @@ class OrganizationSettingsTest extends TestCase
         $this->actingAs($organizer)->put('/organization', [
             'name' => 'Pro Loco Rinominata',
             'notify_seat_freed' => false,
+            'notify_new_shifts' => false,
         ])->assertSessionHasNoErrors();
 
         $tenant = $organizer->tenant->fresh();
         $this->assertSame('Pro Loco Rinominata', $tenant->name);
         $this->assertFalse($tenant->setting('notify_seat_freed', true));
+        $this->assertFalse($tenant->setting('notify_new_shifts', true));
     }
 
     public function test_non_organizers_cannot_touch_the_settings()
@@ -42,7 +44,7 @@ class OrganizationSettingsTest extends TestCase
         $volunteer = Person::factory()->create();
 
         $this->actingAs($volunteer)->get('/organization')->assertForbidden();
-        $this->actingAs($volunteer)->put('/organization', ['name' => 'X', 'notify_seat_freed' => false])->assertForbidden();
+        $this->actingAs($volunteer)->put('/organization', ['name' => 'X', 'notify_seat_freed' => false, 'notify_new_shifts' => false])->assertForbidden();
     }
 
     /**

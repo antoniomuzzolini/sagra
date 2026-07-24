@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreShiftRequest;
 use App\Models\Area;
 use App\Models\Shift;
+use App\Support\NewShiftsNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -24,6 +25,11 @@ class ShiftController extends Controller
             'needed_people' => $request->validated('needed_people'),
             'notes' => $request->validated('notes'),
         ]);
+
+        // "È uscito il tabellone" — only for shifts still to come.
+        if ($startsAt->isFuture()) {
+            NewShiftsNotifier::maybeNotify($area, $request->user());
+        }
 
         return back();
     }
@@ -65,16 +71,21 @@ class ShiftController extends Controller
         $offset = (int) Carbon::parse($data['source_date'])->startOfDay()
             ->diffInDays(Carbon::parse($data['target_date'])->startOfDay(), false);
 
-        $area->shifts()
+        $copies = $area->shifts()
             ->whereDate('starts_at', $data['source_date'])
             ->get()
-            ->each(fn (Shift $shift) => $area->shifts()->create([
+            ->map(fn (Shift $shift) => $area->shifts()->create([
                 'tenant_id' => $area->tenant_id,
                 'starts_at' => $shift->starts_at->copy()->addDays($offset),
                 'ends_at' => $shift->ends_at->copy()->addDays($offset),
                 'needed_people' => $shift->needed_people,
                 'notes' => $shift->notes,
             ]));
+
+        // A replicated day is new shifts too (one nudge, thanks to the throttle).
+        if ($copies->contains(fn (Shift $shift) => $shift->starts_at->isFuture())) {
+            NewShiftsNotifier::maybeNotify($area, $request->user());
+        }
 
         return back();
     }

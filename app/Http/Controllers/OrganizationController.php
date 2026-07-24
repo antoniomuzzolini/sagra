@@ -22,6 +22,7 @@ class OrganizationController extends Controller
             'organization' => [
                 'name' => $tenant->name,
                 'notifySeatFreed' => (bool) $tenant->setting('notify_seat_freed', true),
+                'notifyNewShifts' => (bool) $tenant->setting('notify_new_shifts', true),
             ],
             // For the self-test button: what would actually be delivered.
             'channels' => [
@@ -49,6 +50,7 @@ class OrganizationController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'notify_seat_freed' => ['required', 'boolean'],
+            'notify_new_shifts' => ['required', 'boolean'],
         ], [
             'name.required' => 'Il nome dell\'organizzazione è obbligatorio.',
         ]);
@@ -59,6 +61,7 @@ class OrganizationController extends Controller
             'name' => $data['name'],
             'settings' => array_merge($tenant->settings ?? [], [
                 'notify_seat_freed' => $data['notify_seat_freed'],
+                'notify_new_shifts' => $data['notify_new_shifts'],
             ]),
         ]);
 

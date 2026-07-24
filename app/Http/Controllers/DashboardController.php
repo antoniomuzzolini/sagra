@@ -7,6 +7,7 @@ use App\Models\Person;
 use App\Models\Shift;
 use App\Models\ShiftSignup;
 use App\Support\CurrentEvent;
+use App\Support\ManagerScope;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -47,6 +48,9 @@ class DashboardController extends Controller
         return Inertia::render('Dashboard', [
             'nextStep' => $nextStep,
             'event' => $currentEvent ? ['id' => $currentEvent->id, 'name' => $currentEvent->name] : null,
+            // Per-area coverage cards (D20): the same structured overview the
+            // area manager sees, here across every area of the current event.
+            'areas' => ManagerScope::overview(ManagerScope::areas($eventAreaIds)),
             'uncoveredCount' => $uncovered->count(),
             'uncoveredShifts' => $uncovered->take(10)->values()->map(fn (Shift $shift) => [
                 'id' => $shift->id,

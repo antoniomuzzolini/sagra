@@ -18,7 +18,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Panoramica', href: '/manage/ove
                 <h1 class="text-xl font-semibold">Panoramica</h1>
                 <p class="text-sm text-muted-foreground">La copertura delle aree che gestisci.</p>
             </div>
-            <OverviewDashboard :areas="areas" @select="router.visit('/manage/calendar')" />
+            <OverviewDashboard :areas="areas" @select="router.visit('/manage/shifts')" @uncovered="router.visit('/manage/shifts')" />
         </div>
     </AppLayout>
 </template>

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreShiftRequest;
 use App\Models\Area;
 use App\Models\Shift;
+use App\Support\NewShiftsNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -28,6 +29,11 @@ class ManagerShiftController extends Controller
             'needed_people' => $request->validated('needed_people'),
             'notes' => $request->validated('notes'),
         ]);
+
+        // "È uscito il tabellone" — only for shifts still to come.
+        if ($startsAt->isFuture()) {
+            NewShiftsNotifier::maybeNotify($area, $request->user());
+        }
 
         return back();
     }

@@ -44,6 +44,21 @@ describe('OverviewDashboard', () => {
         expect(wrapper.emitted('select')?.[0]).toEqual([2]);
     });
 
+    it('emits uncovered when the "Da coprire" stat is clicked', async () => {
+        const wrapper = mount(OverviewDashboard, { props: { areas } });
+        const daCoprire = wrapper.findAll('button').find((b) => b.text().includes('Da coprire'))!;
+        expect(daCoprire).toBeTruthy();
+        await daCoprire.trigger('click');
+        expect(wrapper.emitted('uncovered')).toHaveLength(1);
+    });
+
+    it('does not make "Da coprire" clickable when everything is covered', () => {
+        const covered: OverviewArea[] = [{ id: 1, name: 'Cucina', family: null, needed: 2, filled: 2, people: [], managers: [] }];
+        const wrapper = mount(OverviewDashboard, { props: { areas: covered } });
+        const daCoprire = wrapper.findAll('button').find((b) => b.text().includes('Da coprire'));
+        expect(daCoprire).toBeUndefined();
+    });
+
     it('shows the create tile only when allowed and emits create', async () => {
         const withCreate = mount(OverviewDashboard, { props: { areas, canCreate: true } });
         const tile = withCreate.findAll('button').find((b) => b.text().includes('Nuova area'))!;

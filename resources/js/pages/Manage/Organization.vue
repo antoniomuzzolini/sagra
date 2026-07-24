@@ -12,7 +12,7 @@ import { Bell, Check, Send } from 'lucide-vue-next';
 import { ref } from 'vue';
 
 const props = defineProps<{
-    organization: { name: string; notifySeatFreed: boolean };
+    organization: { name: string; notifySeatFreed: boolean; notifyNewShifts: boolean };
     channels: { push: boolean; email: boolean };
     vapidConfigured: boolean;
     vapidPublicKey: string | null;
@@ -23,6 +23,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Impostazioni', href: '/organiza
 const form = useForm({
     name: props.organization.name,
     notify_seat_freed: props.organization.notifySeatFreed,
+    notify_new_shifts: props.organization.notifyNewShifts,
 });
 
 const saved = ref(false);
@@ -93,6 +94,18 @@ function sendTest() {
                         </span>
                     </Label>
                     <InputError :message="form.errors.notify_seat_freed" />
+
+                    <Label class="flex items-start gap-3 font-normal">
+                        <Checkbox v-model:checked="form.notify_new_shifts" class="mt-0.5" />
+                        <span>
+                            Avvisa i volontari quando esce il tabellone
+                            <span class="block text-sm text-muted-foreground">
+                                Quando apri nuovi turni in un'area, chi ci ha già lavorato — e i nuovi volontari senza turni — riceve una
+                                notifica per prenotarsi.
+                            </span>
+                        </span>
+                    </Label>
+                    <InputError :message="form.errors.notify_new_shifts" />
                 </div>
 
                 <div class="flex items-center gap-3">

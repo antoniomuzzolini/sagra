@@ -22,7 +22,7 @@ export interface OverviewArea {
 }
 
 const props = withDefaults(defineProps<{ areas: OverviewArea[]; canCreate?: boolean }>(), { canCreate: false });
-const emit = defineEmits<{ select: [id: number]; create: [] }>();
+const emit = defineEmits<{ select: [id: number]; create: []; uncovered: [] }>();
 
 const totals = computed(() => {
     const needed = props.areas.reduce((s, a) => s + a.needed, 0);
@@ -46,7 +46,13 @@ const isFull = (a: OverviewArea): boolean => a.needed > 0 && a.filled >= a.neede
             <StatCard :value="`${totals.filled} / ${totals.needed}`" label="Posti coperti" />
             <StatCard :value="`${totals.pct}%`" label="Copertura turni" />
             <StatCard :value="areas.length" label="Aree" />
-            <StatCard :value="totals.needHelp" label="Da coprire" :accent="totals.needHelp > 0" />
+            <StatCard
+                :value="totals.needHelp"
+                label="Da coprire"
+                :accent="totals.needHelp > 0"
+                :interactive="totals.needHelp > 0"
+                @click="totals.needHelp > 0 && emit('uncovered')"
+            />
         </div>
 
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
