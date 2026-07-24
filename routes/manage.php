@@ -20,6 +20,7 @@ Route::middleware(['auth', 'verified', 'organizer'])->group(function () {
 
     Route::resource('events', EventController::class)
         ->only(['index', 'store', 'show', 'update', 'destroy']);
+    Route::post('events/{event}/replicate', [EventController::class, 'replicate'])->name('events.replicate');
 
     Route::post('events/{event}/areas', [AreaController::class, 'store'])->name('areas.store');
     Route::put('areas/{area}', [AreaController::class, 'update'])->name('areas.update');

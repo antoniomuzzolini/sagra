@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Enums\PhaseType;
+use App\Enums\Role;
 use App\Models\Event;
+use App\Models\PersonRole;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -117,6 +120,94 @@ class EventController extends Controller
         $event->delete();
 
         return redirect()->route('events.index');
+    }
+
+    /**
+     * Duplicate a past edition (D15, MVP §5): copy the skeleton — phases,
+     * areas, responsabili and shifts — remapped onto new dates by a whole-day
+     * offset so the relative structure (weekends, gaps, shift times) is kept.
+     * Availabilities and assignments are personal to that year and never
+     * travel.
+     */
+    public function replicate(Request $request, Event $event): RedirectResponse
+    {
+        $this->authorizeTenant($request, $event);
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'starts_on' => ['required', 'date'],
+        ], [
+            'name.required' => 'Il nome della nuova edizione è obbligatorio.',
+            'starts_on.required' => 'Indica la data di inizio della nuova edizione.',
+        ]);
+
+        $event->load(['phases', 'areas.shifts', 'areas.managerRoles.person']);
+
+        $sourceStart = $event->startsOn();
+
+        if ($sourceStart === null) {
+            throw ValidationException::withMessages([
+                'starts_on' => 'Questo evento non ha fasi da replicare.',
+            ]);
+        }
+
+        // Whole-day shift from the source's first day to the chosen new start.
+        $offset = (int) $sourceStart->copy()->startOfDay()
+            ->diffInDays(Carbon::parse($data['starts_on'])->startOfDay(), false);
+
+        $new = DB::transaction(function () use ($event, $data, $offset) {
+            $new = Event::create([
+                'tenant_id' => $event->tenant_id,
+                'name' => $data['name'],
+            ]);
+
+            foreach ($event->phases as $phase) {
+                $new->phases()->create([
+                    'tenant_id' => $event->tenant_id,
+                    'type' => $phase->type,
+                    'starts_on' => $phase->starts_on->copy()->addDays($offset),
+                    'ends_on' => $phase->ends_on->copy()->addDays($offset),
+                ]);
+            }
+
+            foreach ($event->areas as $area) {
+                $newArea = $new->areas()->create([
+                    'tenant_id' => $event->tenant_id,
+                    'name' => $area->name,
+                    'family' => $area->family,
+                ]);
+
+                // Responsabili travel; a role whose person is gone (soft
+                // deleted) is skipped rather than resurrected.
+                foreach ($area->managerRoles as $role) {
+                    if ($role->person === null) {
+                        continue;
+                    }
+
+                    PersonRole::create([
+                        'tenant_id' => $event->tenant_id,
+                        'person_id' => $role->person_id,
+                        'event_id' => $new->id,
+                        'role' => Role::AreaManager,
+                        'area_id' => $newArea->id,
+                    ]);
+                }
+
+                foreach ($area->shifts as $shift) {
+                    $newArea->shifts()->create([
+                        'tenant_id' => $event->tenant_id,
+                        'starts_at' => $shift->starts_at->copy()->addDays($offset),
+                        'ends_at' => $shift->ends_at->copy()->addDays($offset),
+                        'needed_people' => $shift->needed_people,
+                        'notes' => $shift->notes,
+                    ]);
+                }
+            }
+
+            return $new;
+        });
+
+        return redirect()->route('events.show', $new);
     }
 
     private function validateEvent(Request $request): array

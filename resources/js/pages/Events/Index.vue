@@ -8,7 +8,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { formatDate, phaseTypeLabels } from '@/lib/event-helpers';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { Plus, Trash2 } from 'lucide-vue-next';
+import { CopyPlus, Plus, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 
 interface EventRow {
@@ -40,6 +40,35 @@ function removePhase(index: number) {
 function submit() {
     form.post(route('events.store'), { onSuccess: () => (createOpen.value = false) });
 }
+
+// Duplicate a past edition: copy the skeleton onto new dates. Availabilities
+// and assignments never travel.
+const replicateOpen = ref(false);
+const replicateSource = ref<EventRow | null>(null);
+const replicateForm = useForm({ name: '', starts_on: '' });
+
+function plusOneYear(date: string | null): string {
+    if (!date) return '';
+    const dt = new Date(date);
+    dt.setFullYear(dt.getFullYear() + 1);
+    return dt.toISOString().slice(0, 10);
+}
+
+function openReplicate(event: EventRow) {
+    replicateSource.value = event;
+    replicateForm.name = event.name;
+    replicateForm.starts_on = plusOneYear(event.startsOn);
+    replicateForm.clearErrors();
+    replicateOpen.value = true;
+}
+
+function submitReplicate() {
+    if (replicateSource.value) {
+        replicateForm.post(route('events.replicate', replicateSource.value.id), {
+            onSuccess: () => (replicateOpen.value = false),
+        });
+    }
+}
 </script>
 
 <template>
@@ -64,8 +93,8 @@ function submit() {
             <p v-else-if="props.events.length === 0" class="text-muted-foreground">Nessun evento nel {{ props.selectedYear }}.</p>
 
             <ul v-if="props.events.length > 0" class="divide-y rounded-xl border">
-                <li v-for="event in props.events" :key="event.id">
-                    <Link :href="route('events.show', event.id)" class="flex items-center gap-2 p-3 hover:bg-muted/50">
+                <li v-for="event in props.events" :key="event.id" class="flex items-center gap-1 pr-2">
+                    <Link :href="route('events.show', event.id)" class="flex min-w-0 flex-1 items-center gap-2 p-3 hover:bg-muted/50">
                         <div class="min-w-0 flex-1">
                             <p class="font-medium">{{ event.name }}</p>
                             <p class="text-sm text-muted-foreground">
@@ -73,6 +102,9 @@ function submit() {
                             </p>
                         </div>
                     </Link>
+                    <Button variant="ghost" size="icon" aria-label="Duplica evento" @click="openReplicate(event)">
+                        <CopyPlus class="h-4 w-4" />
+                    </Button>
                 </li>
             </ul>
         </div>
@@ -124,6 +156,36 @@ function submit() {
 
                     <DialogFooter>
                         <Button type="submit" :disabled="form.processing">Crea evento</Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Duplicate an edition -->
+        <Dialog v-model:open="replicateOpen">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Duplica evento</DialogTitle>
+                    <DialogDescription>
+                        Crea una nuova edizione copiando fasi, aree, responsabili e turni di
+                        <b>{{ replicateSource?.name }}</b
+                        >, spostati sulle nuove date. Le disponibilità e le assegnazioni non vengono copiate.
+                    </DialogDescription>
+                </DialogHeader>
+                <form class="grid gap-4" @submit.prevent="submitReplicate">
+                    <div class="grid gap-2">
+                        <Label for="replicate-name">Nome della nuova edizione</Label>
+                        <Input id="replicate-name" v-model="replicateForm.name" required placeholder="Sagra 2027" />
+                        <InputError :message="replicateForm.errors.name" />
+                    </div>
+                    <div class="grid gap-2">
+                        <Label for="replicate-start">Data di inizio</Label>
+                        <Input id="replicate-start" v-model="replicateForm.starts_on" type="date" required />
+                        <InputError :message="replicateForm.errors.starts_on" />
+                        <p class="text-sm text-muted-foreground">Tutte le fasi e i turni si spostano di conseguenza, mantenendo la stessa struttura.</p>
+                    </div>
+                    <DialogFooter>
+                        <Button type="submit" :disabled="replicateForm.processing">Duplica</Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
