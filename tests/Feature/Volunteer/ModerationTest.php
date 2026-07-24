@@ -11,7 +11,9 @@ use App\Models\PersonRole;
 use App\Models\Shift;
 use App\Models\ShiftSignup;
 use App\Models\Tenant;
+use App\Notifications\AssignmentConfirmed;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class ModerationTest extends TestCase
@@ -46,6 +48,10 @@ class ModerationTest extends TestCase
 
     public function test_an_area_manager_can_confirm_a_signup_in_their_area()
     {
+        Notification::fake();
+        // A deliverable channel is needed for the notification to count.
+        $this->signup->person->update(['email' => 'volontario@example.com']);
+
         $this->actingAs($this->manager)
             ->put("/me/signups/{$this->signup->id}", ['status' => 'assigned'])
             ->assertRedirect();
@@ -53,7 +59,23 @@ class ModerationTest extends TestCase
         $this->signup->refresh();
         $this->assertSame(SignupStatus::Assigned, $this->signup->status);
         $this->assertNotNull($this->signup->assigned_at);
-        $this->assertNull($this->signup->assigned_by);
+        $this->assertSame($this->manager->id, $this->signup->assigned_by);
+
+        // "Sei confermato" reaches the volunteer.
+        Notification::assertSentTo($this->signup->person, AssignmentConfirmed::class);
+    }
+
+    public function test_confirming_your_own_signup_sends_no_notification()
+    {
+        Notification::fake();
+
+        $own = ShiftSignup::factory()->for($this->signup->shift)->for($this->manager)->create([
+            'tenant_id' => $this->signup->tenant_id,
+        ]);
+
+        $this->actingAs($this->manager)->put("/me/signups/{$own->id}", ['status' => 'assigned']);
+
+        Notification::assertNothingSent();
     }
 
     public function test_an_area_manager_can_remove_a_signup_in_their_area()

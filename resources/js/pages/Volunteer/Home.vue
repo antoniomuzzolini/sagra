@@ -190,6 +190,9 @@ function cancelSubstitution(shift: VolunteerShift) {
                             {{ shift.area }} · {{ dayLabel(shift.starts_at) }}
                         </p>
                         <p class="text-sm text-muted-foreground">{{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }}</p>
+                        <p v-if="shift.assigned_count >= shift.needed_people" class="text-sm text-muted-foreground">
+                            In lista d'attesa: ti avvisiamo se si libera un posto.
+                        </p>
                         <p v-if="shift.myOverlap" class="text-sm text-amber-700 dark:text-amber-400">⚠ Si sovrappone con {{ shift.myOverlap }}</p>
                     </div>
                     <Button variant="ghost" size="sm" @click="withdraw(shift)"><Undo2 class="h-4 w-4" /> Ritira</Button>
@@ -199,9 +202,7 @@ function cancelSubstitution(shift: VolunteerShift) {
             <!-- Open shifts (areas I don't manage) -->
             <section class="grid gap-3">
                 <h2 class="font-medium text-foreground">Turni aperti</h2>
-                <p v-if="open.length === 0" class="text-sm text-muted-foreground">
-                    {{ manager ? 'Niente turni aperti negli altri reparti.' : 'Niente turni aperti al momento. Torna a trovarci!' }}
-                </p>
+                <p v-if="open.length === 0" class="text-sm text-muted-foreground">Niente turni aperti al momento. Torna a trovarci!</p>
                 <div v-for="[day, dayShifts] in groupByDay(mainOpen)" :key="day" class="grid gap-2">
                     <h3 class="text-sm font-medium text-muted-foreground first-letter:uppercase">{{ day }}</h3>
                     <div v-for="shift in dayShifts" :key="shift.id" class="flex items-center gap-2 rounded-xl border p-3">
@@ -224,7 +225,9 @@ function cancelSubstitution(shift: VolunteerShift) {
                                 ⚠ Si sovrappone con {{ shift.myOverlap }}
                             </p>
                         </div>
-                        <Button size="sm" @click="signUp(shift)">Ci sono!</Button>
+                        <Button size="sm" :variant="shift.assigned_count >= shift.needed_people ? 'outline' : 'default'" @click="signUp(shift)">
+                            {{ shift.assigned_count >= shift.needed_people ? 'Ci sono, se serve' : 'Ci sono!' }}
+                        </Button>
                     </div>
                 </div>
 
@@ -255,7 +258,9 @@ function cancelSubstitution(shift: VolunteerShift) {
                                     ⚠ Si sovrappone con {{ shift.myOverlap }}
                                 </p>
                             </div>
-                            <Button size="sm" @click="signUp(shift)">Ci sono!</Button>
+                            <Button size="sm" :variant="shift.assigned_count >= shift.needed_people ? 'outline' : 'default'" @click="signUp(shift)">
+                            {{ shift.assigned_count >= shift.needed_people ? 'Ci sono, se serve' : 'Ci sono!' }}
+                        </Button>
                         </div>
                     </div>
                 </template>

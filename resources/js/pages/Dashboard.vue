@@ -75,13 +75,13 @@ function dayLabel(datetime: string): string {
                     <p class="flex items-center gap-2 text-sm text-muted-foreground"><Users class="h-4 w-4" /> Volontari</p>
                     <p class="mt-1 text-2xl font-semibold">{{ volunteersCount }}</p>
                 </Link>
-                <Link :href="event ? route('events.show', event.id) : route('events.index')" class="rounded-xl border p-4 hover:bg-muted/50">
+                <Link :href="route('manage.shifts')" class="rounded-xl border p-4 hover:bg-muted/50">
                     <p class="flex items-center gap-2 text-sm text-muted-foreground"><Hand class="h-4 w-4" /> Da confermare</p>
                     <p class="mt-1 text-2xl font-semibold" :class="pendingCount > 0 ? 'text-amber-600 dark:text-amber-400' : ''">
                         {{ pendingCount }}
                     </p>
                 </Link>
-                <Link :href="event ? route('events.show', event.id) : route('events.index')" class="rounded-xl border p-4 hover:bg-muted/50">
+                <Link :href="route('manage.shifts')" class="rounded-xl border p-4 hover:bg-muted/50">
                     <p class="flex items-center gap-2 text-sm text-muted-foreground"><Repeat2 class="h-4 w-4" /> Cercano un sostituto</p>
                     <p class="mt-1 text-2xl font-semibold" :class="substitutionCount > 0 ? 'text-amber-600 dark:text-amber-400' : ''">
                         {{ substitutionCount }}
@@ -106,7 +106,7 @@ function dayLabel(datetime: string): string {
                 </p>
                 <ul v-else class="divide-y rounded-xl border">
                     <li v-for="shift in uncoveredShifts" :key="shift.id">
-                        <Link :href="route('events.show', shift.eventId)" class="flex items-center gap-3 p-3 hover:bg-muted/50">
+                        <Link :href="route('manage.shifts')" class="flex items-center gap-3 p-3 hover:bg-muted/50">
                             <div class="min-w-0 flex-1">
                                 <p class="font-medium">{{ shift.area }}</p>
                                 <p class="text-sm text-muted-foreground first-letter:uppercase">

@@ -179,7 +179,7 @@ class ManagerPowersTest extends TestCase
 
         $signup = ShiftSignup::where('shift_id', $shift->id)->where('person_id', $volunteer->id)->first();
         $this->assertSame(SignupStatus::Assigned, $signup->status);
-        $this->assertNull($signup->assigned_by);
+        $this->assertSame($this->manager->id, $signup->assigned_by);
     }
 
     public function test_a_manager_can_assign_a_volunteer_created_on_the_spot()

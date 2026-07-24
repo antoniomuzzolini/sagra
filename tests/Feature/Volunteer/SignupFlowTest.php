@@ -38,6 +38,20 @@ class SignupFlowTest extends TestCase
         return $this->actingAs($this->person);
     }
 
+    public function test_signing_up_on_a_full_shift_queues_as_available()
+    {
+        // The shift is full (1/1): a further "ci sono" is the waiting list —
+        // a plain availability, ready to be promoted if a seat frees up.
+        $this->shift->update(['needed_people' => 1]);
+        $assigned = Person::factory()->create(['tenant_id' => $this->shift->tenant_id]);
+        ShiftSignup::factory()->for($this->shift)->for($assigned)->create(['status' => SignupStatus::Assigned]);
+
+        $this->actingAsVolunteer()->post("/me/shifts/{$this->shift->id}/signup")->assertRedirect();
+
+        $mine = ShiftSignup::where('shift_id', $this->shift->id)->where('person_id', $this->person->id)->first();
+        $this->assertSame(SignupStatus::Available, $mine->status);
+    }
+
     public function test_a_manager_signing_up_for_their_own_area_is_auto_confirmed()
     {
         $area = $this->shift->area;

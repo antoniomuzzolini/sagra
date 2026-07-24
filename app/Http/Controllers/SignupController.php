@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\SignupStatus;
 use App\Models\ShiftSignup;
+use App\Notifications\AssignmentConfirmed;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -22,6 +23,7 @@ class SignupController extends Controller
         ]);
 
         $status = SignupStatus::from($data['status']);
+        $wasAssigned = $signup->status === SignupStatus::Assigned;
 
         $signup->update([
             'status' => $status,
@@ -29,6 +31,11 @@ class SignupController extends Controller
             'assigned_by' => $status === SignupStatus::Assigned ? $request->user()->id : null,
             'substitution_requested_at' => null,
         ]);
+
+        // "Sei confermato" (not when confirming yourself or re-saving).
+        if ($status === SignupStatus::Assigned && ! $wasAssigned && ! $signup->person->is($request->user())) {
+            $signup->person->notify(new AssignmentConfirmed($signup->shift));
+        }
 
         return back();
     }

@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Person;
 use App\Models\Shift;
 use App\Models\ShiftSignup;
+use App\Notifications\AssignmentConfirmed;
 use App\Notifications\AvailabilityReceived;
 use App\Notifications\SubstitutionRequested;
 use Illuminate\Http\RedirectResponse;
@@ -135,13 +136,20 @@ class SignupController extends Controller
         ]);
 
         $status = SignupStatus::from($data['status']);
+        $wasAssigned = $signup->status === SignupStatus::Assigned;
 
         $signup->update([
             'status' => $status,
             'assigned_at' => $status === SignupStatus::Assigned ? now() : null,
-            'assigned_by' => null, // assigned by a person, not by a user account
+            'assigned_by' => $status === SignupStatus::Assigned ? $person->id : null,
             'substitution_requested_at' => null,
         ]);
+
+        // "Sei confermato": answer the volunteer's availability (not when
+        // confirming yourself, and not when re-saving an assignment).
+        if ($status === SignupStatus::Assigned && ! $wasAssigned && ! $signup->person->is($person)) {
+            $signup->person->notify(new AssignmentConfirmed($signup->shift));
+        }
 
         return back();
     }
@@ -187,16 +195,23 @@ class SignupController extends Controller
             ? Person::create(['tenant_id' => $shift->tenant_id, 'name' => $data['name'], 'phone' => $data['phone'] ?? null])
             : Person::query()->where('tenant_id', $shift->tenant_id)->findOrFail($data['person_id']);
 
+        $signup = ShiftSignup::query()->firstWhere(['shift_id' => $shift->id, 'person_id' => $person->id]);
+        $wasAssigned = $signup?->status === SignupStatus::Assigned;
+
         ShiftSignup::updateOrCreate(
             ['shift_id' => $shift->id, 'person_id' => $person->id],
             [
                 'tenant_id' => $shift->tenant_id,
                 'status' => SignupStatus::Assigned,
                 'assigned_at' => now(),
-                'assigned_by' => null,
+                'assigned_by' => $manager->id,
                 'substitution_requested_at' => null,
             ],
         );
+
+        if (! $wasAssigned && ! $person->is($manager)) {
+            $person->notify(new AssignmentConfirmed($shift));
+        }
 
         return back();
     }

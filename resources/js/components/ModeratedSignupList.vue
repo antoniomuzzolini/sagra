@@ -68,7 +68,11 @@ function assignNew(payload: { name: string; phone: string | null }) {
             </template>
             <template v-else-if="signup.status === 'assigned'">
                 <span class="text-xs font-medium text-green-700 dark:text-green-400">confermato</span>
-                <Button size="sm" variant="ghost" @click="remove(signup)">Rimuovi</Button>
+                <!-- A renouncer frees the seat (the shift goes uncovered or the
+                     waiting list steps in); otherwise it's a plain removal. -->
+                <Button size="sm" variant="ghost" @click="remove(signup)">
+                    {{ signup.substitutionRequested ? 'Libera il posto' : 'Rimuovi' }}
+                </Button>
             </template>
             <span v-else class="text-xs text-muted-foreground">rifiutato</span>
         </div>

@@ -47,6 +47,11 @@ function areaShifts(areaId: number): ManagerShift[] {
     return props.shifts.filter((s) => s.areaId === areaId);
 }
 
+// People queued on a full shift ("ci sono, se serve"): the substitute pool.
+function waitingCount(shift: ManagerShift): number {
+    return shift.assigned_count >= shift.needed_people ? shift.signups.filter((s) => s.status === 'available').length : 0;
+}
+
 // Shifts of a day belong together: grouped view with per-day actions
 // (replicate the whole day, delete it).
 function areaDays(areaId: number): [string, ManagerShift[]][] {
@@ -275,6 +280,7 @@ const inviteWhatsappUrl = computed(() => 'https://wa.me/?text=' + encodeURICompo
                                         {{ shift.assigned_count >= shift.needed_people ? 'Completo' : `Servono ${shift.needed_people - shift.assigned_count}` }}
                                     </Pill>
                                     <span class="text-muted-foreground">{{ shift.assigned_count }}/{{ shift.needed_people }}</span>
+                                    <Pill v-if="waitingCount(shift) > 0" variant="neutral">{{ waitingCount(shift) }} in attesa</Pill>
                                 </div>
                                 <p v-if="shift.notes" class="text-sm text-muted-foreground">{{ shift.notes }}</p>
                             </div>
