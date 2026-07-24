@@ -29,7 +29,7 @@ class HomeController extends Controller
             ->where('tenant_id', $person->tenant_id)
             ->when($current, fn ($query) => $query->whereHas('area', fn ($q) => $q->where('event_id', $current->id)))
             ->where('starts_at', '>=', now())
-            ->with('area.event')
+            ->with('area.event', 'subArea')
             ->withCount(['signups as assigned_count' => fn ($query) => $query->where('status', SignupStatus::Assigned)])
             // Only my own signup on each shift — enough to show my status; no
             // one else's details reach the participative page.
@@ -85,6 +85,7 @@ class HomeController extends Controller
                     'id' => $shift->id,
                     'event' => $shift->area->event->name,
                     'area' => $shift->area->name,
+                    'subArea' => $shift->subArea?->name,
                     'areaId' => $shift->area_id,
                     'areaFamily' => $shift->area->family?->value,
                     'starts_at' => $shift->starts_at->toIso8601String(),

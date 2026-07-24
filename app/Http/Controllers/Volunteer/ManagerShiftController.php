@@ -24,6 +24,7 @@ class ManagerShiftController extends Controller
 
         $area->shifts()->create([
             'tenant_id' => $area->tenant_id,
+            'sub_area_id' => $request->validated('sub_area_id'),
             'starts_at' => $startsAt,
             'ends_at' => $endsAt,
             'needed_people' => $request->validated('needed_people'),
@@ -45,6 +46,7 @@ class ManagerShiftController extends Controller
         [$startsAt, $endsAt] = $request->times();
 
         $shift->update([
+            'sub_area_id' => $request->validated('sub_area_id'),
             'starts_at' => $startsAt,
             'ends_at' => $endsAt,
             'needed_people' => $request->validated('needed_people'),

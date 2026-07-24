@@ -10,6 +10,7 @@ import { areaFamilyLabels } from '@/lib/event-helpers';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { Plus, Trash2 } from 'lucide-vue-next';
+import { ref } from 'vue';
 
 interface ManagerRow {
     id: number;
@@ -18,11 +19,16 @@ interface ManagerRow {
     phone: string | null;
     email: string | null;
 }
+interface SubAreaRow {
+    id: number;
+    name: string;
+}
 interface AreaRow {
     id: number;
     name: string;
     family: string | null;
     managers: ManagerRow[];
+    subAreas: SubAreaRow[];
 }
 
 const props = defineProps<{
@@ -59,6 +65,23 @@ function addManagerNew(area: AreaRow, payload: { name: string; phone: string | n
 
 function removeManager(manager: ManagerRow) {
     router.delete(route('person-roles.destroy', manager.id), { preserveScroll: true });
+}
+
+// Sub-reparti: a light subdivision of the area used to place shifts (D21).
+const subAreaDraft = ref<Record<number, string>>({});
+
+function addSubArea(area: AreaRow) {
+    const name = (subAreaDraft.value[area.id] ?? '').trim();
+    if (!name) return;
+    router.post(
+        route('sub-areas.store', area.id),
+        { name },
+        { preserveScroll: true, onSuccess: () => (subAreaDraft.value[area.id] = '') },
+    );
+}
+
+function removeSubArea(id: number) {
+    router.delete(route('sub-areas.destroy', id), { preserveScroll: true });
 }
 </script>
 
@@ -132,6 +155,31 @@ function removeManager(manager: ManagerRow) {
                         />
                     </div>
                     <p class="text-xs text-muted-foreground">Per farlo accedere come responsabile, invita l'account dalla pagina Volontari (🔑).</p>
+
+                    <!-- Sub-reparti: optional subdivision used when placing shifts -->
+                    <div class="flex flex-wrap items-center gap-2 border-t pt-2 text-sm">
+                        <span class="text-muted-foreground">Sotto-reparti:</span>
+                        <span v-for="sa in area.subAreas" :key="sa.id" class="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5">
+                            {{ sa.name }}
+                            <button
+                                type="button"
+                                class="text-muted-foreground hover:text-foreground"
+                                aria-label="Rimuovi sotto-reparto"
+                                @click="removeSubArea(sa.id)"
+                            >
+                                ×
+                            </button>
+                        </span>
+                        <form class="flex items-center gap-1" @submit.prevent="addSubArea(area)">
+                            <Input
+                                v-model="subAreaDraft[area.id]"
+                                placeholder="Griglia, friggitoria…"
+                                class="h-8 w-44"
+                                aria-label="Nuovo sotto-reparto"
+                            />
+                            <Button type="submit" variant="outline" size="sm">Aggiungi</Button>
+                        </form>
+                    </div>
                 </div>
             </template>
         </div>

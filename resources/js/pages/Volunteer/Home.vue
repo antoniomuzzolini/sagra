@@ -17,6 +17,7 @@ interface VolunteerShift {
     id: number;
     event: string;
     area: string;
+    subArea: string | null;
     areaId: number;
     areaFamily: string | null;
     starts_at: string;
@@ -187,7 +188,7 @@ function cancelSubstitution(shift: VolunteerShift) {
                 >
                     <p class="flex items-center gap-1.5 font-medium text-foreground">
                         <span class="h-2 w-2 shrink-0 rounded-full" :style="{ background: areaColors(shift.areaFamily, shift.area).solid }"></span>
-                        {{ shift.area }} · {{ dayLabel(shift.starts_at) }}
+                        {{ shift.area }}<span v-if="shift.subArea" class="font-normal text-muted-foreground"> · {{ shift.subArea }}</span> · {{ dayLabel(shift.starts_at) }}
                     </p>
                     <p class="text-sm text-muted-foreground">{{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }} · {{ shift.event }}</p>
                     <p v-if="shift.notes" class="text-sm text-muted-foreground">{{ shift.notes }}</p>
@@ -214,7 +215,7 @@ function cancelSubstitution(shift: VolunteerShift) {
                                 class="h-2 w-2 shrink-0 rounded-full"
                                 :style="{ background: areaColors(shift.areaFamily, shift.area).solid }"
                             ></span>
-                            {{ shift.area }} · {{ dayLabel(shift.starts_at) }}
+                            {{ shift.area }}<span v-if="shift.subArea" class="font-normal text-muted-foreground"> · {{ shift.subArea }}</span> · {{ dayLabel(shift.starts_at) }}
                         </p>
                         <p class="text-sm text-muted-foreground">{{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }}</p>
                         <p v-if="shift.assigned_count >= shift.needed_people" class="text-sm text-muted-foreground">
@@ -239,7 +240,7 @@ function cancelSubstitution(shift: VolunteerShift) {
                                     class="h-2 w-2 shrink-0 rounded-full"
                                     :style="{ background: areaColors(shift.areaFamily, shift.area).solid }"
                                 ></span>
-                                {{ shift.area }}
+                                {{ shift.area }}<span v-if="shift.subArea" class="font-normal text-muted-foreground"> · {{ shift.subArea }}</span>
                             </p>
                             <p class="text-sm text-muted-foreground">
                                 {{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }} · {{ shift.assigned_count }}/{{
@@ -272,7 +273,7 @@ function cancelSubstitution(shift: VolunteerShift) {
                                         class="h-2 w-2 shrink-0 rounded-full"
                                         :style="{ background: areaColors(shift.areaFamily, shift.area).solid }"
                                     ></span>
-                                    {{ shift.area }}
+                                    {{ shift.area }}<span v-if="shift.subArea" class="font-normal text-muted-foreground"> · {{ shift.subArea }}</span>
                                 </p>
                                 <p class="text-sm text-muted-foreground">
                                     {{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }} · {{ shift.assigned_count }}/{{

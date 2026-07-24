@@ -20,6 +20,7 @@ class ShiftController extends Controller
 
         $area->shifts()->create([
             'tenant_id' => $area->tenant_id,
+            'sub_area_id' => $request->validated('sub_area_id'),
             'starts_at' => $startsAt,
             'ends_at' => $endsAt,
             'needed_people' => $request->validated('needed_people'),
@@ -41,6 +42,7 @@ class ShiftController extends Controller
         [$startsAt, $endsAt] = $request->times();
 
         $shift->update([
+            'sub_area_id' => $request->validated('sub_area_id'),
             'starts_at' => $startsAt,
             'ends_at' => $endsAt,
             'needed_people' => $request->validated('needed_people'),
@@ -76,6 +78,7 @@ class ShiftController extends Controller
             ->get()
             ->map(fn (Shift $shift) => $area->shifts()->create([
                 'tenant_id' => $area->tenant_id,
+                'sub_area_id' => $shift->sub_area_id,
                 'starts_at' => $shift->starts_at->copy()->addDays($offset),
                 'ends_at' => $shift->ends_at->copy()->addDays($offset),
                 'needed_people' => $shift->needed_people,

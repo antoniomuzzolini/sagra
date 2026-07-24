@@ -18,6 +18,7 @@ class Shift extends Model
     protected $fillable = [
         'tenant_id',
         'area_id',
+        'sub_area_id',
         'starts_at',
         'ends_at',
         'needed_people',
@@ -50,6 +51,11 @@ class Shift extends Model
     public function area(): BelongsTo
     {
         return $this->belongsTo(Area::class);
+    }
+
+    public function subArea(): BelongsTo
+    {
+        return $this->belongsTo(SubArea::class);
     }
 
     public function signups(): HasMany

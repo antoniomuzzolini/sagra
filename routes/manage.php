@@ -6,6 +6,7 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\PersonController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\SignupController;
+use App\Http\Controllers\SubAreaController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified', 'organizer'])->group(function () {
@@ -25,6 +26,10 @@ Route::middleware(['auth', 'verified', 'organizer'])->group(function () {
     Route::post('events/{event}/areas', [AreaController::class, 'store'])->name('areas.store');
     Route::put('areas/{area}', [AreaController::class, 'update'])->name('areas.update');
     Route::delete('areas/{area}', [AreaController::class, 'destroy'])->name('areas.destroy');
+
+    Route::post('areas/{area}/sub-areas', [SubAreaController::class, 'store'])->name('sub-areas.store');
+    Route::put('sub-areas/{subArea}', [SubAreaController::class, 'update'])->name('sub-areas.update');
+    Route::delete('sub-areas/{subArea}', [SubAreaController::class, 'destroy'])->name('sub-areas.destroy');
 
     Route::post('areas/{area}/shifts', [ShiftController::class, 'store'])->name('shifts.store');
     Route::put('shifts/{shift}', [ShiftController::class, 'update'])->name('shifts.update');

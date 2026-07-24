@@ -25,7 +25,7 @@ class AreaManagementController extends Controller
         $areas = $current
             ? Area::query()
                 ->where('event_id', $current->id)
-                ->with(['managerRoles.person' => fn ($query) => $query->withTrashed()])
+                ->with(['managerRoles.person' => fn ($query) => $query->withTrashed(), 'subAreas'])
                 ->orderBy('name')
                 ->get()
             : collect();
@@ -43,6 +43,7 @@ class AreaManagementController extends Controller
                     'phone' => $role->person->phone,
                     'email' => $role->person->email,
                 ])->values(),
+                'subAreas' => $area->subAreas->map(fn ($sa) => ['id' => $sa->id, 'name' => $sa->name])->values(),
             ]),
             // People who can be put in charge of an area (not the organizers,
             // who already run everything).

@@ -281,9 +281,11 @@ fiscale.
 ### Nodi strutturali del kernel
 
 - **Sotto-reparti** (cucina → griglia/friggitoria/primi): estensione del
-  modello aree, li useranno Ordini/Cassa (schermi comande) e Forniture. Da
-  implementare **insieme al primo modulo che li consuma** (D13: la forma la
-  detta il bisogno reale), non prima.
+  modello aree (tabella `sub_areas`, Opzione 1: l'area resta l'unità
+  "pesante", il sotto-reparto è una suddivisione leggera). **Implementati**:
+  il modulo Turni li consuma già (un turno può appartenere a un
+  sotto-reparto; senza sotto-reparti tutto resta a livello area). Li
+  useranno anche Ordini/Cassa (schermi comande) e Forniture.
 - **Attore "cliente/avventore"**: oggi il sistema conosce solo
   volontari/organizzatori. Ordini online e Prenotazioni tavoli lo
   introducono. Decisione rimandata al giorno in cui si sviluppa il modulo

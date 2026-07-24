@@ -32,7 +32,7 @@ class ShiftManagementController extends Controller
 
         $shifts = Shift::query()
             ->whereIn('area_id', $areaIds)
-            ->with(['area', 'signups.person' => fn ($query) => $query->withTrashed()])
+            ->with(['area', 'subArea', 'signups.person' => fn ($query) => $query->withTrashed()])
             ->withCount(['signups as assigned_count' => fn ($query) => $query->where('status', SignupStatus::Assigned)])
             ->orderBy('starts_at')
             ->get();
@@ -68,8 +68,12 @@ class ShiftManagementController extends Controller
         };
 
         return Inertia::render('Manage/Shifts', [
-            'areas' => Area::query()->whereIn('id', $areaIds)->orderBy('name')->get(['id', 'name'])
-                ->map(fn (Area $area) => ['id' => $area->id, 'name' => $area->name]),
+            'areas' => Area::query()->whereIn('id', $areaIds)->with('subAreas')->orderBy('name')->get()
+                ->map(fn (Area $area) => [
+                    'id' => $area->id,
+                    'name' => $area->name,
+                    'subAreas' => $area->subAreas->map(fn ($sa) => ['id' => $sa->id, 'name' => $sa->name])->values(),
+                ]),
             'people' => Person::query()->where('tenant_id', $person->tenant_id)->orderBy('name')->get(['id', 'name'])
                 ->map(fn (Person $p) => ['id' => $p->id, 'name' => $p->name]),
             'inviteUrl' => route('join.show', $person->tenant->inviteToken()),
@@ -77,6 +81,8 @@ class ShiftManagementController extends Controller
                 'id' => $shift->id,
                 'areaId' => $shift->area_id,
                 'area' => $shift->area->name,
+                'subAreaId' => $shift->sub_area_id,
+                'subArea' => $shift->subArea?->name,
                 'starts_at' => $shift->starts_at->toIso8601String(),
                 'ends_at' => $shift->ends_at->toIso8601String(),
                 'needed_people' => $shift->needed_people,

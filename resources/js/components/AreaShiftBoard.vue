@@ -17,6 +17,8 @@ export interface ManagerShift {
     id: number;
     areaId: number;
     area: string;
+    subAreaId: number | null;
+    subArea: string | null;
     starts_at: string;
     ends_at: string;
     needed_people: number;
@@ -25,12 +27,22 @@ export interface ManagerShift {
     signups: ModeratedSignup[];
 }
 
+interface AreaOption {
+    id: number;
+    name: string;
+    subAreas: { id: number; name: string }[];
+}
+
 const props = defineProps<{
-    areas: { id: number; name: string }[];
+    areas: AreaOption[];
     people: { id: number; name: string }[];
     inviteUrl: string;
     shifts: ManagerShift[];
 }>();
+
+function subAreasOf(areaId: number): { id: number; name: string }[] {
+    return props.areas.find((a) => a.id === areaId)?.subAreas ?? [];
+}
 
 const shortDayLabel = formatDayShort;
 
@@ -42,6 +54,8 @@ watch(
         if (!areas.some((a) => a.id === activeArea.value)) activeArea.value = areas[0]?.id ?? null;
     },
 );
+// A sub-area belongs to one area, so drop the draft when switching tabs.
+watch(activeArea, () => (shiftForm.sub_area_id = null));
 
 function areaShifts(areaId: number): ManagerShift[] {
     return props.shifts.filter((s) => s.areaId === areaId);
@@ -108,7 +122,7 @@ function destroyDay(areaId: number, day: string) {
 
 // Create a shift
 const shiftFormOpen = ref(false);
-const shiftForm = useForm({ date: '', start_time: '', end_time: '', needed_people: 2, notes: '' });
+const shiftForm = useForm({ date: '', start_time: '', end_time: '', needed_people: 2, notes: '', sub_area_id: null as number | null });
 
 function toggleShiftForm() {
     shiftFormOpen.value = !shiftFormOpen.value;
@@ -133,6 +147,7 @@ function cloneShift(shift: ManagerShift) {
     shiftForm.end_time = shift.ends_at.slice(11, 16);
     shiftForm.needed_people = shift.needed_people;
     shiftForm.notes = shift.notes ?? '';
+    shiftForm.sub_area_id = shift.subAreaId;
     shiftForm.clearErrors();
     shiftFormOpen.value = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -146,7 +161,7 @@ function destroyShift(shift: ManagerShift) {
 
 // Edit a shift
 const editingShift = ref<ManagerShift | null>(null);
-const editForm = useForm({ date: '', start_time: '', end_time: '', needed_people: 2, notes: '' });
+const editForm = useForm({ date: '', start_time: '', end_time: '', needed_people: 2, notes: '', sub_area_id: null as number | null });
 
 function openEditShift(shift: ManagerShift) {
     editingShift.value = shift;
@@ -155,6 +170,7 @@ function openEditShift(shift: ManagerShift) {
     editForm.end_time = shift.ends_at.slice(11, 16);
     editForm.needed_people = shift.needed_people;
     editForm.notes = shift.notes ?? '';
+    editForm.sub_area_id = shift.subAreaId;
     editForm.clearErrors();
 }
 
@@ -277,6 +293,13 @@ const inviteWhatsappUrl = computed(() => 'https://wa.me/?text=' + encodeURICompo
 
                 <form v-if="shiftFormOpen" class="grid gap-3 rounded-xl border border-dashed p-3" @submit.prevent="submitShift(area.id)">
                     <p class="text-sm font-medium">Nuovo turno in {{ area.name }}</p>
+                    <div v-if="subAreasOf(area.id).length" class="grid gap-1">
+                        <label class="text-sm font-medium">Sotto-reparto</label>
+                        <select v-model="shiftForm.sub_area_id" class="h-9 rounded-md border border-input bg-transparent px-3 text-sm">
+                            <option :value="null">Tutta l'area</option>
+                            <option v-for="sa in subAreasOf(area.id)" :key="sa.id" :value="sa.id">{{ sa.name }}</option>
+                        </select>
+                    </div>
                     <ShiftFields :form="shiftForm" />
                     <Button type="submit" size="sm" :disabled="shiftForm.processing">Crea turno</Button>
                 </form>
@@ -310,11 +333,12 @@ const inviteWhatsappUrl = computed(() => 'https://wa.me/?text=' + encodeURICompo
                         <div class="flex items-start gap-2">
                             <div class="min-w-0 flex-1">
                                 <p class="font-medium text-foreground">{{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }}</p>
-                                <div class="mt-0.5 flex items-center gap-2 text-sm">
+                                <div class="mt-0.5 flex flex-wrap items-center gap-2 text-sm">
                                     <Pill :variant="shift.assigned_count >= shift.needed_people ? 'good' : 'warn'">
                                         {{ shift.assigned_count >= shift.needed_people ? 'Completo' : `Servono ${shift.needed_people - shift.assigned_count}` }}
                                     </Pill>
                                     <span class="text-muted-foreground">{{ shift.assigned_count }}/{{ shift.needed_people }}</span>
+                                    <Pill v-if="shift.subArea" variant="neutral">{{ shift.subArea }}</Pill>
                                     <Pill v-if="waitingCount(shift) > 0" variant="neutral">{{ waitingCount(shift) }} in attesa</Pill>
                                 </div>
                                 <p v-if="shift.notes" class="text-sm text-muted-foreground">{{ shift.notes }}</p>
@@ -343,6 +367,13 @@ const inviteWhatsappUrl = computed(() => 'https://wa.me/?text=' + encodeURICompo
                     <DialogDescription>Cambia orario, fabbisogno o note del turno.</DialogDescription>
                 </DialogHeader>
                 <form class="grid gap-3" @submit.prevent="submitEditShift">
+                    <div v-if="editingShift && subAreasOf(editingShift.areaId).length" class="grid gap-1">
+                        <label class="text-sm font-medium">Sotto-reparto</label>
+                        <select v-model="editForm.sub_area_id" class="h-9 rounded-md border border-input bg-transparent px-3 text-sm">
+                            <option :value="null">Tutta l'area</option>
+                            <option v-for="sa in subAreasOf(editingShift.areaId)" :key="sa.id" :value="sa.id">{{ sa.name }}</option>
+                        </select>
+                    </div>
                     <ShiftFields :form="editForm" />
                     <Button type="submit" :disabled="editForm.processing">Salva modifiche</Button>
                 </form>

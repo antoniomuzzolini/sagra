@@ -45,6 +45,11 @@ class Area extends Model
         return $this->hasMany(Shift::class);
     }
 
+    public function subAreas(): HasMany
+    {
+        return $this->hasMany(SubArea::class)->orderBy('name');
+    }
+
     public function managerRoles(): HasMany
     {
         return $this->hasMany(PersonRole::class)->where('role', Role::AreaManager);
