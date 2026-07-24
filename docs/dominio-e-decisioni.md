@@ -186,7 +186,11 @@ collo di bottiglia umano (una persona che raccoglie disponibilità via
 WhatsApp e rincorre i buchi).
 
 **Dentro l'MVP:**
-- Il responsabile definisce aree e turni con fabbisogno persone.
+- L'organizzatore configura l'evento (fasi, aree, responsabili);
+  l'organizzatore e i responsabili definiscono i turni con il fabbisogno
+  di persone, ciascun responsabile limitato alle proprie aree (D18–D20).
+  *(La formulazione originale "il responsabile definisce aree e turni"
+  è superata: la definizione delle aree è passata all'organizzatore.)*
 - I volontari accedono da smartphone con link magico (no password),
   dichiarano disponibilità e vedono i propri turni.
 - Auto-registrazione via link d'invito dell'associazione (D16): il

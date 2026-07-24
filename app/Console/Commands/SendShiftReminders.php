@@ -19,7 +19,12 @@ class SendShiftReminders extends Command
             ->where('status', SignupStatus::Assigned)
             ->whereNull('reminded_at')
             ->whereHas('shift', fn ($query) => $query->whereBetween('starts_at', [now(), now()->addDay()]))
-            ->whereHas('person', fn ($query) => $query->whereNotNull('email'))
+            // Reach anyone with a channel: push is the primary one (D10), so a
+            // phone-only volunteer with a subscription must get the reminder
+            // too — not just those who left an email.
+            ->whereHas('person', fn ($query) => $query
+                ->whereNotNull('email')
+                ->orWhereHas('pushSubscriptions'))
             ->with(['shift.area.event', 'person'])
             ->get();
 

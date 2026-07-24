@@ -45,6 +45,41 @@ class ShiftReminderTest extends TestCase
         $this->assertNotNull($reminded->fresh()->reminded_at);
     }
 
+    public function test_a_phone_only_volunteer_with_push_still_gets_reminded()
+    {
+        Notification::fake();
+
+        $shift = Shift::factory()->create([
+            'starts_at' => now()->addHours(20),
+            'ends_at' => now()->addHours(24),
+        ]);
+        // No email at all (D10 persona: smartphone, magic link), but push on.
+        $pushOnly = Person::factory()->create(['tenant_id' => $shift->tenant_id, 'phone' => '+39 333 1112222', 'email' => null]);
+        $pushOnly->updatePushSubscription('https://push.test/endpoint', 'key', 'auth');
+        ShiftSignup::factory()->assigned()->for($shift)->for($pushOnly)->create();
+
+        $this->artisan('shifts:send-reminders')->assertSuccessful();
+
+        Notification::assertSentTo($pushOnly, ShiftReminder::class);
+    }
+
+    public function test_a_volunteer_with_no_channel_is_not_reminded()
+    {
+        Notification::fake();
+
+        $shift = Shift::factory()->create([
+            'starts_at' => now()->addHours(20),
+            'ends_at' => now()->addHours(24),
+        ]);
+        // Neither email nor push: nothing to deliver on, so skip them.
+        $unreachable = Person::factory()->create(['tenant_id' => $shift->tenant_id, 'phone' => '+39 333 0000000', 'email' => null]);
+        ShiftSignup::factory()->assigned()->for($shift)->for($unreachable)->create();
+
+        $this->artisan('shifts:send-reminders')->assertSuccessful();
+
+        Notification::assertNothingSent();
+    }
+
     public function test_reminders_are_not_sent_twice()
     {
         Notification::fake();
