@@ -77,7 +77,7 @@ class DashboardTest extends TestCase
         );
     }
 
-    public function test_uncovered_shifts_and_queues_are_summarised()
+    public function test_area_coverage_is_summarised()
     {
         $user = $this->organizer();
         $event = $this->eventWithPhase($user);
@@ -96,43 +96,33 @@ class DashboardTest extends TestCase
             'needed_people' => 1,
         ]);
 
-        $assigned = Person::factory()->create(['tenant_id' => $user->tenant_id]);
+        $assigned = Person::factory()->create(['tenant_id' => $user->tenant_id, 'name' => 'Anna Ricci']);
         ShiftSignup::factory()->for($covered)->for($assigned)->create(['status' => SignupStatus::Assigned]);
-
+        // An availability isn't an assignment: it doesn't count as covered.
         $pending = Person::factory()->create(['tenant_id' => $user->tenant_id]);
         ShiftSignup::factory()->for($uncovered)->for($pending)->create(['status' => SignupStatus::Available]);
-
-        $substitute = Person::factory()->create(['tenant_id' => $user->tenant_id]);
-        ShiftSignup::factory()->for($covered)->for($substitute)->create([
-            'status' => SignupStatus::Assigned,
-            'substitution_requested_at' => now(),
-        ]);
-
-        Person::factory()->create(['tenant_id' => $user->tenant_id, 'link_requested_at' => now()]);
 
         $this->actingAs($user)->get('/dashboard')->assertInertia(
             fn ($page) => $page
                 ->where('nextStep', null)
-                ->where('uncoveredCount', 1)
-                ->has('uncoveredShifts', 1)
-                ->where('uncoveredShifts.0.id', $uncovered->id)
-                ->where('uncoveredShifts.0.missing', 3)
-                ->where('pendingCount', 1)
-                ->where('substitutionCount', 1)
-                ->where('linkRequestsCount', 1)
-                ->where('volunteersCount', 4)
+                ->has('areas', 1)
+                ->where('areas.0.id', $area->id)
+                ->where('areas.0.name', 'Cucina')
+                ->where('areas.0.needed', 4)
+                ->where('areas.0.filled', 1)
+                ->where('areas.0.people', ['Anna Ricci'])
         );
     }
 
-    public function test_other_tenants_numbers_stay_out()
+    public function test_other_tenants_areas_stay_out()
     {
         $user = $this->organizer();
-        $this->eventWithPhase($user);
+        $event = $this->eventWithPhase($user);
+        Area::factory()->for($event)->create(['tenant_id' => $user->tenant_id]);
         Area::factory()->for(Event::factory())->create(); // foreign tenant
-        Person::factory()->create(); // foreign person
 
         $this->actingAs($user)->get('/dashboard')->assertInertia(
-            fn ($page) => $page->where('volunteersCount', 0)->where('nextStep', 'areas')
+            fn ($page) => $page->where('nextStep', 'shifts')->has('areas', 1)
         );
     }
 }

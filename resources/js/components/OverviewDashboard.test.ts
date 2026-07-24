@@ -21,8 +21,20 @@ describe('OverviewDashboard', () => {
     it('counts only understaffed areas as needing help', () => {
         const wrapper = mount(OverviewDashboard, { props: { areas } });
         // Only Bar is understaffed (Cucina full, Pulizie has no shifts).
-        const daCoprire = wrapper.findAll('.rounded-xl').find((el) => el.text().includes('Da coprire'));
+        const daCoprire = wrapper.findAll('.rounded-xl').find((el) => el.text().includes('Aree da coprire'));
         expect(daCoprire?.text()).toContain('1');
+    });
+
+    it('orders areas by coverage ascending, no-shift areas last', () => {
+        const wrapper = mount(OverviewDashboard, { props: { areas } });
+        const order = wrapper
+            .findAll('button')
+            .map((b) => b.text())
+            .filter((t) => ['Cucina', 'Bar', 'Pulizie'].some((n) => t.includes(n)));
+        // Bar (33%) most problematic, then Cucina (100%), then Pulizie (no shifts).
+        expect(order[0]).toContain('Bar');
+        expect(order[1]).toContain('Cucina');
+        expect(order[2]).toContain('Pulizie');
     });
 
     it('labels each area by its coverage', () => {
@@ -44,18 +56,18 @@ describe('OverviewDashboard', () => {
         expect(wrapper.emitted('select')?.[0]).toEqual([2]);
     });
 
-    it('emits uncovered when the "Da coprire" stat is clicked', async () => {
+    it('emits uncovered when the "Aree da coprire" stat is clicked', async () => {
         const wrapper = mount(OverviewDashboard, { props: { areas } });
-        const daCoprire = wrapper.findAll('button').find((b) => b.text().includes('Da coprire'))!;
+        const daCoprire = wrapper.findAll('button').find((b) => b.text().includes('Aree da coprire'))!;
         expect(daCoprire).toBeTruthy();
         await daCoprire.trigger('click');
         expect(wrapper.emitted('uncovered')).toHaveLength(1);
     });
 
-    it('does not make "Da coprire" clickable when everything is covered', () => {
+    it('does not make "Aree da coprire" clickable when everything is covered', () => {
         const covered: OverviewArea[] = [{ id: 1, name: 'Cucina', family: null, needed: 2, filled: 2, people: [], managers: [] }];
         const wrapper = mount(OverviewDashboard, { props: { areas: covered } });
-        const daCoprire = wrapper.findAll('button').find((b) => b.text().includes('Da coprire'));
+        const daCoprire = wrapper.findAll('button').find((b) => b.text().includes('Aree da coprire'));
         expect(daCoprire).toBeUndefined();
     });
 

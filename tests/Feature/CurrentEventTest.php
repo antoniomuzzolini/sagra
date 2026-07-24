@@ -49,23 +49,25 @@ class CurrentEventTest extends TestCase
         $this->assertNotNull($upcoming); // (both editions exist)
     }
 
-    public function test_the_panoramica_counts_follow_the_selected_event()
+    public function test_the_panoramica_follows_the_selected_event()
     {
         $tenant = Tenant::factory()->create();
         $organizer = Person::factory()->organizer()->for($tenant)->create();
 
-        // Nearest edition (2027) has two uncovered shifts; the later one (2028) has one.
-        $soon = $this->eventWithShift($tenant, 'Vicina', '2027-07-01', '2027-07-03', '2027-07-02');
-        Shift::factory()->for($soon->areas()->first())->create(['tenant_id' => $tenant->id, 'starts_at' => '2027-07-02 11:00', 'ends_at' => '2027-07-02 15:00', 'needed_people' => 2]);
+        $this->eventWithShift($tenant, 'Vicina', '2027-07-01', '2027-07-03', '2027-07-02');
         $later = $this->eventWithShift($tenant, 'Lontana', '2028-07-01', '2028-07-03', '2028-07-02');
 
+        // Default: the nearest edition; its area is the only one on the board.
         $this->actingAs($organizer)->get('/dashboard')->assertInertia(
-            fn ($page) => $page->where('uncoveredCount', 2)->where('event.name', 'Vicina')
+            fn ($page) => $page->where('event.name', 'Vicina')
+                ->has('areas', 1)->where('areas.0.name', 'Cucina Vicina')
         );
 
+        // Switch edition; the panoramica follows.
         $this->actingAs($organizer)->post('/current-event', ['event_id' => $later->id]);
         $this->actingAs($organizer)->get('/dashboard')->assertInertia(
-            fn ($page) => $page->where('uncoveredCount', 1)->where('event.name', 'Lontana')
+            fn ($page) => $page->where('event.name', 'Lontana')
+                ->has('areas', 1)->where('areas.0.name', 'Cucina Lontana')
         );
     }
 

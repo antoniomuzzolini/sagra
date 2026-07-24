@@ -35,6 +35,16 @@ const totals = computed(() => {
     };
 });
 
+// Most problematic first: areas sorted by coverage ascending. Areas with
+// no shifts yet aren't "uncovered", so they sink to the bottom.
+const sortedAreas = computed(() =>
+    [...props.areas].sort((a, b) => {
+        const ra = a.needed ? a.filled / a.needed : Infinity;
+        const rb = b.needed ? b.filled / b.needed : Infinity;
+        return ra - rb;
+    }),
+);
+
 const managersLabel = (a: OverviewArea): string => (a.managers.length ? 'Resp. · ' + a.managers.join(', ') : 'Nessun responsabile');
 const coverage = (a: OverviewArea): number => (a.needed ? Math.round((a.filled / a.needed) * 100) : 0);
 const isFull = (a: OverviewArea): boolean => a.needed > 0 && a.filled >= a.needed;
@@ -48,7 +58,7 @@ const isFull = (a: OverviewArea): boolean => a.needed > 0 && a.filled >= a.neede
             <StatCard :value="areas.length" label="Aree" />
             <StatCard
                 :value="totals.needHelp"
-                label="Da coprire"
+                label="Aree da coprire"
                 :accent="totals.needHelp > 0"
                 :interactive="totals.needHelp > 0"
                 @click="totals.needHelp > 0 && emit('uncovered')"
@@ -57,7 +67,7 @@ const isFull = (a: OverviewArea): boolean => a.needed > 0 && a.filled >= a.neede
 
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <button
-                v-for="area in areas"
+                v-for="area in sortedAreas"
                 :key="area.id"
                 type="button"
                 class="flex flex-col gap-3 rounded-xl border bg-card p-4 text-left transition hover:border-foreground/30 hover:shadow-sm"
