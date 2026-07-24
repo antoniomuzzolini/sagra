@@ -2,11 +2,24 @@
 
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::middleware('auth')->group(function () {
     Route::redirect('settings', 'settings/profile');
+
+    // Per-person notification opt-out for account holders (organizer, area
+    // manager); volunteers manage the same toggles from their "I tuoi dati"
+    // dialog. Both save through volunteer.notifications.
+    Route::get('settings/notifications', function (Request $request) {
+        return Inertia::render('settings/Notifications', [
+            'notifications' => [
+                'seat_freed' => $request->user()->wantsNotification('seat_freed'),
+                'new_shifts' => $request->user()->wantsNotification('new_shifts'),
+            ],
+        ]);
+    })->name('notifications.edit');
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');

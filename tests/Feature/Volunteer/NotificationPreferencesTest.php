@@ -73,6 +73,20 @@ class NotificationPreferencesTest extends TestCase
         $this->assertTrue($person->wantsNotification('new_shifts'));
     }
 
+    public function test_an_account_holder_sees_their_preferences_in_settings()
+    {
+        $organizer = Person::factory()->organizer()->create([
+            'email' => 'org@example.com',
+            'notification_preferences' => ['seat_freed' => false],
+        ]);
+
+        $this->actingAs($organizer)->get('/settings/notifications')->assertOk()->assertInertia(
+            fn ($page) => $page->component('settings/Notifications')
+                ->where('notifications.seat_freed', false)
+                ->where('notifications.new_shifts', true) // default on
+        );
+    }
+
     public function test_saving_one_preference_leaves_the_others_intact()
     {
         $person = Person::factory()->create([
