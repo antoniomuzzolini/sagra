@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import { Button } from '@/components/ui/button';
 import { Head, Link } from '@inertiajs/vue3';
 </script>
@@ -8,9 +7,7 @@ import { Head, Link } from '@inertiajs/vue3';
     <Head title="Benvenuto" />
     <div class="flex min-h-screen flex-col items-center justify-center gap-8 bg-background p-6 text-foreground">
         <div class="flex flex-col items-center gap-4 text-center">
-            <div class="flex size-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-                <AppLogoIcon class="size-10 fill-current" />
-            </div>
+            <img src="/fieste.png" alt="" class="size-20 rounded-2xl object-cover" />
             <h1 class="text-3xl font-semibold">{{ $page.props.name }}</h1>
             <p class="max-w-md text-balance text-muted-foreground">
                 Turni e volontari per sagre e feste, senza fogli di calcolo: disponibilità dal telefono, copertura sempre sott'occhio.
