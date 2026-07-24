@@ -41,7 +41,7 @@ prodotto, non un dettaglio.
 | D18 | Gerarchia organizzatore → responsabili d'area → volontari con **delega facoltativa**: l'organizzatore può tutto, il responsabile gestisce turni e volontari del proprio reparto (via link magico, senza account); appartenenza dei volontari ai reparti **morbida e derivata dalla storia delle iscrizioni** (niente da dichiarare o amministrare: prima i turni dei reparti dove hai già lavorato, i buchi altrui restano visibili); sovrapposizioni di turno permesse ma **segnalate** (al volontario e al responsabile che conferma) | Rispecchia l'organizzazione reale delle sagre; la divisione rigida sprecherebbe la flessibilità dei volontari, che è la risorsa principale |
 | D19 | **Identità unica con ruoli ortogonali** (rivede D14 e D18). Una sola entità persona, non più lo split `users`/`people`: password **facoltativa**, ruoli separati dall'identità (organizzatore / responsabile d'area / volontario). **Chiunque può iscriversi ai turni**, a prescindere dal ruolo. Volontari semplici: accesso solo con **link magico** (D6/D17). Responsabili e organizzatori: **account con password** (email + password). Il responsabile **non entra più via link magico** (supera la delega senza account di D18). Invito account (organizzatore → responsabile) con **link a scelta del canale**: email, WhatsApp o copia-incolla (riusa il pattern di condivisione dei link già presente) | Lo split a due tabelle era la radice dell'attrito (responsabile "a metà" tra i due mondi, bug cross-guard). Un'unica identità con password opzionale rispecchia la realtà — è la stessa persona con ruoli diversi — e semplifica auth, sessioni e viste |
 | D20 | **Un guscio, contesto "evento corrente", turni divisi per responsabilità.** Navigazione unica (sidebar) uguale per organizzatore e responsabile; le voci cambiano solo lo *scope*. Un **selettore di evento corrente** in alto (tenuto in sessione, default = edizione più vicina a oggi per D15; per i responsabili mostra solo gli eventi in cui hanno un ruolo; nascosto/passivo con un solo evento). Voci **evento-scoped**: Panoramica, Calendario, Gestione turni, Prenotazione turni. Voci **cross-evento** (separatore, in basso): Volontari, Eventi (solo organizzatore, dove si definiscono eventi → aree → responsabili). **Split dei turni per responsabilità** (Opzione 1): *Gestione turni* (org/responsabile, scoped alle aree gestite) crea/configura turni, vede le disponibilità e **assegna/modera**; *Prenotazione turni* (**chiunque, identica per ruolo**) dà disponibilità ("ci sono"), recap dei propri impegni, sostituzioni | Separa due compiti mentali diversi ("allestire il tabellone" vs "prenotarsi per lavorare"); l'assegnazione è una **decisione di gestione**, coerente con la distinzione Disponibilità/Assegnazione del glossario; tiene *Prenotazione* universale e semplice (D19/D5), senza rami per ruolo; l'evento corrente rende esplicito il filtro per edizione già previsto (D15) |
-| D21 | **I turni sono una capacità *orizzontale* del core, attivabile per evento — non un modulo verticale.** Tre livelli, non due: (1) **kernel** sempre attivo (identità, eventi, fasi, aree, ruoli, notifiche, API); (2) **capacità orizzontali del core, attivabili** — i turni stanno qui: substrato condiviso ma spegnibile per evento (una sagra che vuole solo casse/comande li disattiva); (3) **moduli verticali** (comande, casse, magazzino: il "cosa sai fare"). I verticali consumano le capacità orizzontali **attraverso il core** (modulo→core, permesso da D3) e **degradano con grazia** quando una capacità è spenta (es. comande lavora a livello di area se i turni sono off); **mai** modulo→modulo. Per l'MVP i turni sono sempre attivi (Fieste = gestore turni); il toggle per evento arriva con l'abilitazione dei moduli | Risolve l'asimmetria "comande si abilita, i turni no": la simmetria si ottiene rendendo i turni *attivabili*, non facendone un verticale. Farne un verticale costringerebbe comande a dipendere dai turni (viola D3); tenerli come capacità del core esposta lascia che ogni verticale li condivida senza accoppiarsi. Riafferma la linea del glossario: core = "chi lavora, dove, quando", moduli = "cosa ci fai" |
+| D21 | **I turni sono un modulo, non una capacità speciale del core.** Due piani netti: (1) **kernel** sempre attivo — identità persone, eventi, fasi, **aree + sotto-reparti**, ruoli, notifiche, API, layer di **aggregazione/metriche**; (2) **moduli peer, attivabili per evento e isolati** (turni, ordini/cassa, forniture, statistiche…), che parlano **solo col core** (D3), tutti spegnibili allo stesso modo. Nessun modulo *operativo* ha bisogno di sapere "chi è di turno" (comande instrada a un sotto-reparto/schermo, la cassa al dispositivo/area), quindi i turni **non sono un substrato condiviso**: sono un modulo come gli altri. L'unico caso cross-cutting è **statistiche/contabilità**, che legge il layer di aggregazione del core su cui ogni modulo spinge i propri numeri (modulo→core, **mai** modulo→modulo). Per l'MVP i turni sono l'unico modulo e restano sempre attivi. *(Sostituisce la prima stesura di D21, che li trattava come "capacità orizzontale del core": sovradimensionata, perché nessuno li consuma.)* | Semplicità e simmetria: se nessun modulo consuma i turni, farne una capacità core speciale era architettura per un bisogno inesistente. La linea vera è **kernel** ("chi/dove/quando" + servizi condivisi) vs **moduli** ("cosa ci fai"), spegnibili tutti uguali — coerente con D13 (il confine si disegna sul caso reale) |
 
 ### Piano D19 — implementazione (sessione dedicata)
 
@@ -243,3 +243,48 @@ fase e, in futuro, contesto per gli agenti AI.
 
 Il core tratta tutte le aree allo stesso modo (turni + persone); le
 famiglie servono per il setup guidato e come mappa dei futuri moduli.
+
+## 8. Mappa dei moduli (post-MVP)
+
+Pianificazione, non ancora impegno. Serve a scegliere l'ordine di
+costruzione e a tenere pulito il confine core/moduli (D2, D3, D21).
+
+### Kernel (sempre attivo, mai un modulo)
+
+Identità persone, eventi, fasi, **aree e sotto-reparti**, ruoli/permessi,
+notifiche, API, e un **layer di aggregazione/metriche** su cui i moduli
+spingono i propri numeri per il reporting. Tutto ciò che *ogni*
+installazione ha e che più moduli riferiscono.
+
+### Moduli (peer, attivabili per evento, isolati — solo core, mai tra loro)
+
+| Modulo | Responsabilità | Dipendenze dal core | Rischi / note |
+|--------|----------------|---------------------|----------------|
+| **Turni** | Programmazione e prenotazione turni (l'MVP) | persone, aree, notifiche | Fatto. È il primo modulo, sempre attivo per ora |
+| **Ordini / Cassa** | POS (tablet/telefono), pagamenti, **comande** verso la cucina con schermi per sotto-reparto (KDS). Comande e cassa sono due facce dello stesso "ordine" → **un modulo solo**, non due che si coordinano | aree + **sotto-reparti**, layer metriche | ⚠️ **Fiscalità italiana** (corrispettivi, scontrino elettronico, ETS/terzo settore): la parte più regolamentata. Primo giro: contante + "segna pagato"; pagamenti elettronici (SumUp/Satispay/Nexi) dopo |
+| **Forniture** | Contatti fornitori per reparto/sotto-reparto, acquisto/noleggio/prestito consumabili e attrezzature, storico con upload fatture/note | aree + sotto-reparti, storage documenti | Basso rischio, valore chiaro. **Buon primo modulo "vero"** dopo i turni |
+| **Statistiche** | Somme e confronti tra edizioni/eventi | layer di aggregazione del core | Legge il core, non gli altri moduli (D3). Facile e utile presto |
+| **Contabilità fiscale** | Rendicontazione regolamentata | layer metriche | Pesante e regolamentata (ETS). Molto dopo. Distinta da "Statistiche" |
+
+**Candidati ulteriori:** Comunicazione/bacheca (annunci ai volontari, info
+evento), Prenotazioni tavoli (customer-facing), Magazzino/inventario
+(scorte *durante* l'evento, distinto da Forniture), Lotteria/pesca
+(possibile SIAE), Sponsor/pubblicità, Ordini online/asporto
+(customer-facing).
+
+### Ordine di costruzione consigliato
+
+Prima i **leggeri e a basso rischio** (Forniture, Statistiche) per rodare
+l'infrastruttura moduli; poi **Ordini/Cassa** quando si affronta il nodo
+fiscale.
+
+### Nodi strutturali del kernel
+
+- **Sotto-reparti** (cucina → griglia/friggitoria/primi): estensione del
+  modello aree, li useranno Ordini/Cassa (schermi comande) e Forniture. Da
+  implementare **insieme al primo modulo che li consuma** (D13: la forma la
+  detta il bisogno reale), non prima.
+- **Attore "cliente/avventore"**: oggi il sistema conosce solo
+  volontari/organizzatori. Ordini online e Prenotazioni tavoli lo
+  introducono. Decisione rimandata al giorno in cui si sviluppa il modulo
+  **Ordini online** (il caso d'uso più adatto a definirlo).
