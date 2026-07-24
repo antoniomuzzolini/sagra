@@ -52,6 +52,7 @@ class ShiftController extends Controller
     public function replicateDay(Request $request, Area $area): RedirectResponse
     {
         $this->authorizeTenant($request, $area);
+        abort_unless($request->user()->managesArea($area->id), 404);
 
         $data = $request->validate([
             'source_date' => ['required', 'date_format:Y-m-d'],
@@ -85,6 +86,7 @@ class ShiftController extends Controller
     public function destroyDay(Request $request, Area $area, string $date): RedirectResponse
     {
         $this->authorizeTenant($request, $area);
+        abort_unless($request->user()->managesArea($area->id), 404);
 
         abort_unless(preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) === 1, 404);
 

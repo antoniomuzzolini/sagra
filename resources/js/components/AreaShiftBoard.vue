@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import ModeratedSignupList, { type ModeratedSignup } from '@/components/ModeratedSignupList.vue';
 import Pill from '@/components/Pill.vue';
+import ShiftFields from '@/components/ShiftFields.vue';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { formatDayShort, formatTime } from '@/lib/event-helpers';
+import { Label } from '@/components/ui/label';
+import InputError from '@/components/InputError.vue';
+import { formatDayLong, formatDayShort, formatTime } from '@/lib/event-helpers';
 import { type MagicLinkFlash, type SharedData } from '@/types';
 import { router, useForm, usePage } from '@inertiajs/vue3';
-import { Check, Copy, Pencil, Plus, Share2, Trash2, UserPlus } from 'lucide-vue-next';
+import { Check, Copy, CopyPlus, Pencil, Plus, Share2, Trash2, UserPlus } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 export interface ManagerShift {
@@ -42,6 +45,46 @@ watch(
 
 function areaShifts(areaId: number): ManagerShift[] {
     return props.shifts.filter((s) => s.areaId === areaId);
+}
+
+// Shifts of a day belong together: grouped view with per-day actions
+// (replicate the whole day, delete it).
+function areaDays(areaId: number): [string, ManagerShift[]][] {
+    const groups = new Map<string, ManagerShift[]>();
+    for (const shift of areaShifts(areaId)) {
+        const day = shift.starts_at.slice(0, 10);
+        groups.set(day, [...(groups.get(day) ?? []), shift]);
+    }
+    return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
+}
+
+// Replicate a whole day onto another date (times, headcount, notes travel;
+// signups don't).
+const replicating = ref<{ areaId: number; sourceDate: string } | null>(null);
+const replicateForm = useForm({ source_date: '', target_date: '' });
+
+function openReplicateDay(areaId: number, day: string) {
+    replicating.value = { areaId, sourceDate: day };
+    replicateForm.source_date = day;
+    // Prefill with the source day so the date picker opens on it; the
+    // backend rejects replicating onto the same day.
+    replicateForm.target_date = day;
+    replicateForm.clearErrors();
+}
+
+function submitReplicateDay() {
+    if (replicating.value) {
+        replicateForm.post(route('shifts.replicate-day', replicating.value.areaId), {
+            preserveScroll: true,
+            onSuccess: () => (replicating.value = null),
+        });
+    }
+}
+
+function destroyDay(areaId: number, day: string) {
+    if (confirm(`Eliminare tutti i turni di ${formatDayLong(day)}? Le iscrizioni andranno perse.`)) {
+        router.delete(route('shifts.destroy-day', [areaId, day]), { preserveScroll: true });
+    }
 }
 
 // Create a shift
@@ -178,24 +221,9 @@ const inviteWhatsappUrl = computed(() => 'https://wa.me/?text=' + encodeURICompo
                     <Button variant="outline" size="sm" @click="inviteDialogOpen = true"><Share2 class="h-4 w-4" /> Invita volontari</Button>
                 </div>
 
-                <form v-if="shiftFormOpen" class="grid gap-2 rounded-xl border border-dashed p-3" @submit.prevent="submitShift(area.id)">
+                <form v-if="shiftFormOpen" class="grid gap-3 rounded-xl border border-dashed p-3" @submit.prevent="submitShift(area.id)">
                     <p class="text-sm font-medium">Nuovo turno in {{ area.name }}</p>
-                    <Input v-model="shiftForm.date" type="date" required aria-label="Data" />
-                    <p v-if="shiftForm.errors.date" class="text-sm text-red-600">{{ shiftForm.errors.date }}</p>
-                    <div class="flex items-center gap-2">
-                        <Input v-model="shiftForm.start_time" type="time" required aria-label="Inizio" />
-                        <span class="text-muted-foreground">→</span>
-                        <Input v-model="shiftForm.end_time" type="time" required aria-label="Fine" />
-                    </div>
-                    <p v-if="shiftForm.errors.start_time || shiftForm.errors.end_time" class="text-sm text-red-600">
-                        {{ shiftForm.errors.start_time || shiftForm.errors.end_time }}
-                    </p>
-                    <div class="flex items-center gap-2">
-                        <Input v-model.number="shiftForm.needed_people" type="number" min="1" required class="w-20" aria-label="Persone" />
-                        <span class="text-sm text-muted-foreground">persone</span>
-                    </div>
-                    <p v-if="shiftForm.errors.needed_people" class="text-sm text-red-600">{{ shiftForm.errors.needed_people }}</p>
-                    <Input v-model="shiftForm.notes" placeholder="Note (facoltative)" aria-label="Note" />
+                    <ShiftFields :form="shiftForm" />
                     <Button type="submit" size="sm" :disabled="shiftForm.processing">Crea turno</Button>
                 </form>
 
@@ -210,29 +238,42 @@ const inviteWhatsappUrl = computed(() => 'https://wa.me/?text=' + encodeURICompo
 
                 <p v-if="areaShifts(area.id).length === 0" class="text-sm text-muted-foreground">Nessun turno in programma. Creane uno!</p>
 
-                <div v-for="shift in areaShifts(area.id)" :key="shift.id" class="rounded-xl border p-3">
-                    <div class="flex items-start gap-2">
-                        <div class="min-w-0 flex-1">
-                            <p class="font-medium text-foreground first-letter:uppercase">
-                                {{ shortDayLabel(shift.starts_at) }} · {{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }}
-                            </p>
-                            <div class="mt-0.5 flex items-center gap-2 text-sm">
-                                <Pill :variant="shift.assigned_count >= shift.needed_people ? 'good' : 'warn'">
-                                    {{ shift.assigned_count >= shift.needed_people ? 'Completo' : `Servono ${shift.needed_people - shift.assigned_count}` }}
-                                </Pill>
-                                <span class="text-muted-foreground">{{ shift.assigned_count }}/{{ shift.needed_people }}</span>
-                            </div>
-                            <p v-if="shift.notes" class="text-sm text-muted-foreground">{{ shift.notes }}</p>
+                <!-- One section per day, with whole-day actions -->
+                <section v-for="[day, dayShifts] in areaDays(area.id)" :key="day" class="grid gap-2">
+                    <div class="flex items-center justify-between gap-2 border-b pb-1">
+                        <h3 class="text-sm font-semibold text-foreground first-letter:uppercase">{{ formatDayLong(day) }}</h3>
+                        <div class="flex gap-1">
+                            <Button variant="ghost" size="sm" @click="openReplicateDay(area.id, day)">
+                                <CopyPlus class="h-4 w-4" /> Replica
+                            </Button>
+                            <Button variant="ghost" size="icon" aria-label="Elimina giornata" @click="destroyDay(area.id, day)">
+                                <Trash2 class="h-4 w-4" />
+                            </Button>
                         </div>
-                        <Button variant="ghost" size="icon" aria-label="Modifica turno" @click="openEditShift(shift)">
-                            <Pencil class="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" aria-label="Elimina turno" @click="destroyShift(shift)">
-                            <Trash2 class="h-4 w-4" />
-                        </Button>
                     </div>
-                    <ModeratedSignupList :signups="shift.signups" :shift-id="shift.id" :people="people" />
-                </div>
+
+                    <div v-for="shift in dayShifts" :key="shift.id" class="rounded-xl border p-3">
+                        <div class="flex items-start gap-2">
+                            <div class="min-w-0 flex-1">
+                                <p class="font-medium text-foreground">{{ formatTime(shift.starts_at) }}–{{ formatTime(shift.ends_at) }}</p>
+                                <div class="mt-0.5 flex items-center gap-2 text-sm">
+                                    <Pill :variant="shift.assigned_count >= shift.needed_people ? 'good' : 'warn'">
+                                        {{ shift.assigned_count >= shift.needed_people ? 'Completo' : `Servono ${shift.needed_people - shift.assigned_count}` }}
+                                    </Pill>
+                                    <span class="text-muted-foreground">{{ shift.assigned_count }}/{{ shift.needed_people }}</span>
+                                </div>
+                                <p v-if="shift.notes" class="text-sm text-muted-foreground">{{ shift.notes }}</p>
+                            </div>
+                            <Button variant="ghost" size="icon" aria-label="Modifica turno" @click="openEditShift(shift)">
+                                <Pencil class="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" aria-label="Elimina turno" @click="destroyShift(shift)">
+                                <Trash2 class="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <ModeratedSignupList :signups="shift.signups" :shift-id="shift.id" :people="people" />
+                    </div>
+                </section>
             </div>
         </template>
 
@@ -243,19 +284,33 @@ const inviteWhatsappUrl = computed(() => 'https://wa.me/?text=' + encodeURICompo
                     <DialogTitle>Modifica turno</DialogTitle>
                     <DialogDescription>Cambia orario, fabbisogno o note del turno.</DialogDescription>
                 </DialogHeader>
-                <form class="grid gap-2" @submit.prevent="submitEditShift">
-                    <Input v-model="editForm.date" type="date" required aria-label="Data" />
-                    <div class="flex items-center gap-2">
-                        <Input v-model="editForm.start_time" type="time" required aria-label="Inizio" />
-                        <span class="text-muted-foreground">→</span>
-                        <Input v-model="editForm.end_time" type="time" required aria-label="Fine" />
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <Input v-model.number="editForm.needed_people" type="number" min="1" required class="w-20" aria-label="Persone" />
-                        <span class="text-sm text-muted-foreground">persone</span>
-                    </div>
-                    <Input v-model="editForm.notes" placeholder="Note (facoltative)" aria-label="Note" />
+                <form class="grid gap-3" @submit.prevent="submitEditShift">
+                    <ShiftFields :form="editForm" />
                     <Button type="submit" :disabled="editForm.processing">Salva modifiche</Button>
+                </form>
+            </DialogContent>
+        </Dialog>
+
+        <!-- Replicate a whole day onto another date -->
+        <Dialog :open="replicating !== null" @update:open="(open: boolean) => !open && (replicating = null)">
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Replica giornata</DialogTitle>
+                    <DialogDescription>
+                        Copia tutti i turni di
+                        <b class="first-letter:uppercase">{{ replicating ? formatDayLong(replicating.sourceDate) : '' }}</b> su un altro giorno:
+                        orari, persone richieste e note. Le iscrizioni non vengono copiate.
+                    </DialogDescription>
+                </DialogHeader>
+                <form class="grid gap-4" @submit.prevent="submitReplicateDay">
+                    <div class="grid gap-2">
+                        <Label for="asb-replicate-target">Copia su</Label>
+                        <Input id="asb-replicate-target" v-model="replicateForm.target_date" type="date" required />
+                        <InputError :message="replicateForm.errors.target_date" />
+                    </div>
+                    <DialogFooter>
+                        <Button type="submit" :disabled="replicateForm.processing">Replica</Button>
+                    </DialogFooter>
                 </form>
             </DialogContent>
         </Dialog>

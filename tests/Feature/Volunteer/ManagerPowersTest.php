@@ -125,6 +125,49 @@ class ManagerPowersTest extends TestCase
         $this->assertDatabaseHas('shifts', ['id' => $foreign->id]);
     }
 
+    public function test_a_manager_can_replicate_and_delete_a_day_in_their_area_only()
+    {
+        Shift::factory()->for($this->area)->create([
+            'tenant_id' => $this->area->tenant_id,
+            'starts_at' => '2026-07-04 18:00',
+            'ends_at' => '2026-07-04 22:00',
+        ]);
+
+        // Replicate within the managed area works…
+        $this->actingAs($this->manager)
+            ->post("/areas/{$this->area->id}/shifts/replicate-day", ['source_date' => '2026-07-04', 'target_date' => '2026-07-11'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame(1, $this->area->shifts()->whereDate('starts_at', '2026-07-11')->count());
+
+        // …and deleting the copied day too.
+        $this->actingAs($this->manager)
+            ->delete("/areas/{$this->area->id}/shifts/day/2026-07-11")
+            ->assertRedirect();
+        $this->assertSame(0, $this->area->shifts()->whereDate('starts_at', '2026-07-11')->count());
+
+        // Another area is out of reach.
+        Shift::factory()->for($this->otherArea)->create(['tenant_id' => $this->area->tenant_id, 'starts_at' => '2026-07-04 18:00']);
+        $this->actingAs($this->manager)
+            ->post("/areas/{$this->otherArea->id}/shifts/replicate-day", ['source_date' => '2026-07-04', 'target_date' => '2026-07-11'])
+            ->assertNotFound();
+        $this->actingAs($this->manager)
+            ->delete("/areas/{$this->otherArea->id}/shifts/day/2026-07-04")
+            ->assertNotFound();
+    }
+
+    public function test_a_plain_volunteer_cannot_touch_whole_days()
+    {
+        $volunteer = Person::factory()->create(['tenant_id' => $this->area->tenant_id]);
+        Shift::factory()->for($this->area)->create(['tenant_id' => $this->area->tenant_id, 'starts_at' => '2026-07-04 18:00']);
+
+        $this->actingAs($volunteer)
+            ->post("/areas/{$this->area->id}/shifts/replicate-day", ['source_date' => '2026-07-04', 'target_date' => '2026-07-11'])
+            ->assertNotFound();
+        $this->actingAs($volunteer)
+            ->delete("/areas/{$this->area->id}/shifts/day/2026-07-04")
+            ->assertNotFound();
+    }
+
     public function test_a_manager_can_put_a_person_straight_onto_a_shift()
     {
         $shift = Shift::factory()->for($this->area)->create(['tenant_id' => $this->area->tenant_id]);
