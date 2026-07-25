@@ -6,6 +6,7 @@ use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
  * A listino product (Ordini/Cassa): per-event, with a price and optionally the
@@ -52,5 +53,13 @@ class Product extends Model
     public function subArea(): BelongsTo
     {
         return $this->belongsTo(SubArea::class);
+    }
+
+    /**
+     * The tills that sell this product (Ordini/Cassa).
+     */
+    public function tills(): BelongsToMany
+    {
+        return $this->belongsToMany(Till::class);
     }
 }

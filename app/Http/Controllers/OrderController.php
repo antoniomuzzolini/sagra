@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\OrderItemStatus;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Till;
 use App\Support\CurrentEvent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,19 +26,44 @@ class OrderController extends Controller
         $person = $request->user();
         $current = CurrentEvent::resolve($person, $request->session()->get('current_event_id'));
 
-        $products = $current
-            ? Product::query()->where('event_id', $current->id)->where('active', true)
-                ->with(['area', 'subArea'])->orderBy('name')->get()
+        // Which till we're working at (session, like the current event). With
+        // no tills configured the page sells the whole listino, as before.
+        $tills = $current
+            ? Till::query()->where('event_id', $current->id)->orderBy('name')->get()
             : collect();
+        $till = $tills->firstWhere('id', $request->session()->get('current_till_id')) ?? $tills->first();
+
+        $products = match (true) {
+            $current === null => collect(),
+            $till !== null => $till->sellableProducts()->with(['area', 'subArea'])->orderBy('name')->get(),
+            default => Product::query()->where('event_id', $current->id)->where('active', true)
+                ->with(['area', 'subArea'])->orderBy('name')->get(),
+        };
 
         $orders = $current
-            ? Order::query()->where('event_id', $current->id)->with('items')
+            ? Order::query()->where('event_id', $current->id)
+                ->when($till, fn ($q) => $q->where('till_id', $till->id))
+                ->with('items')
                 ->latest('id')->limit(30)->get()
             : collect();
 
         return Inertia::render('Manage/Cassa', [
             'event' => $current ? ['id' => $current->id, 'name' => $current->name] : null,
             'canManageListino' => $person->isOrganizer(),
+            'tills' => $tills->map(fn (Till $t) => [
+                'id' => $t->id,
+                'name' => $t->name,
+                'areaId' => $t->area_id,
+                // Only the area's responsabile (or the organizer) configures it.
+                'canManage' => $t->area_id === null ? $person->isOrganizer() : $person->managesArea($t->area_id),
+                'productIds' => $t->products()->pluck('products.id'),
+            ]),
+            'currentTillId' => $till?->id,
+            // The whole listino, to compose a till's menu from.
+            'listino' => $current
+                ? Product::query()->where('event_id', $current->id)->orderBy('name')->get()
+                    ->map(fn (Product $p) => ['id' => $p->id, 'name' => $p->name, 'price' => $p->price])
+                : [],
             'areas' => $current
                 ? $current->areas()->with('subAreas')->orderBy('name')->get()
                     ->map(fn ($a) => ['id' => $a->id, 'name' => $a->name, 'subAreas' => $a->subAreas->map(fn ($sa) => ['id' => $sa->id, 'name' => $sa->name])->values()])
@@ -66,9 +92,18 @@ class OrderController extends Controller
         $current = CurrentEvent::resolve($request->user(), $request->session()->get('current_event_id'));
         abort_if($current === null, 404);
 
+        $till = Till::query()
+            ->where('event_id', $current->id)
+            ->find($request->session()->get('current_till_id'));
+
         $data = $request->validate([
             'items' => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['required', Rule::exists('products', 'id')->where('event_id', $current->id)->where('active', true)],
+            'items.*.product_id' => [
+                'required',
+                Rule::exists('products', 'id')->where('event_id', $current->id)->where('active', true),
+                // A till only sells what's on its menu.
+                ...($till ? [Rule::in($till->sellableProducts()->pluck('id')->all())] : []),
+            ],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],
             'paid' => ['boolean'],
             'notes' => ['nullable', 'string', 'max:1000'],
@@ -76,12 +111,13 @@ class OrderController extends Controller
             'items.required' => 'Aggiungi almeno un prodotto.',
         ]);
 
-        DB::transaction(function () use ($request, $current, $data) {
+        DB::transaction(function () use ($request, $current, $data, $till) {
             $products = Product::query()->whereIn('id', collect($data['items'])->pluck('product_id'))->get()->keyBy('id');
 
             $order = Order::create([
                 'tenant_id' => $request->user()->tenant_id,
                 'event_id' => $current->id,
+                'till_id' => $till?->id,
                 'number' => (int) Order::where('event_id', $current->id)->max('number') + 1,
                 'paid' => $data['paid'] ?? true,
                 'payment_method' => 'cash',

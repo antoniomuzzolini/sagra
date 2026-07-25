@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -35,12 +36,23 @@ interface OrderRow {
     items: { name: string; quantity: number }[];
 }
 
+interface TillRow {
+    id: number;
+    name: string;
+    areaId: number | null;
+    canManage: boolean;
+    productIds: number[];
+}
+
 const props = defineProps<{
     event: { id: number; name: string } | null;
     canManageListino: boolean;
     areas: AreaOpt[];
     products: ProductRow[];
     orders: OrderRow[];
+    tills: TillRow[];
+    currentTillId: number | null;
+    listino: { id: number; name: string; price: string }[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Cassa', href: '/cassa' }];
@@ -100,6 +112,48 @@ function togglePaid(order: OrderRow) {
 
 const dayTime = (iso: string) => new Date(iso).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
 
+// --- Tills (points of sale) ---
+const currentTill = computed(() => props.tills.find((t) => t.id === props.currentTillId) ?? null);
+
+function selectTill(id: number) {
+    router.post(route('tills.select'), { till_id: id }, { preserveScroll: true });
+}
+
+const tillsOpen = ref(false);
+const tillForm = useForm({ name: '', area_id: null as number | null });
+
+function submitTill() {
+    tillForm.post(route('tills.store'), { preserveScroll: true, onSuccess: () => tillForm.reset() });
+}
+
+function deleteTill(till: TillRow) {
+    if (confirm(`Eliminare la cassa "${till.name}"? Gli ordini già battuti restano.`)) {
+        router.delete(route('tills.destroy', till.id), { preserveScroll: true });
+    }
+}
+
+// A till's menu: empty selection means it sells the whole listino.
+const editingMenu = ref<TillRow | null>(null);
+const menuSelection = ref<number[]>([]);
+
+function openMenu(till: TillRow) {
+    editingMenu.value = till;
+    menuSelection.value = [...till.productIds];
+}
+
+function toggleMenuProduct(id: number, on: boolean) {
+    menuSelection.value = on ? [...menuSelection.value, id] : menuSelection.value.filter((p) => p !== id);
+}
+
+function saveMenu() {
+    if (!editingMenu.value) return;
+    router.put(
+        route('tills.menu', editingMenu.value.id),
+        { products: menuSelection.value },
+        { preserveScroll: true, onSuccess: () => (editingMenu.value = null) },
+    );
+}
+
 // --- Listino management (organizer) ---
 const listinoOpen = ref(false);
 const productForm = useForm({ name: '', price: '', area_id: null as number | null, sub_area_id: null as number | null, active: true });
@@ -143,16 +197,30 @@ function deleteProduct(p: ProductRow) {
                 <h1 class="text-xl font-semibold">Cassa</h1>
                 <p class="text-sm text-muted-foreground">
                     Batti gli ordini di <span v-if="event" class="font-medium">{{ event.name }}</span
-                    ><span v-else>questo evento</span>.
+                    ><span v-else>questo evento</span><span v-if="currentTill"> · sei alla {{ currentTill.name }}</span>.
                 </p>
             </div>
 
             <p v-if="!event" class="text-sm text-muted-foreground">Nessun evento selezionato. Creane uno da <strong>Eventi</strong>.</p>
-            <p v-else-if="products.length === 0" class="text-sm text-muted-foreground">
+
+            <!-- Which till you're working at (only worth showing with more than one) -->
+            <nav v-if="event && tills.length > 1" class="flex flex-wrap gap-1 border-b pb-2">
+                <Button
+                    v-for="till in tills"
+                    :key="till.id"
+                    :variant="till.id === currentTillId ? 'secondary' : 'ghost'"
+                    size="sm"
+                    @click="selectTill(till.id)"
+                >
+                    {{ till.name }}
+                </Button>
+            </nav>
+
+            <p v-if="event && products.length === 0" class="text-sm text-muted-foreground">
                 Il listino è vuoto.<span v-if="canManageListino"> Aggiungi i prodotti qui sotto.</span>
             </p>
 
-            <template v-else>
+            <template v-else-if="event">
                 <!-- POS: products + cart -->
                 <div class="grid gap-4 lg:grid-cols-[1fr_20rem]">
                     <div class="grid gap-3">
@@ -222,6 +290,53 @@ function deleteProduct(p: ProductRow) {
                 </ul>
             </section>
 
+            <!-- Points of sale: the responsabile of a till's area configures it -->
+            <section v-if="event" class="grid gap-2">
+                <Button variant="outline" size="sm" class="justify-self-start" @click="tillsOpen = !tillsOpen">
+                    {{ tillsOpen ? 'Nascondi casse' : 'Gestisci casse' }}
+                </Button>
+
+                <div v-if="tillsOpen" class="grid gap-3 rounded-xl border p-3">
+                    <p v-if="tills.length === 0" class="text-sm text-muted-foreground">
+                        Nessuna cassa configurata: si vende tutto il listino da un unico punto. Creane una solo se hai più punti cassa con menù
+                        diversi.
+                    </p>
+                    <ul v-else class="divide-y">
+                        <li v-for="till in tills" :key="till.id" class="flex items-center gap-2 py-2">
+                            <div class="min-w-0 flex-1">
+                                <p class="font-medium">{{ till.name }}</p>
+                                <p class="text-xs text-muted-foreground">
+                                    {{ areas.find((a) => a.id === till.areaId)?.name ?? 'Nessuna area' }} ·
+                                    {{ till.productIds.length ? `${till.productIds.length} prodotti` : 'tutto il listino' }}
+                                </p>
+                            </div>
+                            <template v-if="till.canManage">
+                                <Button variant="outline" size="sm" @click="openMenu(till)">Menù</Button>
+                                <Button variant="ghost" size="icon" aria-label="Elimina cassa" @click="deleteTill(till)">
+                                    <Trash2 class="h-4 w-4" />
+                                </Button>
+                            </template>
+                        </li>
+                    </ul>
+
+                    <form class="flex flex-wrap items-end gap-2" @submit.prevent="submitTill">
+                        <div class="grid gap-1">
+                            <Label class="text-xs">Nuova cassa</Label>
+                            <Input v-model="tillForm.name" required placeholder="Es. Cassa centrale" class="h-9" />
+                        </div>
+                        <div class="grid gap-1">
+                            <Label class="text-xs">Area che la gestisce</Label>
+                            <select v-model="tillForm.area_id" class="h-9 rounded-md border border-input bg-transparent px-3 text-sm">
+                                <option :value="null">Nessuna (organizzatore)</option>
+                                <option v-for="a in areas" :key="a.id" :value="a.id">{{ a.name }}</option>
+                            </select>
+                        </div>
+                        <Button type="submit" variant="outline" size="sm" :disabled="tillForm.processing"><Plus class="h-4 w-4" /> Aggiungi</Button>
+                        <InputError :message="tillForm.errors.name" class="w-full" />
+                    </form>
+                </div>
+            </section>
+
             <!-- Listino management (organizer) -->
             <section v-if="canManageListino && event" class="grid gap-2">
                 <Button variant="outline" size="sm" class="justify-self-start" @click="listinoOpen = !listinoOpen">
@@ -264,6 +379,27 @@ function deleteProduct(p: ProductRow) {
                     </form>
                 </div>
             </section>
+        </div>
+
+        <!-- A till's menu: pick what it sells, or leave empty for everything -->
+        <div v-if="editingMenu" class="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4" @click.self="editingMenu = null">
+            <div class="mt-[8vh] grid max-h-[80vh] w-full max-w-sm gap-3 overflow-y-auto rounded-xl border bg-background p-4 shadow-lg">
+                <div>
+                    <p class="font-medium">Menù di {{ editingMenu.name }}</p>
+                    <p class="text-sm text-muted-foreground">
+                        Scegli cosa vende questa cassa. Se non selezioni nulla, vende tutto il listino.
+                    </p>
+                </div>
+                <Label v-for="p in listino" :key="p.id" class="flex items-center gap-3 font-normal">
+                    <Checkbox :checked="menuSelection.includes(p.id)" @update:checked="(on: boolean) => toggleMenuProduct(p.id, on)" />
+                    <span class="flex-1">{{ p.name }}</span>
+                    <span class="text-sm text-muted-foreground">{{ euro(p.price) }}</span>
+                </Label>
+                <div class="flex gap-2">
+                    <Button @click="saveMenu">Salva menù</Button>
+                    <Button variant="ghost" @click="editingMenu = null">Annulla</Button>
+                </div>
+            </div>
         </div>
 
         <!-- Edit product dialog would go here; kept inline via prompt for slice A simplicity -->

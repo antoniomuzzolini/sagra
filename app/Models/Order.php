@@ -19,6 +19,7 @@ class Order extends Model
     protected $fillable = [
         'tenant_id',
         'event_id',
+        'till_id',
         'number',
         'total',
         'paid',
@@ -48,6 +49,11 @@ class Order extends Model
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function till(): BelongsTo
+    {
+        return $this->belongsTo(Till::class);
     }
 
     public function creator(): BelongsTo

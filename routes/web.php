@@ -13,6 +13,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplyAttachmentController;
 use App\Http\Controllers\SupplyController;
+use App\Http\Controllers\TillController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -91,6 +92,13 @@ Route::middleware(['auth', 'staff', 'module:orders'])->group(function () {
     // Comande / KDS: the kitchen screen, scoped to the areas the person runs.
     Route::get('comande', [KitchenController::class, 'index'])->name('kitchen.index');
     Route::put('order-items/{item}', [KitchenController::class, 'update'])->name('kitchen.update');
+
+    // Points of sale: configured by the responsabile of the till's area.
+    Route::post('tills', [TillController::class, 'store'])->name('tills.store');
+    Route::put('tills/{till}', [TillController::class, 'update'])->name('tills.update');
+    Route::delete('tills/{till}', [TillController::class, 'destroy'])->name('tills.destroy');
+    Route::put('tills/{till}/menu', [TillController::class, 'updateMenu'])->name('tills.menu');
+    Route::post('current-till', [TillController::class, 'select'])->name('tills.select');
 });
 Route::middleware(['auth', 'organizer', 'module:orders'])->group(function () {
     Route::post('products', [ProductController::class, 'store'])->name('products.store');
