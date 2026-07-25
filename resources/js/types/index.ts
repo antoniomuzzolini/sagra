@@ -54,6 +54,8 @@ export interface SharedData {
         recoveryRequested: boolean | null;
     };
     eventContext: EventContext | null;
+    /** Module keys enabled on the current event (D21). */
+    modules: string[];
     ziggy: {
         location: string;
         url: string;

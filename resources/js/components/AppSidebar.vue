@@ -28,16 +28,30 @@ const page = usePage<SharedData>();
 // (declare availability, universal).
 const isManager = computed(() => page.props.auth.role === 'manager');
 
+// Modules enabled on the current event (D21): a switched-off module has no
+// entry at all — the same rule the routes enforce server-side.
+const modules = computed<string[]>(() => page.props.modules ?? []);
+const has = (module: string) => modules.value.includes(module);
+
 const eventNav = computed<NavItem[]>(() => [
     { title: 'Panoramica', href: isManager.value ? '/manage/overview' : '/dashboard', icon: LayoutGrid },
     { title: 'Calendario', href: isManager.value ? '/manage/calendar' : '/calendar', icon: CalendarDays },
     // Defining the event's areas is the organizer's job; managers just run theirs.
     ...(isManager.value ? [] : [{ title: 'Aree', href: '/manage/areas', icon: Boxes }]),
-    { title: 'Gestione turni', href: '/manage/shifts', icon: ClipboardList },
-    { title: 'Prenotazione turni', href: '/me', icon: ListChecks },
-    { title: 'Forniture', href: '/forniture', icon: Package },
-    { title: 'Cassa', href: '/cassa', icon: Receipt },
-    { title: 'Comande', href: '/comande', icon: ChefHat },
+    ...(has('shifts')
+        ? [
+              { title: 'Gestione turni', href: '/manage/shifts', icon: ClipboardList },
+              { title: 'Prenotazione turni', href: '/me', icon: ListChecks },
+          ]
+        : []),
+    ...(has('supplies') ? [{ title: 'Forniture', href: '/forniture', icon: Package }] : []),
+    // Cassa and comande are two faces of the same module (D21).
+    ...(has('orders')
+        ? [
+              { title: 'Cassa', href: '/cassa', icon: Receipt },
+              { title: 'Comande', href: '/comande', icon: ChefHat },
+          ]
+        : []),
 ]);
 
 const crossNav = computed<NavItem[]>(() =>

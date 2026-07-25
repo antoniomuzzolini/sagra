@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureManager;
+use App\Http\Middleware\EnsureModuleEnabled;
 use App\Http\Middleware\EnsureOrganizer;
 use App\Http\Middleware\EnsureStaff;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -34,6 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'organizer' => EnsureOrganizer::class,
             'manager' => EnsureManager::class,
             'staff' => EnsureStaff::class,
+            'module' => EnsureModuleEnabled::class,
         ]);
 
         // Simple volunteers have no login page: without a valid session the

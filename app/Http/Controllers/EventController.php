@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Module;
 use App\Enums\PhaseType;
 use App\Enums\Role;
 use App\Models\Event;
@@ -94,8 +95,35 @@ class EventController extends Controller
                     'ends_on' => $phase->ends_on->toDateString(),
                 ]),
                 'areas' => $event->areas->map(fn ($area) => ['id' => $area->id, 'name' => $area->name]),
+                'enabledModules' => $event->enabledModules(),
             ],
+            // The catalogue of switchable modules (D21). Deliberately not
+            // named "modules": that's the shared prop holding the *enabled*
+            // ones, and a page prop of the same name would shadow it.
+            'availableModules' => collect(Module::cases())->map(fn (Module $module) => [
+                'key' => $module->value,
+                'label' => $module->label(),
+                'description' => $module->description(),
+            ]),
         ]);
+    }
+
+    /**
+     * Switch this edition's vertical modules on and off (D21). Switching one
+     * off only hides it: the data stays and comes back if it's re-enabled.
+     */
+    public function updateModules(Request $request, Event $event): RedirectResponse
+    {
+        $this->authorizeTenant($request, $event);
+
+        $data = $request->validate([
+            'modules' => ['present', 'array'],
+            'modules.*' => [Rule::enum(Module::class)],
+        ]);
+
+        $event->update(['enabled_modules' => array_values(array_unique($data['modules']))]);
+
+        return back();
     }
 
     public function update(Request $request, Event $event): RedirectResponse
@@ -159,6 +187,8 @@ class EventController extends Controller
             $new = Event::create([
                 'tenant_id' => $event->tenant_id,
                 'name' => $data['name'],
+                // The new edition runs the same modules as the one it copies.
+                'enabled_modules' => $event->enabledModules(),
             ]);
 
             foreach ($event->phases as $phase) {

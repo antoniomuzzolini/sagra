@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\Module;
 use App\Models\Person;
 use App\Support\CurrentEvent;
 use Illuminate\Foundation\Inspiring;
@@ -58,7 +59,28 @@ class HandleInertiaRequests extends Middleware
             // Current-event context + selector options (D20), for account
             // holders only — volunteers use cross-event pages.
             'eventContext' => fn () => $this->eventContext($request),
+            // Modules enabled on the current event (D21): the sidebar only
+            // shows what this edition actually uses.
+            'modules' => fn () => $this->modules($request),
         ]);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function modules(Request $request): array
+    {
+        $person = $request->user();
+
+        if ($person === null || $person->tenant_id === null) {
+            return [];
+        }
+
+        $current = CurrentEvent::resolve($person, $request->session()->get('current_event_id'));
+
+        // Without an event there's nothing configured yet: show everything, so
+        // the shell doesn't look broken while setting up.
+        return $current?->enabledModules() ?? array_column(Module::cases(), 'value');
     }
 
     /**

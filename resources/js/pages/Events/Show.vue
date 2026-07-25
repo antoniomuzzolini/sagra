@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,13 +25,24 @@ const props = defineProps<{
         name: string;
         phases: PhaseRow[];
         areas: { id: number; name: string }[];
+        enabledModules: string[];
     };
+    availableModules: { key: string; label: string; description: string }[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Eventi', href: '/events' },
     { title: props.event.name, href: route('events.show', props.event.id) },
 ];
+
+// Modules enabled on this edition (D21). Saved on the spot as you toggle;
+// switching one off only hides it, the data stays.
+const enabledModules = ref<string[]>([...props.event.enabledModules]);
+
+function toggleModule(key: string, on: boolean) {
+    enabledModules.value = on ? [...enabledModules.value, key] : enabledModules.value.filter((m) => m !== key);
+    router.put(route('events.modules', props.event.id), { modules: enabledModules.value }, { preserveScroll: true });
+}
 
 // Event name + phases editing
 const editOpen = ref(false);
@@ -96,6 +108,27 @@ function manage(path: string) {
                     <Button variant="outline" @click="manage('/manage/areas')"><Boxes class="h-4 w-4" /> Gestisci aree</Button>
                     <Button variant="outline" @click="manage('/manage/shifts')"><ClipboardList class="h-4 w-4" /> Gestisci turni</Button>
                 </div>
+            </div>
+
+            <!-- Modules enabled on this edition (D21) -->
+            <div class="grid gap-3 rounded-xl border p-4">
+                <div>
+                    <p class="font-medium">Cosa gestisci con questa edizione</p>
+                    <p class="text-sm text-muted-foreground">
+                        Accendi solo quello che ti serve: le voci spente spariscono dal menu. Spegnere non cancella nulla.
+                    </p>
+                </div>
+                <Label v-for="module in availableModules" :key="module.key" class="flex items-start gap-3 font-normal">
+                    <Checkbox
+                        :checked="enabledModules.includes(module.key)"
+                        class="mt-0.5"
+                        @update:checked="(on: boolean) => toggleModule(module.key, on)"
+                    />
+                    <span>
+                        {{ module.label }}
+                        <span class="block text-sm text-muted-foreground">{{ module.description }}</span>
+                    </span>
+                </Label>
             </div>
         </div>
 

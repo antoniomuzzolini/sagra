@@ -63,11 +63,11 @@ Route::post('current-event', [EventContextController::class, 'update'])
 
 // Gestione turni (D20): organizer or area manager, scoped to the current event.
 Route::get('manage/shifts', ShiftManagementController::class)
-    ->middleware(['auth', 'staff'])->name('manage.shifts');
+    ->middleware(['auth', 'staff', 'module:shifts'])->name('manage.shifts');
 
 // Forniture module (first vertical module, D21): organizer or area manager,
 // scoped to the current event and the areas the person runs.
-Route::middleware(['auth', 'staff'])->group(function () {
+Route::middleware(['auth', 'staff', 'module:supplies'])->group(function () {
     Route::get('forniture', [SupplyController::class, 'index'])->name('supplies.index');
     Route::post('supplies', [SupplyController::class, 'store'])->name('supplies.store');
     Route::put('supplies/{supply}', [SupplyController::class, 'update'])->name('supplies.update');
@@ -83,7 +83,7 @@ Route::middleware(['auth', 'staff'])->group(function () {
 
 // Ordini/Cassa module (D21) — slice A. The till (POS) is open to any staff;
 // the listino is the organizer's setup.
-Route::middleware(['auth', 'staff'])->group(function () {
+Route::middleware(['auth', 'staff', 'module:orders'])->group(function () {
     Route::get('cassa', [OrderController::class, 'index'])->name('orders.index');
     Route::post('orders', [OrderController::class, 'store'])->name('orders.store');
     Route::put('orders/{order}', [OrderController::class, 'update'])->name('orders.update');
@@ -92,7 +92,7 @@ Route::middleware(['auth', 'staff'])->group(function () {
     Route::get('comande', [KitchenController::class, 'index'])->name('kitchen.index');
     Route::put('order-items/{item}', [KitchenController::class, 'update'])->name('kitchen.update');
 });
-Route::middleware(['auth', 'organizer'])->group(function () {
+Route::middleware(['auth', 'organizer', 'module:orders'])->group(function () {
     Route::post('products', [ProductController::class, 'store'])->name('products.store');
     Route::put('products/{product}', [ProductController::class, 'update'])->name('products.update');
     Route::delete('products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');

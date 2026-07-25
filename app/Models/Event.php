@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Module;
 use Database\Factories\EventFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -17,7 +18,31 @@ class Event extends Model
     protected $fillable = [
         'tenant_id',
         'name',
+        'enabled_modules',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'enabled_modules' => 'array',
+        ];
+    }
+
+    /**
+     * The vertical modules switched on for this edition (D21). Null means the
+     * event predates any configuration, so it falls back to the defaults.
+     *
+     * @return array<int, string>
+     */
+    public function enabledModules(): array
+    {
+        return $this->enabled_modules ?? Module::defaults();
+    }
+
+    public function hasModule(Module $module): bool
+    {
+        return in_array($module->value, $this->enabledModules(), true);
+    }
 
     public function tenant(): BelongsTo
     {
