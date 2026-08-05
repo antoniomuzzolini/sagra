@@ -73,6 +73,37 @@ Reachability aside, the setup is identical to a VPS. Keep in mind a home box
 depends on your power and internet staying up — for the days of the event a
 VPS is more dependable.
 
+### Just trying it out, with no domain (quick tunnel)
+
+Without a domain there's no token and no fixed hostname, but Cloudflare hands
+out a throwaway one:
+
+```bash
+docker compose --profile quick up -d
+docker compose logs cloudflared-quick     # the https://<random>.trycloudflare.com URL
+```
+
+**The URL changes every time the tunnel restarts** (a reboot included), and the
+old one dies with it. After each change, put the new one in `.env` and restart:
+
+```
+APP_URL=https://<the-new-url>.trycloudflare.com
+TRUSTED_PROXIES=*
+```
+
+```bash
+docker compose up -d
+```
+
+`APP_URL` matters more than it looks: links built while browsing take the host
+from the request, but **notifications are sent from the queue worker**, outside
+any request — those build their links from `APP_URL`, so a stale value sends
+volunteers to a dead address.
+
+Fine for a demo, unusable for a real event: anyone who saved the link to their
+home screen loses the app at the next restart. For that, get a domain and use
+the token tunnel above.
+
 ## Updating
 
 ```bash

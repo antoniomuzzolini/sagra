@@ -32,6 +32,10 @@ services:
         restart: unless-stopped
         env_file: .env
         command: php artisan queue:work --tries=3 --max-time=3600 --sleep=3
+        # The base image healthchecks the web server, which this container
+        # doesn't run — without this it always reads "unhealthy".
+        healthcheck:
+            disable: true
         depends_on:
             db:
                 condition: service_healthy
@@ -42,6 +46,8 @@ services:
         restart: unless-stopped
         env_file: .env
         command: php artisan schedule:work
+        healthcheck:
+            disable: true
         depends_on:
             db:
                 condition: service_healthy
@@ -60,6 +66,20 @@ services:
         depends_on:
             - app
         profiles: ['tunnel']
+
+    # Same thing without a domain or a token, for trying the app out: Cloudflare
+    # hands out a throwaway https://<random>.trycloudflare.com. Start it with
+    # `docker compose --profile quick up -d`, then read the URL from
+    # `docker compose logs cloudflared-quick`. The URL changes at every restart,
+    # so update APP_URL in .env and restart the app — queued notifications build
+    # their links from it, and would otherwise point at the dead URL.
+    cloudflared-quick:
+        image: cloudflare/cloudflared:latest
+        restart: unless-stopped
+        command: tunnel --no-autoupdate --url http://app:80
+        depends_on:
+            - app
+        profiles: ['quick']
 
     # Drop this service to use managed Postgres (e.g. Neon): point DB_* / DB_URL
     # in .env at the managed instance instead.
