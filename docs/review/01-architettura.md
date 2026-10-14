@@ -2,6 +2,11 @@
 
 > Revisione architetturale di Fieste ricostruita **solo dal codice**.
 > Branch analizzato: `claude/bold-goldberg-xs81r4` (HEAD `442c38e`).
+>
+> **Nota.** Le sezioni 0–7 sono la lettura "cieca", lasciata com'era. La
+> sezione 8 **Divergenze** è stata scritta dopo, leggendo i documenti di
+> progetto prima esclusi, e confronta la ricostruzione con le motivazioni
+> reali.
 
 ## 0. Metodo e perimetro
 
@@ -735,3 +740,351 @@ stanno volontari semplici. Potrebbe essere voluto; vedi §6.
 4. Rendere robusta la numerazione degli ordini prima di un evento con più casse (§5.6).
 5. Far fallire davvero la CI su formattazione ed eseguire Vitest (§5.14).
 6. Completare la replica dell'edizione con sotto-reparti e moduli (§5.8).
+
+---
+
+## 8. Divergenze
+
+Questa sezione è stata scritta **dopo** aver letto i documenti esclusi nelle
+sezioni 0–7:
+
+- `docs/dominio-e-decisioni.md`, abbreviato **DD**;
+- `docs/schema-core.md`, abbreviato **SC**;
+- `docs/review/CLAUDE.original.md`, abbreviato **CO**.
+
+I riferimenti sono `DD:riga` e così via.
+
+Nel confronto ho anche **eseguito delle verifiche**, solo localmente e senza
+modificare il repository. Per farlo ho installato le dipendenze in `vendor/`
+(git-ignored) e scritto un test temporaneo fuori dal repo. I risultati sono
+nel §8.5.
+
+### 8.1 Quadro d'insieme
+
+| Tema | Mia ricostruzione (§4) | Motivazione reale | Esito |
+|---|---|---|---|
+| Identità unica (D19) | Evitare duplicati e due guard | Attrito del responsabile "a metà" tra due mondi, bug tra guard (DD:42) | allineata |
+| Magic link, invito, monouso, remember (D6, D16, D17) | Utenti poco tecnologici, WhatsApp, telefoni condivisi | Identica (DD:29,39,40) | allineata |
+| Date e fasi derivate (D15, regola 3) | Unica fonte di verità | Identica (DD:38, SC:69-70, CO:28-29) | allineata |
+| Soft membership e sovrapposizioni (D18) | Rispecchia la sagra reale | Identica, con in più "la flessibilità è la risorsa principale" (DD:41) | allineata |
+| Un guscio ed evento corrente (D20) | Meno codice, meno da imparare | Due compiti mentali distinti: allestire contro prenotarsi (DD:43) | parziale: ho visto il *come*, non il *perché* |
+| Postgres singolo, `tenant_id` (D9) | Modello SaaS economico, controlli senza join | Semplicità, **e denormalizzazione al servizio dei global scope** (SC:9-12) | **divergente** (§8.2.1) |
+| Inertia senza API | Scelta voluta: produttività, niente doppio contratto | **API-first era una regola non negoziabile** (CO:30-31, DD:28,35) | **divergente** (§8.2.2) |
+| `Support/*` statici al posto di Policy | Pragmatismo | Le **Policy native erano previste** (SC:146-148, CO:40-41) | **divergente** (§8.2.3) |
+| Self-hosting con tunnel | Rendere il self-hosting accessibile alle associazioni | "**Le associazioni non si auto-ospitano**"; l'open source serve da garanzia e canale di adozione (DD:24) | **divergente** (§8.2.4) |
+| Niente `Modules/` (D13) | Evitare boilerplate | Niente architettura speculativa **finché non esiste il primo verticale** (DD:36) | parziale: la condizione ora è scaduta (§8.3) |
+| Turni come modulo (D21) | "Modulo solo di nome", un'incoerenza | D21 li vuole spegnibili come gli altri, ma la mappa dei moduli dice "sempre attivo per ora" (DD:44 contro DD:263) | i documenti si contraddicono (§8.2.5) |
+| Cassa riservata allo staff | Domanda aperta, forse non voluto | Voluto: "Listino = organizzatore, cassa = staff" (DD:264) | voluto, ma in tensione con lo scenario descritto (§8.2.6) |
+| `AreaFamily` | Solo cromatica | Pensata per il setup guidato da catalogo (DD:224-245, SC:96) | divergente: la funzione prevista non esiste |
+| Politica delle FK | `nullOnDelete` per preservare lo storico | CASCADE dentro l'aggregato, RESTRICT tra aggregati (SC:13-15) | parziale (§8.2.7) |
+| Push come canale primario (D10) | Push gratis, SMS a pagamento | WhatsApp Business API rimandata per costi e vincoli (DD:33) | allineata nella sostanza |
+
+### 8.2 Dove ho dedotto una motivazione diversa dalla tua
+
+**8.2.1 Tenancy: la denormalizzazione serviva ai global scope, che non ci sono.**
+
+- Avevo letto `tenant_id` ovunque come un modo per fare controlli senza join,
+  e l'assenza di global scope come "esplicitezza, forse non consapevole".
+- SC:9-12 dice invece che `tenant_id` è denormalizzato perché "semplifica i
+  global scope di tenancy e rende impossibile un join cross-tenant per errore".
+- Nel codice non esiste nessun global scope: nessun trait o scope sui modelli,
+  e `AppServiceProvider.php:12-23` è vuoto.
+- Il costo della denormalizzazione è stato pagato, ma la garanzia che doveva
+  comprare non c'è. L'isolamento dipende solo dai `where('tenant_id', …)` e da
+  `authorizeTenant` scritti a mano in ogni controller (§5.15). Il rischio del
+  §5.2 è quindi maggiore di come l'avevo descritto.
+
+**8.2.2 Assenza di API: non una scelta, ma una regola disattesa.**
+
+- Avevo letto "Inertia senza API" come decisione deliberata (§4 #15).
+- In realtà CO:30-31 la poneva come regola **non negoziabile**: "ogni
+  funzionalità del core è esposta via API", per il futuro servizio MCP/AI in
+  Python (DD:28 D5, DD:35 D12).
+- Nel codice non c'è una rotta API, nessun `routes/api.php` e nessuno strato
+  applicativo riusabile: la logica sta nei controller Inertia.
+- Il `CLAUDE.md` ridotto non riporta più la regola: va deciso se è stata
+  abbandonata o solo rimandata (§8.4.4).
+
+**8.2.3 Autorizzazione: le Policy erano il piano.**
+
+- Avevo interpretato i `Support/*` statici e gli helper `authorize*` come
+  pragmatismo (§4 #13, §5.2).
+- SC:146-148 diceva invece: "I permessi si applicano con le Policy native
+  Laravel leggendo questa tabella", e CO:40-41 preferiva policy native ai
+  pacchetti.
+- Quindi non è una scelta alternativa: è un meccanismo previsto e mai
+  costruito. L'autorizzazione è cresciuta per accumulo, controller dopo
+  controller.
+
+**8.2.4 Self-hosting: il pubblico non è quello che pensavo.**
+
+- Avevo letto Cloudflare Tunnel, `deploy.ps1` per Windows e la sezione
+  "self-hosting at home" di `DEPLOY.md` come il modo di rendere il
+  self-hosting alla portata delle associazioni (§4 #19).
+- D1 (DD:24) dice il contrario: "le associazioni non si auto-ospitano". Il
+  codice libero è garanzia e canale di adozione; il prodotto per loro è il
+  SaaS a basso costo.
+- La spinta sul self-hosting domestico ha quindi probabilmente un altro scopo:
+  ospitare tu stesso il servizio o la demo su un PC di casa. Va chiarito,
+  perché cambia le priorità (§8.4.9).
+
+**8.2.5 Turni: i documenti dicono due cose diverse.**
+
+- La mia osservazione che Turni è "un modulo solo di nome" (§5.3) coincide con
+  una sola delle due posizioni dei documenti.
+- D21 (DD:44) dice: "spegnibili tutti allo stesso modo".
+- La tabella dei moduli (DD:263) dice: "È il primo modulo, sempre attivo per ora".
+- Glossario e §4 (DD:119-121, DD:161-166) dicono ancora che "i turni
+  appartengono al core".
+- Il codice segue la seconda posizione: si spegne solo la Gestione turni.
+
+**8.2.6 Cassa = staff: voluto, ma il tuo stesso scenario lo contraddice.**
+
+- La scelta è documentata (DD:264).
+- Lo stesso paragrafo però descrive un reparto "Cassa" con "turni propri come
+  ogni area", cioè volontari di turno alla cassa.
+- D21 aggiunge che "la cassa [si instrada] al dispositivo/area" e che nessun
+  modulo operativo deve sapere chi è di turno (DD:44).
+- Oggi un volontario semplice di turno alla cassa non può aprire `/cassa`
+  (`routes/web.php:87`, `EnsureStaff.php:21-24`). Il concetto di "cassa legata
+  al dispositivo", per esempio un tablet collegato come punto cassa, non esiste:
+  la cassa scelta vive nella sessione di una persona staff
+  (`TillController.php:80-91`).
+
+**8.2.7 Politica delle foreign key: una terza regola non scritta.**
+
+- SC:13-15 prevede CASCADE dentro l'aggregato e RESTRICT tra aggregati. Il core
+  la rispetta: `shift_signups.person_id` è `restrictOnDelete`
+  (`create_shift_signups_table.php`).
+- I moduli verticali hanno introdotto una terza regola, `nullOnDelete`, "per
+  preservare lo storico" (Forniture, Ordini). Io l'avevo presa per la regola
+  generale.
+- La regola di fatto è più ricca di quella documentata: andrebbe scritta.
+
+**8.2.8 D19: il responsabile "non entra più via link magico", ma il codice lo permette ancora.**
+
+- Avevo ricostruito bene la motivazione di D19, ma avevo trascurato un
+  vincolo: i responsabili devono usare un account con password (DD:42).
+- Nel codice invece:
+  - `AreaManagerController::store` crea un responsabile con solo nome e
+    telefono, quindi senza email e senza possibilità di avere un account
+    (`AreaManagerController.php:31-36`);
+  - `PersonController::magicLink` genera link per chiunque, responsabili
+    compresi (`PersonController.php:77-92`);
+  - le azioni di gestione sotto `/me` richiedono solo `auth`
+    (`routes/volunteer.php:45-51`).
+- Il percorso D18 "responsabile via link magico" quindi è ancora aperto, e il
+  doppio percorso del §5.1 ne è la traccia.
+
+**8.2.9 `declined` doveva evitare le ri-proposte.**
+
+- SC:126 dice che `declined` "tiene traccia, evita ri-proposte".
+- Nel codice, un volontario rifiutato che tocca di nuovo "Ci sono" torna
+  `available` e i responsabili vengono di nuovo notificati
+  (`Volunteer/SignupController.php:21-24,50-57`).
+- O il comportamento è cambiato di proposito (e va documentato), o è una deriva.
+
+**8.2.10 Statistiche: "pull attraverso il core" contro D3.**
+
+- La mia domanda 10 trova risposta in DD:281-284: Statistiche leggerà "le
+  tabelle dei moduli attraverso il core", senza un layer di push.
+- Questo però contraddice:
+  - D21 (DD:44), dove ogni modulo "spinge i propri numeri" su un layer di
+    aggregazione del kernel;
+  - la regola "il core non sa cosa fanno i moduli" (CO:23-25, DD:165-166):
+    se il core legge le tabelle dei moduli, ne conosce lo schema.
+- Le due stesure andrebbero riconciliate (§8.4.7).
+
+### 8.3 Vincoli originali che oggi non valgono più
+
+| Vincolo | Fonte | Stato oggi | Evidenza |
+|---|---|---|---|
+| **API-first** "non negoziabile" | CO:30-31, DD:28,35 | Mai realizzato; sparito dal `CLAUDE.md` ridotto | Nessuna rotta API (`routes/`) |
+| "Niente flussi che richiedano **password**" | CO:32-34 | Superato da D19: organizzatori e responsabili hanno la password | `routes/auth.php`, DD:42 |
+| D13: niente confini **finché non esiste il primo verticale** | DD:36 | **Condizione scaduta**: i verticali sono tre | `Module.php:12-14` |
+| "Nessun modulo verticale fino a MVP completato" | CO:61-65, DD:27 (D4) | Superato | Forniture e Ordini/Cassa in produzione |
+| Split `users`/`people`; ruolo `organizer` in `person_roles`; `assigned_by` verso `users` | DD:37 (D14), SC:30-41,128,143-144 | Superato da D19, ma **SC non è aggiornato** | migrazione `2026_07_22_000001` |
+| Responsabile via link magico, senza account | DD:41 (D18) | Superato da D19 nei documenti, **non nel codice** | §8.2.8 |
+| "I turni appartengono al core" | DD:119-121, DD:161-166, CO:23-25 | Superato da D21, glossario non aggiornato | DD:44 |
+| **Binding modulo→area** come configurazione | DD:138-141,155,178 | Sostituito da FK area sulle entità (`products.area_id`, `tills.area_id`, `supplies.area_id`) | migrazioni `2026_07_24_*` |
+| Kernel con **API** e **layer di aggregazione** | DD:44, DD:252-257 | Nessuno dei due esiste; DD:281-284 rinuncia al push | — |
+| Indici composti che iniziano per `tenant_id` | SC:11-12 | Mai applicato; gli indici partono da `event_id` o `area_id`, e va bene così perché le query filtrano per evento o area | migrazioni |
+| Tabella `substitution_requests` | SC:132-133 | Sostituita da una colonna, una soluzione più semplice | `2026_06_11_000012_…` |
+| Replica delle edizioni "fuori dall'MVP" | DD:203-206 | Implementata (incompleta, §5.8) | `EventController.php:160-241` |
+| "Un server, niente servizi esterni se evitabili" | CO:38-39 | Eroso in piccolo: font da `fonts.bunny.net`, Cloudflare opzionale | `resources/views/app.blade.php:13-14` |
+| `CLAUDE.md` con "decisioni D1–D14" e lo stato "scaffolding" | CO:10, CO:61-65 | Obsoleto (le decisioni arrivano a D21) | — |
+| D17 sessione remember di circa un anno | DD:40 | **Ancora valido** ed esplicito | `config/auth.php:41-48` |
+
+### 8.4 Scelte ragionevoli allora, da rivedere oggi
+
+1. **Tenancy senza scope automatico** (D9 e SC).
+   - *Allora:* poche tabelle, un solo modulo, controlli scritti a mano
+     facilmente verificabili.
+   - *Oggi:* 17 modelli, 4 aree funzionali, decine di controller.
+   - *Da rivedere:* introdurre il global scope che lo schema già prevedeva,
+     oppure Postgres Row Level Security, dato che produzione è solo Postgres.
+     È anche il modo più economico di chiudere buona parte del §5.2.
+
+2. **D13, nessun confine tra moduli.**
+   - *Allora:* corretto non disegnare confini su un caso immaginario.
+   - *Oggi:* il caso reale c'è, tre volte, e si vede già una deriva: la
+     dipendenza inversa `Tenant::suppliers` e Turni intrecciato con il nucleo
+     (§2.4).
+   - *Da rivedere:* non un pacchetto `Modules/`, ma una convenzione leggera
+     che D13 stesso rimandava a questo momento: un file di rotte e un
+     namespace per modulo, una Policy per modulo, il registro dei moduli
+     nell'enum, e il divieto di relazioni dal nucleo verso i moduli.
+
+3. **Policy rimandate.**
+   - *Allora:* ruoli banali, organizzatore contro volontario.
+   - *Oggi:* la regola "gestisci quest'area?" (`managesArea`) è applicata in
+     4 moduli con 6 helper copiati (§5.2).
+   - *Da rivedere:* è il caso d'uso tipico delle Policy native, che erano
+     peraltro il piano originale (SC:146-148).
+
+4. **API-first e servizio MCP separato in Python** (regola 4, D5, D12).
+   - *Allora:* ragionevole come direzione: AI come strato separato, un
+     linguaggio per ogni uso.
+   - *Oggi:* l'API non è mai nata e la logica è nei controller Inertia
+     (duplicata, §5.1).
+   - *Da rivedere:*
+     - decidere esplicitamente: rinunciare, registrandolo come nuova
+       decisione, oppure estrarre uno strato applicativo (Action o servizi)
+       usato sia da Inertia sia da un'eventuale API;
+     - l'ecosistema MCP è maturato e oggi esiste anche un supporto MCP
+       ufficiale lato Laravel (`laravel/mcp`), quindi l'ipotesi "servizio
+       Python separato" di D12 merita una nuova valutazione (da verificare
+       la maturità del pacchetto prima di decidere);
+     - in ogni caso lo strato applicativo è il prerequisito.
+
+5. **Turni "sempre attivo per ora"** (D21 contro DD:263).
+   - *Allora:* ragionevole finché Turni era l'unico modulo.
+   - *Oggi:* esistono eventi plausibili "solo cassa".
+   - *Da rivedere:* o Turni diventa spegnibile davvero (gating di `/me`,
+     promemoria, Dashboard, Calendario: §5.3), o si dichiara che Turni è
+     parte del prodotto base e si corregge D21. Le due versioni non possono
+     restare insieme.
+
+6. **Cassa = staff.**
+   - *Allora:* semplice e sicuro per la slice A.
+   - *Oggi:* con le casse per area e i reparti "Cassa" con turni propri, chi
+     batte gli scontrini è un volontario.
+   - *Da rivedere:* serve il concetto che D21 già nomina, cioè l'accesso
+     **per dispositivo o cassa** (un tablet associato a una cassa con un link
+     o un PIN del punto cassa). In alternativa, un accesso temporaneo
+     derivato dal turno sull'area della cassa. Il primo rispetta meglio la
+     regola "nessun modulo deve sapere chi è di turno".
+
+7. **Statistiche pull tramite le tabelle dei moduli** (DD:281-284).
+   - *Allora:* evitare un layer di push speculativo è coerente con D13.
+   - *Oggi:* leggere le tabelle dei moduli dal core viola la regola fondante
+     "il core non sa cosa fanno i moduli".
+   - *Da rivedere:* tenere il pull, ma tramite un **contratto**. Ogni modulo
+     registra presso il core un fornitore di metriche (un'interfaccia) e il
+     core lo interroga senza conoscerne le tabelle. Resta pull, resta
+     "niente da strumentare in anticipo", e rispetta D3.
+
+8. **Test su SQLite in memoria.**
+   - *Allora:* test veloci e CI senza servizi.
+   - *Oggi:* sono in gioco comportamenti che SQLite non riproduce: la
+     concorrenza sul numero d'ordine (§5.6), il vincolo `EXCLUDE USING gist`
+     sulle fasi che SC:83-86 lasciava "da valutare", JSON e `timestamptz`.
+   - *Da rivedere:* almeno un job CI su Postgres. Diventa anche possibile
+     aggiungere il vincolo `EXCLUDE` previsto dallo schema.
+
+9. **Investimento nel self-hosting domestico.**
+   - *Allora:* utile per provare a costo zero.
+   - *Oggi:* D1 dice che i clienti non si auto-ospitano.
+   - *Da rivedere:*
+     - se il SaaS o la demo girano su un PC di casa, `DEPLOY.md` stesso
+       avverte che nei giorni dell'evento una VPS è più affidabile; per un
+       servizio usato durante una sagra la disponibilità è il requisito;
+     - se invece è solo per sviluppo, i profili tunnel e `deploy.ps1`
+       potrebbero uscire dal percorso principale della documentazione.
+
+10. **Push come canale primario** (D10).
+    - *Allora:* corretto, gratis e senza dati di contatto.
+    - *Oggi:* su iPhone il push web funziona solo se la PWA è stata aggiunta
+      alla schermata Home. I volontari che aprono il link dal browser interno
+      di WhatsApp non lo hanno.
+    - *Da rivedere:* il canale email (già presente) e la domanda aperta sui
+      canali (DD:217-218) diventano più urgenti. Va almeno misurato quanti
+      volontari hanno davvero una sottoscrizione push (`hasPush` esiste già
+      in `Volunteer/HomeController.php:72`).
+
+11. **Soft delete per GDPR** (SC:16-17, SC:54).
+    - *Allora:* ragionevole: conservare lo storico.
+    - *Oggi:* due conseguenze non previste, una verificata (§8.5):
+      - la cancellazione da parte dell'organizzatore lascia nome, telefono ed
+        email nel database (`PersonController.php:63-71`); solo
+        l'auto-cancellazione anonimizza;
+      - il telefono rimasto blocca il reinserimento con un **errore 500**.
+    - Con la titolarità del trattamento in capo all'associazione (DD:211-212),
+      la cancellazione dell'organizzatore dovrebbe anonimizzare come quella
+      volontaria. La politica di retention (DD:213-216) è ancora da fare.
+
+12. **`AreaFamily` per il setup guidato.**
+    - *Allora:* pensata per il catalogo di template (DD:224-245).
+    - *Oggi:* il catalogo non esiste e la famiglia colora soltanto.
+    - *Da rivedere:* costruire il setup guidato o semplificare. Le edizioni
+      replicate rendono il setup guidato meno necessario dal secondo anno in
+      poi.
+
+13. **`declined` "evita ri-proposte".** Da decidere se tenere il vecchio
+    intento (un rifiuto è definitivo per quel turno) o il comportamento
+    attuale (§8.2.9). Con la notifica ai responsabili, il comportamento
+    attuale può generare rumore.
+
+### 8.5 Nuove evidenze emerse durante il confronto (verificate)
+
+**Cancellare una persona e reinserirne il telefono dà un 500.**
+
+- Ho scritto un test temporaneo fuori dal repository e l'ho eseguito con
+  PHPUnit su SQLite in memoria.
+- Passi: l'organizzatore cancella una persona (soft delete) e poi ne crea una
+  nuova con lo stesso telefono.
+- La validazione passa, perché `Rule::unique(...)->withoutTrashed()` in
+  `PersonController.php:156` ignora le righe cancellate. L'indice unico
+  `(tenant_id, phone)` (`create_people_table.php:21`) invece le conta.
+- Risultato: `UniqueConstraintViolationException … UNIQUE constraint failed:
+  people.tenant_id, people.phone`. Lo stesso schema di validazione è in
+  `JoinController.php:48`, `ManagerPeopleController.php:27`,
+  `AreaManagerController.php:24` e `Volunteer/SignupController.php:198`.
+- Un secondo test conferma che la riga cancellata conserva nome e telefono.
+
+**Il lock richiede PHP ≥ 8.4.1, l'immagine usa PHP 8.3.**
+
+- `composer.lock` blocca `symfony/{string,translation,clock,event-dispatcher,css-selector}`
+  alla v8.1.0, che richiede `php >=8.4.1`.
+- `composer.json` dichiara `^8.2` e l'immagine usa PHP 8.3
+  (`Dockerfile:33`). Il Dockerfile installa con `--ignore-platform-reqs` e
+  disattiva il platform check (`Dockerfile:13,19-20`), con un commento che
+  attribuisce il problema solo alla versione di PHP dell'immagine composer.
+- Su PHP 8.3, con lo stesso platform check disattivato:
+  - `php -l` sui file di quei pacchetti non trova errori di sintassi;
+  - **la suite backend passa interamente (276 test)**. Per farla girare ho
+    creato un `manifest.json` Vite fittizio, perché senza build 31 test
+    falliscono per il manifest mancante; in CI la build precede i test.
+- Quindi oggi funziona, grazie ai polyfill, ma su una combinazione **non
+  supportata** dai pacchetti. Un aggiornamento minore di Symfony può usare
+  sintassi 8.4 e rompere l'immagine senza che la CI (che gira su 8.4) se ne
+  accorga.
+- È da riallineare: immagine su PHP 8.4, oppure `config.platform.php` fissato
+  a 8.3 in `composer.json`.
+
+**Domande del §6 a cui i documenti rispondono**
+
+| # | Risposta |
+|---|---|
+| 1 | Sì |
+| 3 | Sì, cassa riservata di proposito (con la tensione del §8.2.6) |
+| 5 | In parte (D1: SaaS a basso costo; il modello di prezzo è aperto, DD:210) |
+| 7 | I documenti si contraddicono |
+| 9 | In parte (titolarità all'associazione, retention aperta) |
+| 10 | Sì, pull |
+| 11 | Sì, pagamenti elettronici e scontrino "poi" (DD:264) |
+| 12 | Auto-refresh dichiarato, senza indicazione sul tempo reale |
+| 15 | Sì, setup guidato |
+
+Restano aperte le domande **2, 4, 6, 8, 13, 14**, e ora anche **2-bis**: la
+regola API-first è abbandonata o rimandata?
