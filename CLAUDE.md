@@ -1,65 +1,46 @@
-# CLAUDE.md
+# CLAUDE.md (temporaneo — revisione architetturale)
 
-**Fieste**: gestionale modulare open source per sagre ed eventi gestiti da
-volontari, con offerta SaaS (open core). Sviluppatore singolo. Rispondi in
-italiano.
+> Versione ridotta per una revisione indipendente. L'originale è in
+> docs/review/CLAUDE.original.md.
 
-## Contesto obbligatorio
+**Fieste**: gestionale open source per sagre, feste paesane ed eventi
+gestiti da volontari, con offerta SaaS (open core). Sviluppatore singolo.
+Rispondi in italiano.
 
-Leggi @docs/dominio-e-decisioni.md prima di lavorare: contiene visione,
-glossario delle entità, decisioni prese (D1–D14) e domande aperte.
-Lo schema dati del core è documentato in @docs/schema-core.md.
-È la fonte di verità — se il codice e il documento divergono, segnalalo.
+Utenti finali: volontari con competenze tecnologiche molto variabili,
+prevalentemente da smartphone. I dati dei volontari sono dati personali
+(GDPR).
 
 ## Stack
 
-- Laravel + Inertia + Vue 3, monolite modulare
-- PostgreSQL singolo, multi-tenancy a `tenant_id`
-- Frontend PWA mobile-first (utenti: volontari da smartphone)
-- Docker per deploy SaaS e per il self-hosting (stessa immagine)
+- PHP 8.2+, Laravel 12, Inertia 2, Vue 3 + TypeScript, Tailwind 3
+- PostgreSQL (test su SQLite in memoria)
+- Docker: un'immagine usata per il deploy SaaS e per il self-hosting
+  (vedi `DEPLOY.md`)
 
-## Regole architetturali (non negoziabili)
+## Convenzioni
 
-1. **Core vs moduli**: il core (persone, eventi, fasi, aree, turni, ruoli,
-   notifiche) non sa nulla di cosa fanno i moduli. I moduli dipendono dal
-   core, mai da altri moduli.
-2. **Nessuna comunicazione modulo→modulo**: se due moduli devono
-   coordinarsi, il dato o l'evento passa dal core.
-3. **La fase di un turno è derivata dalla data**, mai persistita o
-   dichiarata a mano.
-4. **API-first**: ogni funzionalità del core è esposta via API, pensata
-   per essere consumata in futuro da un servizio MCP/AI esterno (Python).
-5. **Semplicità per l'utente finale**: niente flussi che richiedano
-   password, manuali o più di pochi tap. In caso di dubbio tra eleganza
-   tecnica e semplicità d'uso, vince la semplicità d'uso.
-
-## Principi di sviluppo
-
-- Privilegia soluzioni semplici e a basso costo operativo: un server, un
-  database, niente servizi esterni se evitabili.
-- Preferisci le funzionalità native di Laravel (notifiche, code, policy)
-  a pacchetti terzi; pacchetti terzi solo se maturi e attivamente mantenuti.
-- I dati dei volontari sono dati personali: minimizzazione e attenzione
-  GDPR in ogni feature che li tocca.
-- Tutto il codice e i commit in inglese; documentazione utente in italiano.
+- Codice e commit in inglese; documentazione utente in italiano.
+- Formattazione: Pint (PHP), ESLint + Prettier (frontend). La CI
+  (`.github/workflows/`) esegue lint e test.
 
 ## Comandi
 
-- Setup: `composer install && npm install`, poi `cp .env.example .env`,
+- Setup: `composer install && npm install`, `cp .env.example .env`,
   `php artisan key:generate`, `createdb sagra`, `php artisan migrate`
 - Dev: `composer run dev` (server, queue, log e Vite in parallelo)
+- Build frontend: `npm run build`
 - Test backend: `php artisan test` (SQLite in memoria, vedi `phpunit.xml`)
 - Test frontend: `npm run test` (Vitest + Vue Test Utils, jsdom)
 - Lint/format PHP: `vendor/bin/pint`
-- Lint/format frontend: `npm run lint` e `npm run format`
+- Lint/format frontend: `npm run lint`, `npm run format`
+  (`npm run format:check` in CI)
 
-Ambiente locale: PHP e Composer via Laravel Herd, PostgreSQL via
-Postgres.app (porta 5432, utente di sistema, senza password, db `sagra`).
+Ambiente locale dello sviluppatore: PHP/Composer via Laravel Herd,
+PostgreSQL via Postgres.app (porta 5432, utente di sistema, db `sagra`).
 
-## Stato del progetto
+## Stato
 
-Scaffolding Laravel 12 + Inertia 2 + Vue 3 (starter kit ufficiale Vue)
-inizializzato, collegato a PostgreSQL. MVP in corso di progettazione: il
-core con gestione volontari e turni (vedi sezione 5 del documento di
-dominio). Nessun modulo verticale e nessuna integrazione AI fino a MVP
-completato.
+Sono implementati: gestione volontari e turni, accesso con link magico e
+password, Forniture, Ordini/Cassa (POS e comande) e moduli attivabili per
+evento.
