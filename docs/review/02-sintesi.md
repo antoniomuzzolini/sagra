@@ -193,6 +193,11 @@ Valutazione per parte:
 
 ### Ordine suggerito
 
+> **Superato da [`03-roadmap.md`](03-roadmap.md).** Le verifiche fatte dopo
+> hanno mostrato che questo ordine era sbagliato in quattro punti e che le
+> stime erano ottimistiche (vedi 03-roadmap §1). Lo lascio com'era, come
+> traccia del ragionamento.
+
 L'ordine segue le dipendenze tra ADR, non solo l'impatto.
 
 0. **Subito (ore, nessuna decisione da prendere):**
