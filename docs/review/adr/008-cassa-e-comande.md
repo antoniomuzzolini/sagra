@@ -131,6 +131,13 @@ regime forfettario 398/91, ETS, obbligo o meno di memorizzazione e invio
 telematico dei corrispettivi) **va verificato con un commercialista** prima di
 progettare la parte fiscale. È una domanda aperta.
 
+> **Aggiornamento (16/10/2026).** La ricerca in
+> [`04-fiscalita-cassa.md`](../04-fiscalita-cassa.md) ha trovato che dal 2026
+> le Pro Loco **non sono più** nel regime 398/91, che resta solo per le
+> associazioni sportive. Ne segue la decisione D32 della roadmap: Fieste non
+> emette documenti fiscali; per chi deve certificare lavora affiancata a un
+> registratore telematico o alla procedura web dell'Agenzia.
+
 ## Rischi e dipendenze
 
 - **L'accesso per dispositivo è un secondo meccanismo di autenticazione.** Va

@@ -241,7 +241,8 @@ Sono raggruppate per ADR. Le prime cinque bloccano scelte strutturali.
 3. **Regime fiscale dei clienti tipici** (associazioni in 398/91, ETS, Pro
    Loco). Serve memorizzazione o invio telematico dei corrispettivi, oppure
    basta una ricevuta? Va chiesto a un commercialista prima di progettare la
-   parte fiscale. (ADR-008)
+   parte fiscale. (ADR-008) *Aggiornamento: dal 2026 le Pro Loco non sono
+   più nel regime 398/91; vedi [`04-fiscalita-cassa.md`](04-fiscalita-cassa.md).*
 4. **Connettività reale alle feste.** Hai dati, o puoi misurarla al prossimo
    evento? Decide se la cassa offline vale 2-3 settimane di lavoro. (ADR-008)
 5. **Turni: modulo di base o davvero spegnibile?** Propongo il primo e la

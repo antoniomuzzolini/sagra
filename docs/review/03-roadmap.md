@@ -182,24 +182,24 @@ usa: cambiarne uno tocca solo gli step indicati. Lo step **D** le trascrive in
 
 | # | Decisione (default) | Sostituisce / precisa | Step |
 |---|---|---|---|
-| D22 | **Il 2027 è una stagione pilota** con 1-5 associazioni accompagnate. Registrazione pubblica **chiusa** (flag `REGISTRATION_ENABLED`, spento di default); le associazioni entrano con un invito monouso. **⚠ conferma** | ADR-003, ADR-006, ADR-010 (perimetro) | S.2, 8.0, 8, §9 |
+| D22 | **Il 2027 è una stagione pilota** con 1-5 associazioni accompagnate. Registrazione pubblica **chiusa** (flag `REGISTRATION_ENABLED`, spento di default); le associazioni entrano con un invito monouso. **✔ confermata** (16/10/2026). Oggi non ci sono associazioni esterne. | ADR-003, ADR-006, ADR-010 (perimetro) | S.2, 8.0, 8, §9 |
 | D23 | **Use-case-first** al posto di API-first. Ogni mutazione con effetti collaterali o con più ingressi passa da una Action, che riceve l'attore e verifica l'autorizzazione d'ingresso. D12 (MCP in Python) sospesa. | Regola 4, D5 (parte API), D12 | 1.4, 1.7, 4.1, 5.4, 9, 11 |
 | D24 | **I Turni sono un modulo di base.** Il flag per evento nasconde l'interfaccia **e** silenzia le notifiche automatiche. | D21 (parte Turni) | 1.6 |
 | D25 | **Credenziali globali.** Un'email associata a una password è unica su tutta l'istanza; l'anagrafica resta per tenant. Il **login** considera solo le righe con password, ordinate per id. **Recupero e reset preferiscono** la riga con password senza escludere le altre, perché l'invito imposta la prima password. L'**invito account** rifiuta un'email presente in qualunque altro tenant, con o senza password, finché il token resta legato all'email. **Limite noto:** un volontario presente in più associazioni con la stessa email non può ricevere un invito account (fino ad ADR-004 C). | ADR-004 D, corretta | S.2, 6 |
-| D26 | **Magic link ammesso ai responsabili** (rivede D19), legato alla minimizzazione (step 7) e al ruolo per edizione (9.4). Fino ad allora è un rischio noto, dichiarato. | D19 | 7, 9.4 |
+| D26 | **Magic link ammesso ai responsabili** (rivede D19), legato alla minimizzazione (step 7) e al ruolo per edizione (9.4). Fino ad allora è un rischio noto, dichiarato. **⚠ in discussione:** il maintainer teme che più sistemi di accesso complichino codice e uso; l'alternativa è l'invito con password per i responsabili. | D19 | 7, 9.4 |
 | D27 | **Ruolo per edizione.** Dà accesso operativo finché l'edizione non è conclusa, più **30 giorni** (per le fatture che arrivano dopo la sagra). Dopo, l'edizione resta in **sola lettura** per chi vi ha avuto un ruolo: Panoramica, Calendario, Volontari dell'edizione (contatti mascherati), Gestione turni senza azioni, senza elenco di tutte le persone e senza link d'invito, Forniture senza scrittura. Cassa e Comande rispondono 403. `auth.role` resta `manager`. Le Policy controllano l'evento del **record**, non quello della sessione. Tabella completa in 9.4. | ADR-005, domanda 9 | 0.3, 9.4 |
 | D28 | **Reparto stabile per tenant** (`departments`) per appartenenza, notifiche e replica. Ruoli e roster restano per edizione. Il roster del responsabile mostra anche i **veterani del reparto delle ultime 3 edizioni**, con i contatti mascherati. | ADR-007, domanda 10 | 5 |
-| D29 | **Cassa:** numero d'ordine per evento con contatore e lock (`A-042` rinviato); idempotenza obbligatoria; ogni ordine registra la sua cassa, e una cassa con ordini non si cancella; cambi di pagamento tracciati; riepilogo per cassa e per serata. **⚠ conferma** (cambia ciò che vede il cliente solo se scegli `A-042`) | ADR-008, domanda 2 | 1.1, 4, 11 |
-| D30 | **Accesso per dispositivo** come attore separato: rotte proprie, non autentica mai una persona, revocabile. Ripiego 2027 se non è pronto entro il 15 aprile: un account dedicato con ruolo solo sull'area Cassa. | ADR-008 B (8b) | 4.5, 11 |
+| D29 | **Cassa:** contatore con lock e idempotenza obbligatoria; ogni ordine registra la sua cassa, e una cassa con ordini non si cancella; cambi di pagamento tracciati; riepilogo per cassa e per serata. **⚠ in discussione, la numerazione:** il maintainer propone un numero separato per ogni punto di ritiro (bar, cucina). Corrisponde a un numero **per reparto di preparazione**, non per cassa (la cassa principale vende tutto), e richiede comande stampate per reparto, che Fieste oggi non produce. Default in attesa: numero unico per ordine. Caso reale: 2 casse in contemporanea, una per tutto e una per bevande e patatine. | ADR-008, domanda 2 | 1.1, 4, 11 |
+| D30 | **Accesso per dispositivo** come attore separato: rotte proprie, non autentica mai una persona, revocabile. Ripiego 2027 se non è pronto entro il 15 aprile: un account dedicato con ruolo solo sull'area Cassa. **⚠ in discussione:** visto il timore sulla complessità (D26), la proposta per il 2027 è usare direttamente l'account dedicato, senza un terzo sistema di accesso; il token di dispositivo resta in traccia C. | ADR-008 B (8b) | 4.5, 11 |
 | D31 | **Cassa offline** decisa a **ottobre 2027** sui dati raccolti in stagione. La strumentazione è obbligatoria prima di maggio. | ADR-008 B | 3.2, 4.5, §9 |
-| D32 | **Fiscalità:** consulto con un commercialista **entro novembre 2026** su tre profili (Pro Loco 398/91, APS/ETS, comitato o parrocchia). Fino ad allora nessun modello fiscale; la "chiusura di cassa" fiscale (A2) dipende dalla risposta. **⚠ azione tua** | ADR-008 | 4.4, §9 |
+| D32 | **Fiscalità:** Fieste **non emette documenti fiscali**: è una cassa gestionale, che per chi deve certificare lavora affiancata a un registratore telematico o alla procedura web dell'Agenzia. Le comande sono marcate "documento non fiscale". La ricerca del 16/10/2026 (`04-fiscalita-cassa.md`) ha trovato che **le Pro Loco hanno perso il regime 398/91 dal 2026**. Consulto con un commercialista **entro novembre 2026** con le domande di quel documento. **⚠ azione tua** | ADR-008 | 4.4, §9 |
 | D33 | **Un evento con ordini, forniture o allegati non si cancella.** | nuova | 1.3 |
 | D34 | **Un solo percorso di cancellazione delle persone**, cioè l'anonimizzazione, con indici unici parziali `WHERE deleted_at IS NULL`. | ADR-010 A, ADR-004 | 1.4 |
 | D35 | **Errori di dominio come errori di validazione** in italiano (redirect con errore), mai un 500 né un 422. | ADR-002 p.4, corretta | 1.2, 1.3, 1.4 |
 | D36 | **Fuso orario.** La connessione PostgreSQL usa `UTC` in modo esplicito: è il comportamento attuale di produzione, da confermare con la query 6 di S.1. Gli orari dei turni sono **l'ora locale dell'evento**. In lettura, un cast comune reinterpreta i timestampTz come ora locale. Finché il cast non c'è, niente confronti in PHP sui timestampTz. | nuova | S.1, 0.1, 1.8 |
 | D37 | **Infrastruttura:** volume Docker per gli allegati (S3 rinviato); runtime PHP 8.4; immagine costruita in CI e pubblicata su GHCR (pubblica, amd64); deploy per tag con le migrazioni come passo separato; freeze calcolato dalle fasi di servizio dei tenant. | ADR-011 | S.3, 2.1, 2.2a, 2.2b, 2.3 |
-| D38 | **Associazioni esterne solo su una VPS in UE.** Il tunnel domestico serve solo per sviluppo e demo. Il trasloco conserva dominio, `APP_KEY` e chiavi VAPID. | ADR-011, domanda 14 | 8.1 |
-| D39 | **Retention a due livelli:** il dettaglio delle iscrizioni si pseudonimizza dopo **3 anni**; il fatto "ha lavorato nel reparto X" resta fino alla cancellazione. Il job gira solo in dry-run finché backup e restore non sono verificati. Si fa dopo la stagione. **⚠ conferma** (anni) | ADR-010, domanda 11 | §9 |
+| D38 | **Associazioni esterne solo su una VPS in UE.** Il tunnel domestico serve solo per sviluppo e demo. Il trasloco conserva dominio, `APP_KEY` e chiavi VAPID. Oggi la produzione gira su un PC di casa: 8.1 è consigliato prima di maggio anche per la sola sagra del maintainer (se cadono la connessione o il PC di casa, la cassa si ferma), ed è obbligatorio prima della prima associazione esterna. | ADR-011, domanda 14 | 8.1 |
+| D39 | **Conservazione fino alla richiesta di cancellazione** (scelta del maintainer, 16/10/2026): lo storico resta finché la persona non chiede di essere cancellata, e la cancellazione la anonimizza (step 1.4). Nessun job di retention automatico. **⚠ aperto:** il GDPR chiede un periodo di conservazione definito; la proposta minima è anonimizzare chi non ha attività da 5 anni, con report in dry-run prima. | ADR-010, domanda 11 | §9 |
 | D40 | **Mercato solo Italia:** `Europe/Rome`, normalizzazione dei telefoni `+39`, niente i18n del frontend. | domanda 16 | §9 |
 | D41 | **Regole di scrittura del codice e dei dati:** niente `try/catch` su errori DB dentro una transazione (si usano `createOrFirst`, savepoint o `ON CONFLICT`); ogni migrazione di dati è preceduta da un comando di controllo con `--dry-run` eseguito in produzione e provata su un dump. | nuova | 1.4, 4.1, 5.2, 6, §9 |
 | D42 | **Open core:** non blocca nulla. Per ora: test architetturale e flag; il registro dei moduli è rinviato al secondo chiamante o alla risposta sul modello open core. | ADR-006 B, ridotta | 0.6, 5.4, §9 |
@@ -216,7 +216,7 @@ stagione.
 |---|---|---|
 | **T0** | entro fine ottobre 2026 | S.1-S.3 fatti: presa di controllo chiusa, registrazione chiusa, allegati e database al sicuro. Decisioni scritte (D). |
 | **T1** | fine gennaio 2027 | Step 0 completo; correzioni puntuali (1.1-1.8); rilascio affidabile (2.1, 2.2a, 2.2b); cassa robusta (4.1-4.4); reparti e replica completa (5.1-5.4); ingresso su invito (8.0). Le associazioni replicano l'edizione tra febbraio e aprile: replica e reparti devono essere pronti prima. |
-| **T2** | 15 aprile 2027 (**freeze strutturale**) | In produzione: strumentazione (3), freeze calcolato (2.3), credenziali (6), minimizzazione (7), roster dei veterani (5.5), requisiti legali (8) ed eventuale trasloco (8.1). Prova generale della cassa (4.5). Ogni blocco della traccia B si fa tutto o si rimanda tutto (§8). |
+| **T2** | 15 aprile 2027 (**freeze strutturale**) | In produzione: strumentazione (3), freeze calcolato (2.3), credenziali (6), minimizzazione (7), roster dei veterani (5.5), requisiti legali (8) ed eventuale trasloco (8.1). Prova generale della cassa (4.5) e rendiconto per evento (4.6). Ogni blocco della traccia B si fa tutto o si rimanda tutto (§8). |
 | Stagione | maggio-settembre 2027 | Solo hotfix, con il freeze calcolato (2.3). Raccolta delle misure. |
 | Dopo | da ottobre 2027 | Traccia C (§9), decisa sulle misure. |
 
@@ -949,6 +949,7 @@ D29 (⚠ conferma prima di iniziare) · Stima: 1 giorno
     contatore;
   - nessun backfill: il calcolo si autoripara se una versione precedente ha
     venduto dopo la migrazione (§4), quindi non c'è una migrazione di dati.
+- *Caso reale:* nella sagra del maintainer vendono 2 casse in contemporanea.
 - *Test* (gruppo `pgsql`):
   - 4 processi × 25 vendite con UUID distinti → **zero** fallimenti, numeri
     unici e contigui. Oggi la stessa prova perde dal 6 al 9% delle vendite
@@ -991,13 +992,19 @@ Stima: 1 giorno
     l'ordine nasce pagato;
   - tabella `order_payment_changes` (`order_id`, `paid`, `person_id`
     nullable, `created_at`); la colonna `device_id` arriva con 11.2;
+  - metodo di pagamento su ogni ordine: contanti, carta o misto (per chi
+    certifica è un dato che l'Agenzia incrocia con il POS);
+  - per chi certifica con uno strumento esterno, un campo facoltativo con il
+    numero dello scontrino emesso fuori da Fieste (modalità affiancata, D32);
   - riepilogo per cassa e per serata (ordini, totale pagato e non pagato,
-    cambi di pagamento), visibile all'organizzatore.
+    per metodo di pagamento, cambi di pagamento), visibile all'organizzatore;
+  - schermate e stampe della cassa marcate "documento non fiscale".
 
   È indipendente dal regime fiscale. La "chiusura serata" fiscale (A2)
   aspetta la risposta del commercialista (§9).
 - *Test:* un ordine creato pagato ha `paid_by` uguale al cassiere; ogni cambio
-  di `paid` lascia una riga con l'autore; riepilogo su dati di factory.
+  di `paid` lascia una riga con l'autore; il metodo di pagamento è salvato e
+  sommato nel riepilogo; riepilogo su dati di factory.
 
 **4.5 — Prova generale della cassa** · ADR-008 · Dipende da: 4.1-4.4, 3.2;
 più 1.1 e 7 per la modalità di ripiego, oppure 11 per la modalità dispositivo ·
@@ -1009,6 +1016,15 @@ Decisione: D30, D31 · Stima: mezza giornata
 - *Completato quando* esiste una checklist firmata, nessun ordine risulta
   perso o duplicato e la telemetria di 3.2 ha registrato le interruzioni
   simulate.
+
+**4.6 — Rendiconto per evento** · ADR-008 · Dipende da: 4.4 · Decisione: D32 ·
+Stima: 1 giorno
+- *Cosa:* rendiconto esportabile (CSV e PDF) per evento: entrate della cassa
+  per giorno e metodo di pagamento, uscite del modulo Forniture, saldo. È il
+  documento che serve per il rendiconto delle raccolte fondi di comitati,
+  parrocchie ed enti del Terzo settore (`04-fiscalita-cassa.md`).
+- *Test:* totali su dati di factory; un evento senza Forniture attivo esporta
+  solo le entrate; nessun dato di un altro tenant.
 
 ### 5 — Reparti stabili e replica completa (ADR-007)
 
@@ -1345,6 +1361,9 @@ Dipende da: 9.1, 0.2, 6, 5.1 · Stima complessiva: 4 giorni
 
 ### 11 — Accesso per dispositivo e modalità postazione (ADR-008 8b, ADR-013 B)
 
+> Se D30 si chiude con "account dedicato nel 2027", questo blocco passa in
+> traccia C.
+
 Dipende da: 9.1, 4.1, 4.4, 3.2 (e 10.1 se è stato fatto) · Decisione:
 D23, D29, D30 · Stima complessiva: 4-5 giorni
 
@@ -1425,10 +1444,10 @@ Dipende da: 0.12 · Stima: 2 giorni
 
 | # | Step | Condizione per iniziarlo |
 |---|---|---|
-| 14 | **Chiusura di cassa fiscale / riepilogo dei corrispettivi** (ADR-008 A2) | Risposta del commercialista (D32). Se la risposta dice che serve per la stagione 2027, sale nella traccia A. Se serve un registratore telematico, prima va riaperto l'ADR-008. |
+| 14 | **Chiusura di cassa fiscale / profilo fiscale dell'evento** (ADR-008 A2) | Risposta del commercialista (D32). Se l'organizzatore della sagra deve certificare, la modalità affiancata di 4.4 copre il 2027; un'integrazione con i registratori o con le "soluzioni software" previste dal 2027 si valuta dopo. |
 | 15 | **Cassa offline** (ADR-008 B) | Le misure del 3.2 mostrano perdite o ritardi significativi |
 | 16 | **Normalizzazione dei telefoni** (ADR-004), in tre step: colonna `phone_e164` e report dei duplicati; strumento per unire le persone; normalizzatore unico più indice. Inverte `test_bug_adr004_same_number_in_two_formats_is_accepted_twice` (0.4). | D40; dopo la stagione |
-| 17 | **Retention** (ADR-010) a due livelli, con job in dry-run e report mensile | D39 confermata; S.3 con restore verificato; 5 fatto |
+| 17 | **Anonimizzazione per inattività** (ADR-010), con job in dry-run e report mensile | Solo se il maintainer accetta la regola proposta in D39; S.3 con restore verificato; 5 fatto |
 | 18 | **Export dei dati di una persona** | Prima richiesta reale, o prima del lancio SaaS |
 | 19 | **Row Level Security** (ADR-003 C): ruolo applicativo non superuser, `NULLIF` nelle policy, reset per job | Dopo 10.1, perché il `TenantContext` e gli hook della coda alimentano il parametro di sessione delle policy; prima di riaprire la registrazione a molti tenant |
 | 20 | **Registro dei moduli e `ModuleDefinition`** (ADR-006 B completo) | Un secondo chiamante reale, oppure la risposta sull'open core |
@@ -1556,18 +1575,23 @@ stessi file:
 
 ## 11. Cosa serve da te
 
-Ho fissato un default per tutto, ma quattro punti li puoi chiudere solo tu.
+Stato al 16 ottobre 2026.
 
-1. **D22: quante associazioni nel 2027, e accompagnate da te?** Confermando il
-   pilota, RLS, registro dei moduli, account globali ed export escono dal
-   percorso verso maggio. In più: oggi in produzione ci sono tenant esterni?
-   Se sì, S.2 va in produzione prima di qualsiasi altra cosa, anche questa
-   settimana.
-2. **D32: il consulto con il commercialista entro novembre.** È l'unica
-   informazione che può ribaltare il design della cassa.
-3. **D29 e D30: il modello della cassa.** Numero per evento (default) o
-   `A-042`, e accesso per dispositivo con il ripiego dell'account dedicato.
-4. **D39: gli anni di retention.** Non è urgente: serve solo dopo la stagione.
+**Deciso:** stagione pilota (D22); conservazione dei dati fino alla richiesta
+di cancellazione (D39); tutti gli altri default.
 
-Per tutto il resto, dimmi solo quali default non ti vanno. Lo step D li
-trascrive nelle decisioni del progetto.
+**Ancora aperto:**
+
+1. **D32, il consulto con il commercialista entro novembre**, con le domande
+   di `04-fiscalita-cassa.md`. Prima ancora: quale forma giuridica ha chi
+   organizza la vostra sagra (Pro Loco, APS iscritta al RUNTS, comitato,
+   parrocchia), e accettate pagamenti con carta?
+2. **D29, la numerazione.** Il cliente oggi riceve un foglietto per ogni punto
+   di ritiro (bar, cucina)? Se sì, serve un numero per reparto e la stampa
+   delle comande; se no, basta un numero unico per ordine.
+3. **D26 e D30, i sistemi di accesso.** Link magico o password per i
+   responsabili; account dedicato o token di dispositivo per le casse nel
+   2027.
+4. **D38, il server.** Spostare la produzione dal PC di casa a una VPS in UE
+   prima di maggio.
+5. **D39, la regola per chi è inattivo** da 5 anni: sì o no.
