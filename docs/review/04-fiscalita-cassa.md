@@ -28,6 +28,15 @@
    buona cassa gestionale, che funziona da sola per gli esonerati e **accanto**
    a un registratore per chi deve certificare.
 
+## Il caso della sagra pilota
+
+L'organizzazione pilota è una **ODV iscritta al RUNTS**. Se ha scelto il
+regime forfettario dell'art. 86 e resta sotto 85.000 € di proventi
+commerciali, secondo le fonti trovate **non deve emettere scontrini fiscali**:
+i tagliandi stampati da Fieste, marcati "documento non fiscale", bastano.
+Restano il rendiconto e la conservazione dei documenti. È la domanda 2 qui
+sotto: la prima da fare al commercialista.
+
 ## I tre profili tipici
 
 | Chi organizza la sagra | Scontrino? | Registratore? | Pagamenti con carta (POS) | Affidabilità |

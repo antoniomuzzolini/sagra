@@ -186,20 +186,20 @@ usa: cambiarne uno tocca solo gli step indicati. Lo step **D** le trascrive in
 | D23 | **Use-case-first** al posto di API-first. Ogni mutazione con effetti collaterali o con più ingressi passa da una Action, che riceve l'attore e verifica l'autorizzazione d'ingresso. D12 (MCP in Python) sospesa. | Regola 4, D5 (parte API), D12 | 1.4, 1.7, 4.1, 5.4, 9, 11 |
 | D24 | **I Turni sono un modulo di base.** Il flag per evento nasconde l'interfaccia **e** silenzia le notifiche automatiche. | D21 (parte Turni) | 1.6 |
 | D25 | **Credenziali globali.** Un'email associata a una password è unica su tutta l'istanza; l'anagrafica resta per tenant. Il **login** considera solo le righe con password, ordinate per id. **Recupero e reset preferiscono** la riga con password senza escludere le altre, perché l'invito imposta la prima password. L'**invito account** rifiuta un'email presente in qualunque altro tenant, con o senza password, finché il token resta legato all'email. **Limite noto:** un volontario presente in più associazioni con la stessa email non può ricevere un invito account (fino ad ADR-004 C). | ADR-004 D, corretta | S.2, 6 |
-| D26 | **Magic link ammesso ai responsabili** (rivede D19), legato alla minimizzazione (step 7) e al ruolo per edizione (9.4). Fino ad allora è un rischio noto, dichiarato. **⚠ in discussione:** il maintainer teme che più sistemi di accesso complichino codice e uso; l'alternativa è l'invito con password per i responsabili. | D19 | 7, 9.4 |
+| D26 | **Accesso dei responsabili.** **⚠ in discussione.** Il maintainer preferisce che ogni utente completi la registrazione e poi faccia login. Proposta (vedi la risposta del 16/10): **responsabili e organizzatori** entrano con invito, completano la registrazione con una password e poi fanno login (è il D19 originale, e l'invito account esiste già); **i volontari** restano con il link magico. Costo: mezza giornata (email obbligatoria per nominare un responsabile, niente link magico per chi ha un ruolo). | D19 | 7, 9.4 |
 | D27 | **Ruolo per edizione.** Dà accesso operativo finché l'edizione non è conclusa, più **30 giorni** (per le fatture che arrivano dopo la sagra). Dopo, l'edizione resta in **sola lettura** per chi vi ha avuto un ruolo: Panoramica, Calendario, Volontari dell'edizione (contatti mascherati), Gestione turni senza azioni, senza elenco di tutte le persone e senza link d'invito, Forniture senza scrittura. Cassa e Comande rispondono 403. `auth.role` resta `manager`. Le Policy controllano l'evento del **record**, non quello della sessione. Tabella completa in 9.4. | ADR-005, domanda 9 | 0.3, 9.4 |
 | D28 | **Reparto stabile per tenant** (`departments`) per appartenenza, notifiche e replica. Ruoli e roster restano per edizione. Il roster del responsabile mostra anche i **veterani del reparto delle ultime 3 edizioni**, con i contatti mascherati. | ADR-007, domanda 10 | 5 |
-| D29 | **Cassa:** contatore con lock e idempotenza obbligatoria; ogni ordine registra la sua cassa, e una cassa con ordini non si cancella; cambi di pagamento tracciati; riepilogo per cassa e per serata. **⚠ in discussione, la numerazione:** il maintainer propone un numero separato per ogni punto di ritiro (bar, cucina). Corrisponde a un numero **per reparto di preparazione**, non per cassa (la cassa principale vende tutto), e richiede comande stampate per reparto, che Fieste oggi non produce. Default in attesa: numero unico per ordine. Caso reale: 2 casse in contemporanea, una per tutto e una per bevande e patatine. | ADR-008, domanda 2 | 1.1, 4, 11 |
-| D30 | **Accesso per dispositivo** come attore separato: rotte proprie, non autentica mai una persona, revocabile. Ripiego 2027 se non è pronto entro il 15 aprile: un account dedicato con ruolo solo sull'area Cassa. **⚠ in discussione:** visto il timore sulla complessità (D26), la proposta per il 2027 è usare direttamente l'account dedicato, senza un terzo sistema di accesso; il token di dispositivo resta in traccia C. | ADR-008 B (8b) | 4.5, 11 |
+| D29 | **Cassa.** Contatore con lock e idempotenza obbligatoria; ogni ordine registra la sua cassa, e una cassa con ordini non si cancella; cambi di pagamento tracciati; riepilogo per cassa e per serata. **Numerazione e tagliandi** (dal flusso reale della sagra pilota, 16/10/2026): un **numero unico per ordine**, assegnato **solo agli ordini con piatti da preparare**, così la cucina chiama una sequenza senza buchi anche quando la cassa bevande vende; **un tagliando per ogni piatto** con il punto di ritiro stampato (oggi scritto a mano); **le bevande a tagliandino**, senza numero e senza coda, ritirate quando si vuole. Fieste stampa tutti i tagliandi (step 4.7). Caso reale: 2 casse in contemporanea, una per tutto e una per bevande e patatine. | ADR-008, domanda 2 | 1.1, 4, 11 |
+| D30 | **Casse nel 2027: un account dedicato** con ruolo solo sull'area Cassa, già collegato sui tablet; nessun terzo sistema di accesso (proposta del 16/10, in attesa di conferma insieme a D26). L'accesso per dispositivo con QR (attore separato, rotte proprie, revocabile) resta in traccia C. | ADR-008 B (8b) | 4.5, 11 |
 | D31 | **Cassa offline** decisa a **ottobre 2027** sui dati raccolti in stagione. La strumentazione è obbligatoria prima di maggio. | ADR-008 B | 3.2, 4.5, §9 |
-| D32 | **Fiscalità:** Fieste **non emette documenti fiscali**: è una cassa gestionale, che per chi deve certificare lavora affiancata a un registratore telematico o alla procedura web dell'Agenzia. Le comande sono marcate "documento non fiscale". La ricerca del 16/10/2026 (`04-fiscalita-cassa.md`) ha trovato che **le Pro Loco hanno perso il regime 398/91 dal 2026**. Consulto con un commercialista **entro novembre 2026** con le domande di quel documento. **⚠ azione tua** | ADR-008 | 4.4, §9 |
+| D32 | **Fiscalità:** Fieste **non emette documenti fiscali**: è una cassa gestionale, che per chi deve certificare lavora affiancata a un registratore telematico o alla procedura web dell'Agenzia. Le comande sono marcate "documento non fiscale". La ricerca del 16/10/2026 (`04-fiscalita-cassa.md`) ha trovato che **le Pro Loco hanno perso il regime 398/91 dal 2026**. Consulto con un commercialista **entro novembre 2026** con le domande di quel documento. L'organizzazione pilota è una **ODV iscritta al RUNTS**: se è nel regime forfettario dell'art. 86 e resta sotto 85.000 € di proventi commerciali, secondo le fonti non deve emettere scontrini fiscali (domanda 2 del documento, da confermare). **⚠ azione tua** | ADR-008 | 4.4, §9 |
 | D33 | **Un evento con ordini, forniture o allegati non si cancella.** | nuova | 1.3 |
 | D34 | **Un solo percorso di cancellazione delle persone**, cioè l'anonimizzazione, con indici unici parziali `WHERE deleted_at IS NULL`. | ADR-010 A, ADR-004 | 1.4 |
 | D35 | **Errori di dominio come errori di validazione** in italiano (redirect con errore), mai un 500 né un 422. | ADR-002 p.4, corretta | 1.2, 1.3, 1.4 |
 | D36 | **Fuso orario.** La connessione PostgreSQL usa `UTC` in modo esplicito: è il comportamento attuale di produzione, da confermare con la query 6 di S.1. Gli orari dei turni sono **l'ora locale dell'evento**. In lettura, un cast comune reinterpreta i timestampTz come ora locale. Finché il cast non c'è, niente confronti in PHP sui timestampTz. | nuova | S.1, 0.1, 1.8 |
 | D37 | **Infrastruttura:** volume Docker per gli allegati (S3 rinviato); runtime PHP 8.4; immagine costruita in CI e pubblicata su GHCR (pubblica, amd64); deploy per tag con le migrazioni come passo separato; freeze calcolato dalle fasi di servizio dei tenant. | ADR-011 | S.3, 2.1, 2.2a, 2.2b, 2.3 |
 | D38 | **Associazioni esterne solo su una VPS in UE.** Il tunnel domestico serve solo per sviluppo e demo. Il trasloco conserva dominio, `APP_KEY` e chiavi VAPID. Oggi la produzione gira su un PC di casa: 8.1 è consigliato prima di maggio anche per la sola sagra del maintainer (se cadono la connessione o il PC di casa, la cassa si ferma), ed è obbligatorio prima della prima associazione esterna. | ADR-011, domanda 14 | 8.1 |
-| D39 | **Conservazione fino alla richiesta di cancellazione** (scelta del maintainer, 16/10/2026): lo storico resta finché la persona non chiede di essere cancellata, e la cancellazione la anonimizza (step 1.4). Nessun job di retention automatico. **⚠ aperto:** il GDPR chiede un periodo di conservazione definito; la proposta minima è anonimizzare chi non ha attività da 5 anni, con report in dry-run prima. | ADR-010, domanda 11 | §9 |
+| D39 | **Conservazione fino alla richiesta di cancellazione** (scelta del maintainer, 16/10/2026): lo storico resta finché la persona non chiede di essere cancellata, e la cancellazione la anonimizza (step 1.4). In più, **chi non ha attività da 5 anni viene anonimizzato** (confermato il 16/10), con un report in dry-run prima dell'esecuzione. Si fa dopo la stagione. | ADR-010, domanda 11 | §9 |
 | D40 | **Mercato solo Italia:** `Europe/Rome`, normalizzazione dei telefoni `+39`, niente i18n del frontend. | domanda 16 | §9 |
 | D41 | **Regole di scrittura del codice e dei dati:** niente `try/catch` su errori DB dentro una transazione (si usano `createOrFirst`, savepoint o `ON CONFLICT`); ogni migrazione di dati è preceduta da un comando di controllo con `--dry-run` eseguito in produzione e provata su un dump. | nuova | 1.4, 4.1, 5.2, 6, §9 |
 | D42 | **Open core:** non blocca nulla. Per ora: test architetturale e flag; il registro dei moduli è rinviato al secondo chiamante o alla risposta sul modello open core. | ADR-006 B, ridotta | 0.6, 5.4, §9 |
@@ -216,12 +216,12 @@ stagione.
 |---|---|---|
 | **T0** | entro fine ottobre 2026 | S.1-S.3 fatti: presa di controllo chiusa, registrazione chiusa, allegati e database al sicuro. Decisioni scritte (D). |
 | **T1** | fine gennaio 2027 | Step 0 completo; correzioni puntuali (1.1-1.8); rilascio affidabile (2.1, 2.2a, 2.2b); cassa robusta (4.1-4.4); reparti e replica completa (5.1-5.4); ingresso su invito (8.0). Le associazioni replicano l'edizione tra febbraio e aprile: replica e reparti devono essere pronti prima. |
-| **T2** | 15 aprile 2027 (**freeze strutturale**) | In produzione: strumentazione (3), freeze calcolato (2.3), credenziali (6), minimizzazione (7), roster dei veterani (5.5), requisiti legali (8) ed eventuale trasloco (8.1). Prova generale della cassa (4.5) e rendiconto per evento (4.6). Ogni blocco della traccia B si fa tutto o si rimanda tutto (§8). |
+| **T2** | 15 aprile 2027 (**freeze strutturale**) | In produzione: strumentazione (3), freeze calcolato (2.3), credenziali (6), minimizzazione (7), roster dei veterani (5.5), requisiti legali (8) ed eventuale trasloco (8.1). Stampa dei tagliandi (4.7), prova generale della cassa (4.5) e rendiconto per evento (4.6). Ogni blocco della traccia B si fa tutto o si rimanda tutto (§8). |
 | Stagione | maggio-settembre 2027 | Solo hotfix, con il freeze calcolato (2.3). Raccolta delle misure. |
 | Dopo | da ottobre 2027 | Traccia C (§9), decisa sulle misure. |
 
-**Capacità.** Traccia S, step D, step 0 e traccia A valgono circa 40 giorni di
-lavoro; la traccia B circa 20. A due giorni a settimana, da metà ottobre a
+**Capacità.** Traccia S, step D, step 0 e traccia A valgono circa 43 giorni di
+lavoro (compresa la stampa dei tagliandi); la traccia B circa 20. A due giorni a settimana, da metà ottobre a
 metà aprile ci sono circa 50 giorni: la traccia A ci sta, la B solo in parte.
 
 **Linea di taglio.** Se a fine febbraio T1 non è chiuso, la traccia B slitta a
@@ -1006,11 +1006,11 @@ Stima: 1 giorno
   di `paid` lascia una riga con l'autore; il metodo di pagamento è salvato e
   sommato nel riepilogo; riepilogo su dati di factory.
 
-**4.5 — Prova generale della cassa** · ADR-008 · Dipende da: 4.1-4.4, 3.2;
+**4.5 — Prova generale della cassa** · ADR-008 · Dipende da: 4.1-4.4, 4.7, 3.2;
 più 1.1 e 7 per la modalità di ripiego, oppure 11 per la modalità dispositivo ·
 Decisione: D30, D31 · Stima: mezza giornata
-- *Cosa:* simulazione in staging con 3 casse e lo schermo cucina, rete
-  rallentata e interruzioni, nella modalità che andrà in stagione: token di
+- *Cosa:* simulazione in staging con 2-3 casse, le stampanti reali e lo
+  schermo cucina, rete rallentata e interruzioni, nella modalità che andrà in stagione: token di
   dispositivo se il blocco 11 è in produzione, altrimenti l'account dedicato
   di D30.
 - *Completato quando* esiste una checklist firmata, nessun ordine risulta
@@ -1025,6 +1025,36 @@ Stima: 1 giorno
   parrocchie ed enti del Terzo settore (`04-fiscalita-cassa.md`).
 - *Test:* totali su dati di factory; un evento senza Forniture attivo esporta
   solo le entrate; nessun dato di un altro tenant.
+
+**4.7 — Stampa di tagliandi e numero** · ADR-008 · Dipende da: 4.1, 4.2 ·
+Decisione: D29, D32 · Stima: 2-3 giorni, più la prova con le stampanti reali
+- *Prima del cambio:* sapere quali dispositivi usano le casse (PC, tablet
+  Android, iPad) e quali stampanti (termiche da 80 o 58 mm; USB, rete o
+  Bluetooth). Da lì dipende come si stampa senza finestre di dialogo.
+- *Cosa:*
+  - per ogni prodotto, una modalità: **in coda** (ha un'area di preparazione,
+    finisce sullo schermo cucina) oppure **a tagliandino** (nessuna coda; oggi
+    sono già così i prodotti senza area);
+  - `orders.number` diventa nullable: il contatore di 4.2 assegna un numero
+    solo agli ordini con almeno un prodotto in coda;
+  - dopo l'incasso la cassa stampa: un tagliando per ogni piatto con il punto
+    di ritiro (area e sotto-reparto del prodotto); un tagliando con il numero
+    d'ordine, se c'è; un tagliandino per ogni prodotto a tagliandino;
+  - tutti i tagliandi riportano "documento non fiscale";
+  - ristampa di un ordine con la dicitura "copia";
+  - stampa dal browser con un layout per rotolo termico e stampa silenziosa
+    configurata sul dispositivo (su PC, Chrome con `--kiosk-printing`; su
+    Android, un servizio di stampa per stampanti termiche). Niente driver
+    dentro Fieste.
+- *Test:*
+  - feature test: un ordine di sole bevande non consuma numeri; un ordine
+    misto ha un numero; i numeri della cucina restano contigui con due casse
+    che vendono insieme (gruppo `pgsql`);
+  - Vitest: un ordine con 2 piatti in due punti di ritiro e 3 bevande produce
+    2 tagliandi piatto, 1 tagliando numero e 3 tagliandini, con i testi
+    attesi.
+- *Completato quando* la stampa funziona sui dispositivi e sulle stampanti
+  reali della sagra pilota (verificato nella prova generale 4.5).
 
 ### 5 — Reparti stabili e replica completa (ADR-007)
 
@@ -1447,7 +1477,7 @@ Dipende da: 0.12 · Stima: 2 giorni
 | 14 | **Chiusura di cassa fiscale / profilo fiscale dell'evento** (ADR-008 A2) | Risposta del commercialista (D32). Se l'organizzatore della sagra deve certificare, la modalità affiancata di 4.4 copre il 2027; un'integrazione con i registratori o con le "soluzioni software" previste dal 2027 si valuta dopo. |
 | 15 | **Cassa offline** (ADR-008 B) | Le misure del 3.2 mostrano perdite o ritardi significativi |
 | 16 | **Normalizzazione dei telefoni** (ADR-004), in tre step: colonna `phone_e164` e report dei duplicati; strumento per unire le persone; normalizzatore unico più indice. Inverte `test_bug_adr004_same_number_in_two_formats_is_accepted_twice` (0.4). | D40; dopo la stagione |
-| 17 | **Anonimizzazione per inattività** (ADR-010), con job in dry-run e report mensile | Solo se il maintainer accetta la regola proposta in D39; S.3 con restore verificato; 5 fatto |
+| 17 | **Anonimizzazione per inattività** (ADR-010): chi non ha attività da 5 anni, con job in dry-run e report mensile | D39 (confermata); S.3 con restore verificato; 5 fatto |
 | 18 | **Export dei dati di una persona** | Prima richiesta reale, o prima del lancio SaaS |
 | 19 | **Row Level Security** (ADR-003 C): ruolo applicativo non superuser, `NULLIF` nelle policy, reset per job | Dopo 10.1, perché il `TenantContext` e gli hook della coda alimentano il parametro di sessione delle policy; prima di riaprire la registrazione a molti tenant |
 | 20 | **Registro dei moduli e `ModuleDefinition`** (ADR-006 B completo) | Un secondo chiamante reale, oppure la risposta sull'open core |
@@ -1507,6 +1537,9 @@ flowchart LR
     A11 --> D44
     D43 --> C32[3.2 strumentazione cassa]
     O12 --> C32
+    D41 --> D47[4.7 stampa tagliandi]
+    D42 --> D47
+    D47 --> D45
     D42 --> D45[4.5 prova generale]
     D43 --> D45
     D44 --> D45
@@ -1577,21 +1610,20 @@ stessi file:
 
 Stato al 16 ottobre 2026.
 
-**Deciso:** stagione pilota (D22); conservazione dei dati fino alla richiesta
-di cancellazione (D39); tutti gli altri default.
+**Deciso:** stagione pilota (D22); conservazione fino alla richiesta di
+cancellazione, più anonimizzazione dopo 5 anni di inattività (D39);
+numerazione e tagliandi secondo il flusso reale della sagra (D29); tutti gli
+altri default.
 
 **Ancora aperto:**
 
 1. **D32, il consulto con il commercialista entro novembre**, con le domande
-   di `04-fiscalita-cassa.md`. Prima ancora: quale forma giuridica ha chi
-   organizza la vostra sagra (Pro Loco, APS iscritta al RUNTS, comitato,
-   parrocchia), e accettate pagamenti con carta?
-2. **D29, la numerazione.** Il cliente oggi riceve un foglietto per ogni punto
-   di ritiro (bar, cucina)? Se sì, serve un numero per reparto e la stampa
-   delle comande; se no, basta un numero unico per ordine.
-3. **D26 e D30, i sistemi di accesso.** Link magico o password per i
-   responsabili; account dedicato o token di dispositivo per le casse nel
-   2027.
-4. **D38, il server.** Spostare la produzione dal PC di casa a una VPS in UE
+   di `04-fiscalita-cassa.md`. La vostra è una ODV iscritta al RUNTS: la
+   domanda chiave è se siete nel regime forfettario dell'art. 86.
+2. **D26 e D30, l'accesso:** responsabili con registrazione e password,
+   volontari con link magico, casse con un account dedicato.
+3. **Step 4.7, la stampa:** quali dispositivi e quali stampanti usano le
+   casse.
+4. **D38, il server:** spostare la produzione dal PC di casa a una VPS in UE
    prima di maggio.
-5. **D39, la regola per chi è inattivo** da 5 anni: sì o no.
+5. **S.2:** l'ok a chiudere subito la registrazione pubblica.
