@@ -189,9 +189,9 @@ usa: cambiarne uno tocca solo gli step indicati. Lo step **D** le trascrive in
 | D26 | **Accesso per ruolo** (✔ confermato il 16/10/2026). **Responsabili e organizzatori** entrano con invito, completano la registrazione con una password e poi fanno login (il D19 originale; l'invito account esiste già). **I volontari** restano con il link magico. Per nominare un responsabile serve l'email; chi ha un ruolo o una password non riceve link magici. | D19 | 1.9, 7, 9.4 |
 | D27 | **Ruolo per edizione.** Dà accesso operativo finché l'edizione non è conclusa, più **30 giorni** (per le fatture che arrivano dopo la sagra). Dopo, l'edizione resta in **sola lettura** per chi vi ha avuto un ruolo: Panoramica, Calendario, Volontari dell'edizione (contatti mascherati), Gestione turni senza azioni, senza elenco di tutte le persone e senza link d'invito, Forniture senza scrittura. Cassa e Comande rispondono 403. `auth.role` resta `manager`. Le Policy controllano l'evento del **record**, non quello della sessione. Tabella completa in 9.4. | ADR-005, domanda 9 | 0.3, 9.4 |
 | D28 | **Reparto stabile per tenant** (`departments`) per appartenenza, notifiche e replica. Ruoli e roster restano per edizione. Il roster del responsabile mostra anche i **veterani del reparto delle ultime 3 edizioni**, con i contatti mascherati. | ADR-007, domanda 10 | 5 |
-| D29 | **Cassa.** Contatore con lock e idempotenza obbligatoria; ogni ordine registra la sua cassa, e una cassa con ordini non si cancella; cambi di pagamento tracciati; riepilogo per cassa e per serata. **Numerazione e tagliandi** (dal flusso reale della sagra pilota, 16/10/2026): un **numero unico per ordine**, assegnato **solo agli ordini con piatti da preparare**, così la cucina chiama una sequenza senza buchi anche quando la cassa bevande vende; **un tagliando per ogni piatto** con il punto di ritiro stampato (oggi scritto a mano); **le bevande a tagliandino**, senza numero e senza coda, ritirate quando si vuole. Fieste stampa tutti i tagliandi (step 4.7). Caso reale: 2 casse in contemporanea, una per tutto e una per bevande e patatine. **⚠ aperto:** oggi la sagra pilota usa un sistema di cassa **a noleggio**, configurato a inizio sagra, che stampa scontrini e tagliandini e ha un display per i numeri. Va deciso se nel 2027 Fieste lo sostituisce (servono allora dispositivi, stampanti e un display propri: step 4.7 e 4.8) oppure no. | ADR-008, domanda 2 | 1.1, 4, 11 |
+| D29 | **Cassa.** Contatore con lock e idempotenza obbligatoria; ogni ordine registra la sua cassa, e una cassa con ordini non si cancella; cambi di pagamento tracciati; riepilogo per cassa e per serata. **Numerazione e tagliandi** (dal flusso reale della sagra pilota, 16/10/2026): un **numero unico per ordine**, assegnato **solo agli ordini con piatti da preparare**, così la cucina chiama una sequenza senza buchi anche quando la cassa bevande vende; **un tagliando per ogni piatto** con il punto di ritiro stampato (oggi scritto a mano); **le bevande a tagliandino**, senza numero e senza coda, ritirate quando si vuole. Fieste stampa tutti i tagliandi (step 4.7). Caso reale: 2 casse in contemporanea, una per tutto e una per bevande e patatine. **✔ Deciso il 16/10/2026:** alla sagra 2027 resta la cassa **a noleggio** (configurata a inizio sagra, stampa scontrini e tagliandini, ha un display per i numeri). La cassa di Fieste si prova prima su **eventi piccoli**; sostituire il noleggio si valuta per il 2028, con dispositivi, stampanti e un display propri (step 4.7 e 4.8). | ADR-008, domanda 2 | 1.1, 4, 11 |
 | D30 | **Casse nel 2027: un account dedicato** con password e ruolo solo sull'area Cassa, già collegato sui tablet (✔ confermato il 16/10/2026). Nessun terzo sistema di accesso. L'accesso per dispositivo con QR resta in traccia C. | ADR-008 B (8b) | 4.5, 11 |
-| D31 | **Cassa offline** decisa a **ottobre 2027** sui dati raccolti in stagione. La strumentazione è obbligatoria prima di maggio. | ADR-008 B | 3.2, 4.5, §9 |
+| D31 | **Cassa offline** decisa a **ottobre 2027** sui dati raccolti durante gli eventi piccoli in cui si prova la cassa di Fieste (D29). La strumentazione va attivata prima del primo di questi eventi. | ADR-008 B | 3.2, 4.5, §9 |
 | D32 | **Fiscalità:** Fieste **non emette documenti fiscali**: è una cassa gestionale, che per chi deve certificare lavora affiancata a un registratore telematico o alla procedura web dell'Agenzia. Le comande sono marcate "documento non fiscale". La ricerca del 16/10/2026 (`04-fiscalita-cassa.md`) ha trovato che **le Pro Loco hanno perso il regime 398/91 dal 2026**. Consulto con un commercialista **entro novembre 2026** con le domande di quel documento. L'organizzazione pilota è una **ODV iscritta al RUNTS**: se è nel regime forfettario dell'art. 86 e resta sotto 85.000 € di proventi commerciali, secondo le fonti non deve emettere scontrini fiscali (domanda 2 del documento, da confermare). **⚠ azione tua** | ADR-008 | 4.4, §9 |
 | D33 | **Un evento con ordini, forniture o allegati non si cancella.** | nuova | 1.3 |
 | D34 | **Un solo percorso di cancellazione delle persone**, cioè l'anonimizzazione, con indici unici parziali `WHERE deleted_at IS NULL`. | ADR-010 A, ADR-004 | 1.4 |
@@ -215,18 +215,25 @@ stagione.
 | Traguardo | Data | Cosa deve essere vero |
 |---|---|---|
 | **T0** | entro fine ottobre 2026 | S.1, S.2a e S.3 fatti: registrazione chiusa (✔), allegati e database al sicuro. Decisioni scritte (D). |
-| **T1** | fine gennaio 2027 | Credenziali tra associazioni (S.2b); step 0 completo; correzioni puntuali (1.1-1.8); rilascio affidabile (2.1, 2.2a, 2.2b); cassa robusta (4.1-4.4); reparti e replica completa (5.1-5.4); ingresso su invito (8.0). Le associazioni replicano l'edizione tra febbraio e aprile: replica e reparti devono essere pronti prima. |
-| **T2** | 15 aprile 2027 (**freeze strutturale**) | In produzione: strumentazione (3), freeze calcolato (2.3), credenziali (6), minimizzazione (7), roster dei veterani (5.5), requisiti legali (8) ed eventuale trasloco (8.1). Stampa dei tagliandi (4.7), prova generale della cassa (4.5) e rendiconto per evento (4.6). Ogni blocco della traccia B si fa tutto o si rimanda tutto (§8). |
-| Stagione | maggio-settembre 2027 | Solo hotfix, con il freeze calcolato (2.3). Raccolta delle misure. |
+| **T1** | fine gennaio 2027 | Credenziali tra associazioni (S.2b); step 0 completo; correzioni puntuali (1.1-1.8); rilascio affidabile (2.1, 2.2a, 2.2b); reparti e replica completa (5.1-5.4); ingresso su invito (8.0). Le associazioni replicano l'edizione tra febbraio e aprile: replica e reparti devono essere pronti prima. |
+| **T2** | 15 aprile 2027 (**freeze strutturale**) | In produzione: strumentazione (3), freeze calcolato (2.3), credenziali (6), minimizzazione (7), roster dei veterani (5.5), requisiti legali (8) e trasloco sul server (8.1). Ogni blocco della traccia B si fa tutto o si rimanda tutto (§8). |
+| Stagione | maggio-settembre 2027 | Solo hotfix, con il freeze calcolato (2.3). Raccolta delle misure. Alla sagra la cassa è quella a noleggio (D29). |
 | Dopo | da ottobre 2027 | Traccia C (§9), decisa sulle misure. |
 
-**Capacità.** Traccia S, step D, step 0 e traccia A valgono circa 43 giorni di
-lavoro (compresa la stampa dei tagliandi); la traccia B circa 20. A due giorni a settimana, da metà ottobre a
-metà aprile ci sono circa 50 giorni: la traccia A ci sta, la B solo in parte.
+**Cassa.** Con la cassa a noleggio alla sagra 2027 (D29), il blocco 4 e gli
+step 3.2 e 1.1 non sono più legati a T1 e T2: si fanno **prima del primo
+evento piccolo** in cui si prova la cassa di Fieste. Vedi l'introduzione del
+blocco 4.
+
+**Capacità.** Traccia S, step D, step 0 e traccia A senza la cassa valgono
+circa 33 giorni di lavoro; la cassa per gli eventi piccoli circa 5; la traccia
+B circa 20. A due giorni a settimana, da metà ottobre a metà aprile ci sono
+circa 50 giorni: la traccia A ci sta, e resta spazio per buona parte della B o
+per la cassa.
 
 **Linea di taglio.** Se a fine febbraio T1 non è chiuso, la traccia B slitta a
-ottobre 2027 e per la cassa si usa il ripiego di D30. In ogni caso gli step
-della traccia A previsti per T2 hanno la precedenza sui blocchi B.
+ottobre 2027. In ogni caso gli step della traccia A previsti per T2 hanno la
+precedenza sui blocchi B e sulla cassa.
 
 ---
 
@@ -928,6 +935,20 @@ giorni
 
 Decisione: D29.
 
+**Quando.** Alla sagra 2027 resta la cassa a noleggio (D29). Il blocco si fa
+prima del **primo evento piccolo** in cui si prova la cassa di Fieste, in
+quest'ordine:
+
+1. **prima del primo evento piccolo:** 1.1, 4.1 (idempotenza), 4.3 (sessione
+   scaduta), 4.4 (traccia e metodo di pagamento), 4.6 (rendiconto), 3.2
+   (strumentazione, per le misure di D31);
+2. **prima di un evento con due o più casse:** 4.2 (numerazione sotto
+   concorrenza);
+3. **prima di un evento con tagliandi stampati o display:** 4.7 e 4.8, sulle
+   stampanti e sul display scelti;
+4. **prima di sostituire la cassa a noleggio (2028):** 4.5, la prova generale
+   completa.
+
 *Prima del cambio, per tutto il blocco (P1 dell'audit)*
 - in `CassaTest`:
   - `test_an_inactive_product_cannot_be_sold`;
@@ -1031,9 +1052,9 @@ Stima: 1 giorno
 più 1.1 e 7 per la modalità di ripiego, oppure 11 per la modalità dispositivo ·
 Decisione: D30, D31 · Stima: mezza giornata
 - *Cosa:* simulazione in staging con 2-3 casse, le stampanti reali e lo
-  schermo cucina, rete rallentata e interruzioni, nella modalità che andrà in stagione: token di
-  dispositivo se il blocco 11 è in produzione, altrimenti l'account dedicato
-  di D30.
+  schermo cucina, rete rallentata e interruzioni, con l'account dedicato di
+  D30 (o con i token di dispositivo, se il blocco 11 è stato fatto). Serve
+  prima di sostituire la cassa a noleggio, non per gli eventi piccoli.
 - *Completato quando* esiste una checklist firmata, nessun ordine risulta
   perso o duplicato e la telemetria di 3.2 ha registrato le interruzioni
   simulate.
@@ -1650,16 +1671,18 @@ Stato al 16 ottobre 2026.
 - conservazione fino alla richiesta di cancellazione, più anonimizzazione dopo
   5 anni di inattività (D39);
 - numerazione e tagliandi secondo il flusso reale della sagra (D29);
+- alla sagra 2027 resta la cassa a noleggio; la cassa di Fieste si prova su
+  eventi piccoli (D29);
 - produzione su un server prima di maggio (D38);
 - tutti gli altri default.
 
-**Fatto:** registrazione chiusa (S.2a).
+**Fatto:** registrazione chiusa (S.2a, da portare in produzione con la
+procedura per gli allegati di §4).
 
 **Ancora aperto:**
 
-1. **D29: nel 2027 Fieste sostituisce la cassa a noleggio?** Se sì, servono
-   dispositivi, stampanti e un display propri, e la prova generale diventa
-   critica. Se no, la traccia della cassa può slittare dopo la stagione.
-2. **D32: il consulto con il commercialista entro novembre**, con le domande
-   di `04-fiscalita-cassa.md`. Utile chiedere anche al noleggiatore se gli
-   scontrini che stampa oggi sono fiscali.
+1. **D32: il consulto con il commercialista**, con le domande di
+   `04-fiscalita-cassa.md`. Non blocca più la sagra 2027, ma va fatto prima
+   del primo evento piccolo con vendite al pubblico gestite da Fieste. Utile
+   chiedere anche al noleggiatore se gli scontrini che stampa oggi sono
+   fiscali.
