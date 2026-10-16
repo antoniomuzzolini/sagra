@@ -214,7 +214,7 @@ stagione.
 
 | Traguardo | Data | Cosa deve essere vero |
 |---|---|---|
-| **T0** | entro fine ottobre 2026 | S.1, S.2a e S.3 fatti: registrazione chiusa (✔), allegati e database al sicuro. Decisioni scritte (D). |
+| **T0** | entro fine ottobre 2026 | S.1, S.2a e S.3 fatti: registrazione chiusa (✔), allegati e database al sicuro. Decisioni scritte (D, ✔). |
 | **T1** | fine gennaio 2027 | Credenziali tra associazioni (S.2b, ✔ codice); step 0 completo; correzioni puntuali (1.1-1.8); rilascio affidabile (2.1, 2.2a, 2.2b); reparti e replica completa (5.1-5.4); ingresso su invito (8.0). Le associazioni replicano l'edizione tra febbraio e aprile: replica e reparti devono essere pronti prima. |
 | **T2** | 15 aprile 2027 (**freeze strutturale**) | In produzione: strumentazione (3), freeze calcolato (2.3), credenziali (6), minimizzazione (7), roster dei veterani (5.5), requisiti legali (8) e trasloco sul server (8.1). Ogni blocco della traccia B si fa tutto o si rimanda tutto (§8). |
 | Stagione | maggio-settembre 2027 | Solo hotfix, con il freeze calcolato (2.3). Raccolta delle misure. Alla sagra la cassa è quella a noleggio (D29). |
@@ -481,9 +481,52 @@ Per ora si eseguono a mano; dal 0.13 li esegue la CI.
 ricreazione del container, e il restore dell'ultimo backup notturno è stato
 provato davvero.
 
-### D — Registro delle decisioni
+### D — Registro delle decisioni ✔ fatto (16/10/2026)
 
 Stima: mezza giornata · in parallelo a S
+
+**Esito.** Il commit tocca solo la documentazione: `docs/dominio-e-decisioni.md`
+e `docs/schema-core.md`.
+- D22–D42 sono trascritte in una sezione nuova di §2, con una colonna
+  *Stato*: default, ✔ confermata o ⚠ azione del maintainer.
+- Le parti superate sono **marcate, non cancellate**: D4, D5, D11–D14, D18,
+  D19, D21; il glossario (Turno, Ruolo, Area, Binding); il §4; il flusso di
+  configurazione; la mappa dei moduli e il kernel del §8; le domande aperte
+  del §6.
+- In `schema-core.md`:
+  - la tabella `users` è segnata come ritirata da D19;
+  - `people`, `assigned_by` e `person_roles` descrivono le colonne vere;
+  - `substitution_requests` è segnata come sostituita da una colonna;
+  - gli indici per `tenant_id` dicono dove si applicano davvero.
+
+Tutte le righe del §8.3 di 01-architettura che toccano questi due documenti
+sono risolte e verificate sul codice. Le righe che citano solo il
+`CLAUDE.md` originale sono fuori perimetro (2, 13, 14). La 15 (D17) era già
+corretta.
+
+Prima del commit due revisori indipendenti hanno controllato il lavoro, uno
+sull'accuratezza e uno sulla completezza. Dei 20 rilievi, 18 sono stati
+corretti dopo una verifica sul codice e 2 respinti come fuori perimetro.
+
+**Deviazioni dal piano**
+1. La regola 4 (API-first) esiste solo nel `CLAUDE.md` originale
+   archiviato, che resta com'è. È marcata come superata in
+   `dominio-e-decisioni.md`, attraverso D23 e il §4.
+2. Sono marcate anche frasi che il §8.3 non elenca, quando una decisione
+   D22–D42 le supera:
+   - D29 e D32 nella riga Ordini/Cassa;
+   - D34 sull'unicità e sul soft delete delle persone;
+   - D34, D39 e lo step 8 nel §6.
+3. **Restano fuori**, perché non sono righe del §8.3 né parti superate da
+   D22–D42, queste divergenze tra documenti e codice:
+   - in `schema-core.md`, global scope e Policy native che non esistono
+     ancora (step 10 e 9) e `declined` che "evita ri-proposte";
+   - nel §8 di `dominio-e-decisioni.md`, note di avanzamento ferme: i
+     sotto-reparti che Ordini/Cassa e Forniture "useranno", e già usano;
+     Forniture "in sviluppo"; l'ordine di costruzione;
+   - nel §7, il catalogo di template.
+4. Una lacuna trovata nella roadmap è annotata nello step 1.9: il recupero
+   dell'accesso.
 
 Trascrivere D22–D42 in `docs/dominio-e-decisioni.md`, marcando come superate
 le parti obsolete:
@@ -898,10 +941,19 @@ Decisione: D26 · Stima: 0,5 giorni
     link magici per chi ha una password o un ruolo da responsabile o
     organizzatore;
   - un comando elenca i responsabili attuali senza email, da sistemare a mano
-    con l'organizzatore.
+    con l'organizzatore;
+  - **anche il recupero** (`RecoveryController`, `/recover`) non manda link
+    magici a chi ha una password o un ruolo, ma lo rimanda al login e a
+    "password dimenticata". Lacuna trovata dallo step D: oggi il recupero
+    manda un link magico a chiunque abbia quell'email o quel telefono.
+  - **Da decidere:** "password dimenticata" permette anche a un volontario
+    con email di darsi una password. Dopo questo step non riceverebbe più
+    link magici. Si può lasciare (diventa un account), oppure limitare il
+    reset a chi ha già una password o un invito.
 - *Test:* nominare un responsabile senza email → errore di validazione; il
-  link magico per un responsabile → rifiutato; un volontario semplice lo
-  riceve ancora; l'invito porta a scegliere la password e poi al login.
+  link magico per un responsabile → rifiutato, anche da `/recover`; un
+  volontario semplice lo riceve ancora; l'invito porta a scegliere la
+  password e poi al login.
 
 ### 2 — Rilascio affidabile
 
@@ -1741,6 +1793,7 @@ Stato al 16 ottobre 2026.
 - tutti gli altri default.
 
 **Fatto:**
+- decisioni D22–D42 trascritte in `docs/dominio-e-decisioni.md` (D);
 - registrazione chiusa (S.2a);
 - credenziali tra associazioni (S.2b): prima del deploy, eseguire le query 1
   e 3 di S.1.
