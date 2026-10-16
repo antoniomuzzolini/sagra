@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
 import { Head, Link } from '@inertiajs/vue3';
+
+defineProps<{
+    canRegister: boolean;
+}>();
 </script>
 
 <template>
@@ -22,7 +26,7 @@ import { Head, Link } from '@inertiajs/vue3';
                 <Button as-child>
                     <Link :href="route('login')">Accedi</Link>
                 </Button>
-                <Button variant="outline" as-child>
+                <Button v-if="canRegister" variant="outline" as-child>
                     <Link :href="route('register')">Registra la tua associazione</Link>
                 </Button>
             </template>

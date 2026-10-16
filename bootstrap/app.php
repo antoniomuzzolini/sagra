@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureManager;
 use App\Http\Middleware\EnsureModuleEnabled;
 use App\Http\Middleware\EnsureOrganizer;
+use App\Http\Middleware\EnsureRegistrationOpen;
 use App\Http\Middleware\EnsureStaff;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
@@ -36,6 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'manager' => EnsureManager::class,
             'staff' => EnsureStaff::class,
             'module' => EnsureModuleEnabled::class,
+            'registration' => EnsureRegistrationOpen::class,
         ]);
 
         // Simple volunteers have no login page: without a valid session the

@@ -44,6 +44,12 @@ docker compose ps
 curl -fsS https://your-domain.example/up   # health endpoint
 ```
 
+Then open `/register` and create your association: you become its organizer.
+Sign-up closes as soon as one association exists, because anyone able to
+create an association could reach the accounts of the others. Set
+`REGISTRATION_ENABLED=true` only if you really want to let other associations
+sign up on their own.
+
 ## Using Neon (managed Postgres) instead of the local DB
 
 1. Remove (or stop) the `db` service in `docker-compose.yml`.

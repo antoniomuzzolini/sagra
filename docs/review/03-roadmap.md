@@ -12,7 +12,7 @@
 > avversariale indipendente, su tre fronti: dipendenze, verificabilità e
 > correttezza tecnica. Un verificatore ha confermato 43 dei 44 rilievi gravi,
 > tutti già applicati qui. Il più importante: il primo fix proposto per la
-> presa di controllo (S.2) **non bastava**.
+> presa di controllo (S.2b) **non bastava**.
 
 ---
 
@@ -45,7 +45,7 @@ dell'altra associazione.
 L'ADR-004 stimava "ore" per la sua raccomandazione D (indice unico parziale),
 ma D **non chiude** nessuna di queste strade. Il problema vale per il SaaS e
 anche per ogni istanza self-hosted, perché la registrazione è aperta ovunque.
-È lo step **S.2**: va fatto prima di tutto il resto.
+Sono gli step **S.2a** (registrazione chiusa, già fatto) e **S.2b** (credenziali, prima della seconda associazione).
 
 ### 1.2 "Accetto tutto" non decide quello che gli ADR lasciavano condizionale
 
@@ -182,15 +182,15 @@ usa: cambiarne uno tocca solo gli step indicati. Lo step **D** le trascrive in
 
 | # | Decisione (default) | Sostituisce / precisa | Step |
 |---|---|---|---|
-| D22 | **Il 2027 è una stagione pilota** con 1-5 associazioni accompagnate. Registrazione pubblica **chiusa** (flag `REGISTRATION_ENABLED`, spento di default); le associazioni entrano con un invito monouso. **✔ confermata** (16/10/2026). Oggi non ci sono associazioni esterne. | ADR-003, ADR-006, ADR-010 (perimetro) | S.2, 8.0, 8, §9 |
+| D22 | **Il 2027 è una stagione pilota** con 1-5 associazioni accompagnate. Registrazione pubblica **chiusa** (flag `REGISTRATION_ENABLED`, spento di default); le associazioni entrano con un invito monouso. **✔ confermata** (16/10/2026). Oggi non ci sono associazioni esterne. | ADR-003, ADR-006, ADR-010 (perimetro) | S.2a, 8.0, 8, §9 |
 | D23 | **Use-case-first** al posto di API-first. Ogni mutazione con effetti collaterali o con più ingressi passa da una Action, che riceve l'attore e verifica l'autorizzazione d'ingresso. D12 (MCP in Python) sospesa. | Regola 4, D5 (parte API), D12 | 1.4, 1.7, 4.1, 5.4, 9, 11 |
 | D24 | **I Turni sono un modulo di base.** Il flag per evento nasconde l'interfaccia **e** silenzia le notifiche automatiche. | D21 (parte Turni) | 1.6 |
-| D25 | **Credenziali globali.** Un'email associata a una password è unica su tutta l'istanza; l'anagrafica resta per tenant. Il **login** considera solo le righe con password, ordinate per id. **Recupero e reset preferiscono** la riga con password senza escludere le altre, perché l'invito imposta la prima password. L'**invito account** rifiuta un'email presente in qualunque altro tenant, con o senza password, finché il token resta legato all'email. **Limite noto:** un volontario presente in più associazioni con la stessa email non può ricevere un invito account (fino ad ADR-004 C). | ADR-004 D, corretta | S.2, 6 |
-| D26 | **Accesso dei responsabili.** **⚠ in discussione.** Il maintainer preferisce che ogni utente completi la registrazione e poi faccia login. Proposta (vedi la risposta del 16/10): **responsabili e organizzatori** entrano con invito, completano la registrazione con una password e poi fanno login (è il D19 originale, e l'invito account esiste già); **i volontari** restano con il link magico. Costo: mezza giornata (email obbligatoria per nominare un responsabile, niente link magico per chi ha un ruolo). | D19 | 7, 9.4 |
+| D25 | **Credenziali globali.** Un'email associata a una password è unica su tutta l'istanza; l'anagrafica resta per tenant. Il **login** considera solo le righe con password, ordinate per id. **Recupero e reset preferiscono** la riga con password senza escludere le altre, perché l'invito imposta la prima password. L'**invito account** rifiuta un'email presente in qualunque altro tenant, con o senza password, finché il token resta legato all'email. **Limite noto:** un volontario presente in più associazioni con la stessa email non può ricevere un invito account (fino ad ADR-004 C). | ADR-004 D, corretta | S.2b, 6 |
+| D26 | **Accesso per ruolo** (✔ confermato il 16/10/2026). **Responsabili e organizzatori** entrano con invito, completano la registrazione con una password e poi fanno login (il D19 originale; l'invito account esiste già). **I volontari** restano con il link magico. Per nominare un responsabile serve l'email; chi ha un ruolo o una password non riceve link magici. | D19 | 1.9, 7, 9.4 |
 | D27 | **Ruolo per edizione.** Dà accesso operativo finché l'edizione non è conclusa, più **30 giorni** (per le fatture che arrivano dopo la sagra). Dopo, l'edizione resta in **sola lettura** per chi vi ha avuto un ruolo: Panoramica, Calendario, Volontari dell'edizione (contatti mascherati), Gestione turni senza azioni, senza elenco di tutte le persone e senza link d'invito, Forniture senza scrittura. Cassa e Comande rispondono 403. `auth.role` resta `manager`. Le Policy controllano l'evento del **record**, non quello della sessione. Tabella completa in 9.4. | ADR-005, domanda 9 | 0.3, 9.4 |
 | D28 | **Reparto stabile per tenant** (`departments`) per appartenenza, notifiche e replica. Ruoli e roster restano per edizione. Il roster del responsabile mostra anche i **veterani del reparto delle ultime 3 edizioni**, con i contatti mascherati. | ADR-007, domanda 10 | 5 |
-| D29 | **Cassa.** Contatore con lock e idempotenza obbligatoria; ogni ordine registra la sua cassa, e una cassa con ordini non si cancella; cambi di pagamento tracciati; riepilogo per cassa e per serata. **Numerazione e tagliandi** (dal flusso reale della sagra pilota, 16/10/2026): un **numero unico per ordine**, assegnato **solo agli ordini con piatti da preparare**, così la cucina chiama una sequenza senza buchi anche quando la cassa bevande vende; **un tagliando per ogni piatto** con il punto di ritiro stampato (oggi scritto a mano); **le bevande a tagliandino**, senza numero e senza coda, ritirate quando si vuole. Fieste stampa tutti i tagliandi (step 4.7). Caso reale: 2 casse in contemporanea, una per tutto e una per bevande e patatine. | ADR-008, domanda 2 | 1.1, 4, 11 |
-| D30 | **Casse nel 2027: un account dedicato** con ruolo solo sull'area Cassa, già collegato sui tablet; nessun terzo sistema di accesso (proposta del 16/10, in attesa di conferma insieme a D26). L'accesso per dispositivo con QR (attore separato, rotte proprie, revocabile) resta in traccia C. | ADR-008 B (8b) | 4.5, 11 |
+| D29 | **Cassa.** Contatore con lock e idempotenza obbligatoria; ogni ordine registra la sua cassa, e una cassa con ordini non si cancella; cambi di pagamento tracciati; riepilogo per cassa e per serata. **Numerazione e tagliandi** (dal flusso reale della sagra pilota, 16/10/2026): un **numero unico per ordine**, assegnato **solo agli ordini con piatti da preparare**, così la cucina chiama una sequenza senza buchi anche quando la cassa bevande vende; **un tagliando per ogni piatto** con il punto di ritiro stampato (oggi scritto a mano); **le bevande a tagliandino**, senza numero e senza coda, ritirate quando si vuole. Fieste stampa tutti i tagliandi (step 4.7). Caso reale: 2 casse in contemporanea, una per tutto e una per bevande e patatine. **⚠ aperto:** oggi la sagra pilota usa un sistema di cassa **a noleggio**, configurato a inizio sagra, che stampa scontrini e tagliandini e ha un display per i numeri. Va deciso se nel 2027 Fieste lo sostituisce (servono allora dispositivi, stampanti e un display propri: step 4.7 e 4.8) oppure no. | ADR-008, domanda 2 | 1.1, 4, 11 |
+| D30 | **Casse nel 2027: un account dedicato** con password e ruolo solo sull'area Cassa, già collegato sui tablet (✔ confermato il 16/10/2026). Nessun terzo sistema di accesso. L'accesso per dispositivo con QR resta in traccia C. | ADR-008 B (8b) | 4.5, 11 |
 | D31 | **Cassa offline** decisa a **ottobre 2027** sui dati raccolti in stagione. La strumentazione è obbligatoria prima di maggio. | ADR-008 B | 3.2, 4.5, §9 |
 | D32 | **Fiscalità:** Fieste **non emette documenti fiscali**: è una cassa gestionale, che per chi deve certificare lavora affiancata a un registratore telematico o alla procedura web dell'Agenzia. Le comande sono marcate "documento non fiscale". La ricerca del 16/10/2026 (`04-fiscalita-cassa.md`) ha trovato che **le Pro Loco hanno perso il regime 398/91 dal 2026**. Consulto con un commercialista **entro novembre 2026** con le domande di quel documento. L'organizzazione pilota è una **ODV iscritta al RUNTS**: se è nel regime forfettario dell'art. 86 e resta sotto 85.000 € di proventi commerciali, secondo le fonti non deve emettere scontrini fiscali (domanda 2 del documento, da confermare). **⚠ azione tua** | ADR-008 | 4.4, §9 |
 | D33 | **Un evento con ordini, forniture o allegati non si cancella.** | nuova | 1.3 |
@@ -214,8 +214,8 @@ stagione.
 
 | Traguardo | Data | Cosa deve essere vero |
 |---|---|---|
-| **T0** | entro fine ottobre 2026 | S.1-S.3 fatti: presa di controllo chiusa, registrazione chiusa, allegati e database al sicuro. Decisioni scritte (D). |
-| **T1** | fine gennaio 2027 | Step 0 completo; correzioni puntuali (1.1-1.8); rilascio affidabile (2.1, 2.2a, 2.2b); cassa robusta (4.1-4.4); reparti e replica completa (5.1-5.4); ingresso su invito (8.0). Le associazioni replicano l'edizione tra febbraio e aprile: replica e reparti devono essere pronti prima. |
+| **T0** | entro fine ottobre 2026 | S.1, S.2a e S.3 fatti: registrazione chiusa (✔), allegati e database al sicuro. Decisioni scritte (D). |
+| **T1** | fine gennaio 2027 | Credenziali tra associazioni (S.2b); step 0 completo; correzioni puntuali (1.1-1.8); rilascio affidabile (2.1, 2.2a, 2.2b); cassa robusta (4.1-4.4); reparti e replica completa (5.1-5.4); ingresso su invito (8.0). Le associazioni replicano l'edizione tra febbraio e aprile: replica e reparti devono essere pronti prima. |
 | **T2** | 15 aprile 2027 (**freeze strutturale**) | In produzione: strumentazione (3), freeze calcolato (2.3), credenziali (6), minimizzazione (7), roster dei veterani (5.5), requisiti legali (8) ed eventuale trasloco (8.1). Stampa dei tagliandi (4.7), prova generale della cassa (4.5) e rendiconto per evento (4.6). Ogni blocco della traccia B si fa tutto o si rimanda tutto (§8). |
 | Stagione | maggio-settembre 2027 | Solo hotfix, con il freeze calcolato (2.3). Raccolta delle misure. |
 | Dopo | da ottobre 2027 | Traccia C (§9), decisa sulle misure. |
@@ -309,9 +309,23 @@ ADR-011, ADR-004 · Dipende da: — · Decisione: — · Stima: 1-2 ore
   `UTC`, lo step 0.1 non imposta UTC e serve prima una migrazione dei dati
   (D41).
 
-### S.2 — Hotfix: presa di controllo tra tenant, login ambiguo, registrazione chiusa
+### S.2a — Registrazione chiusa ✔ fatto (16/10/2026)
 
-ADR-004, ADR-003 · Dipende da: S.1 · Decisione: D22, D25 · Stima: 1,5 giorni
+La registrazione di nuove associazioni è chiusa appena ne esiste una; un
+`REGISTRATION_ENABLED=true` la riapre. Un'installazione nuova, senza
+associazioni, resta aperta per il primo organizzatore. Le pagine nascondono il
+link. Il `POST /register` ha un throttle. Test: `RegistrationTest` (4 test
+nuovi, che falliscono sul codice precedente). Con una sola associazione in
+produzione, questo basta a chiudere la presa di controllo di §1.1, perché
+nessuno può creare la seconda.
+
+### S.2b — Credenziali tra associazioni (prima della seconda associazione)
+
+Va fatto **prima di 8.0**, cioè prima di far entrare la seconda associazione
+del pilota. Fino ad allora S.2a basta.
+
+
+ADR-004, ADR-003 · Dipende da: S.2a · Decisione: D22, D25 · Stima: 1 giorno
 
 *Prima del cambio (test rossi sul codice attuale)*
 
@@ -350,11 +364,6 @@ per portare l'omonimo in testa all'heap.
   password senza escludere le altre
   (`orderByRaw('case when password is null then 1 else 0 end')->orderBy('id')`),
   così l'invito a chi non ha ancora una password continua a funzionare.
-- **Registrazione chiusa.** Flag `REGISTRATION_ENABLED`, spento di default. La
-  rotta `register` resta registrata (Ziggy e i link non si rompono) e risponde
-  404 tramite middleware quando il flag è spento. Una prop condivisa
-  `canRegister` nasconde il link in `Welcome.vue` **e** in `auth/Login.vue`.
-  Throttle su `POST /register`.
 - Se S.1 ha trovato email condivise, gestirle a mano prima del deploy.
 
 *Test*
@@ -364,12 +373,10 @@ per portare l'omonimo in testa all'heap.
   documenta il limite noto di D25;
 - `ManagePeopleTest::test_the_invited_person_can_set_a_password_and_log_in`
   resta verde;
-- `RegistrationTest`: flag spento → 404 e link nascosto; flag acceso → i test
-  esistenti restano verdi.
 
 *Completato quando*
 - i test sono verdi su entrambi i motori;
-- il deploy è in produzione e `/register` risponde 404;
+- il deploy è in produzione;
 - se S.3 non è ancora in produzione, il deploy segue la procedura di S.3: si
   copia fuori `storage/app/private` prima dell'`up`, poi la si ricopia dentro
   e si verifica il download di un allegato.
@@ -515,7 +522,7 @@ ADR-005 · Dipende da: 0.1 · Decisione: D27 · Stima: 1,5 giorni
 
 ### 0.4 — Identità e accesso
 
-ADR-004 · Dipende da: 0.1, S.2 · Stima: 1 giorno
+ADR-004 · Dipende da: 0.1 · Stima: 1 giorno
 
 - `ContactUniquenessTest`, sugli 8 ingressi che salvano telefono o email:
   - un duplicato nello stesso tenant viene rifiutato;
@@ -523,8 +530,8 @@ ADR-004 · Dipende da: 0.1, S.2 · Stima: 1 giorno
     non danno una password: `store`, join, `ManagerPeople`, `AreaManager`,
     `assign`, `/me/contact` e `update` di chi non ha password;
   - per l'invito account, per settings/profile e per l'`update` o
-    `/me/contact` di chi ha una password, l'email presente altrove viene
-    rifiutata (la regola di S.2);
+    `/me/contact` di chi ha una password, oggi l'email presente altrove viene
+    accettata: le righe con il rifiuto le aggiunge S.2b;
   - `test_bug_adr004_readding_a_deleted_phone_is_a_500` (§4: ultima azione del
     test).
 - `PhoneFormatTest`:
@@ -767,8 +774,8 @@ Stima: 1 giorno
 - *Completato quando:* il dry-run è annotato in produzione, l'esecuzione
   reale avviene dopo la tua conferma e il conteggio residuo è 0.
 
-**1.5 — Recupero accesso e password dimenticata** · ADR-004 · Dipende da: 0.4,
-S.2 · Stima: 3 ore
+**1.5 — Recupero accesso e password dimenticata** · ADR-004 · Dipende da: 0.4 ·
+Stima: 3 ore
 - *Cosa:*
   - il recupero crea il link senza ruotare `remember_token`;
   - `RecoveryController`, `PasswordResetLinkController` e
@@ -810,6 +817,20 @@ Dipende da: 0.6, 0.7 · Decisione: D24 · Stima: 0,5 giorni
   - si inverte `test_bug_d36_is_past_is_shifted_on_pgsql`;
   - `SeatFreedNotifier` alle 19:30 su un turno delle 19:00 non annuncia nulla;
   - scadenza di un magic link a cavallo dell'ora.
+
+**1.9 — Responsabili con password** · D26 · Dipende da: 0.4, S.2b ·
+Decisione: D26 · Stima: 0,5 giorni
+- *Cosa:*
+  - nominare un responsabile (`AreaManagerController::store`, anche con
+    persona nuova) richiede l'email e genera l'invito account;
+  - `PersonController::magicLink` e `ManagerPeopleController` non generano
+    link magici per chi ha una password o un ruolo da responsabile o
+    organizzatore;
+  - un comando elenca i responsabili attuali senza email, da sistemare a mano
+    con l'organizzatore.
+- *Test:* nominare un responsabile senza email → errore di validazione; il
+  link magico per un responsabile → rifiutato; un volontario semplice lo
+  riceve ancora; l'invito porta a scegliere la password e poi al login.
 
 ### 2 — Rilascio affidabile
 
@@ -1056,6 +1077,15 @@ Decisione: D29, D32 · Stima: 2-3 giorni, più la prova con le stampanti reali
 - *Completato quando* la stampa funziona sui dispositivi e sulle stampanti
   reali della sagra pilota (verificato nella prova generale 4.5).
 
+**4.8 — Schermo dei numeri pronti** · ADR-008 · Dipende da: 4.7 · Decisione:
+D29 · Stima: 0,5-1 giorno
+- *Serve solo se Fieste sostituisce la cassa a noleggio (D29).*
+- *Cosa:* una pagina a schermo pieno per il pubblico con i numeri degli
+  ordini pronti in cucina, aggiornata da sola come lo schermo cucina, aperta
+  con l'account dedicato delle casse (D30).
+- *Test:* mostra solo i numeri con tutti i piatti pronti; nessun dato
+  personale; si aggiorna con lo stesso meccanismo dello schermo cucina.
+
 ### 5 — Reparti stabili e replica completa (ADR-007)
 
 Dipende da: 0.8 · Decisione: D28.
@@ -1130,7 +1160,7 @@ giorni
 
 ### 6 — Credenziali globali complete (ADR-004 D, corretta)
 
-Dipende da: S.2, 0.1, 0.4, 1.4 · Decisione: D25, D41 · Stima: 1,5 giorni
+Dipende da: S.2b, 0.1, 0.4, 1.4 · Decisione: D25, D41 · Stima: 1,5 giorni
 
 *Prima del cambio (P1 dell'audit)*
 - `AuthenticationTest::test_login_is_throttled_after_five_failures`;
@@ -1143,7 +1173,7 @@ Dipende da: S.2, 0.1, 0.4, 1.4 · Decisione: D25, D41 · Stima: 1,5 giorni
   righe con password e la stessa `lower(email)`, e le collisioni di maiuscole
   tra righe attive dello stesso tenant;
 - validazione globale tra chi ha una password in `NewPasswordController` (in
-  aggiunta a quanto fatto in S.2);
+  aggiunta a quanto fatto in S.2b);
 - indice unico parziale su `lower(email)` `WHERE password IS NOT NULL AND
   deleted_at IS NULL`;
 - migrazione correttiva delle email non normalizzate, se la query 2 di S.1 ha
@@ -1180,7 +1210,7 @@ Dipende da: 0.3, 0.6 · Decisione: D26 · Stima: 1 giorno
 
 ### 8 — Requisiti per un'associazione esterna
 
-**8.0 — Ingresso su invito** · Dipende da: S.2 · Decisione: D22 · Stima: 0,5
+**8.0 — Ingresso su invito** · Dipende da: S.2b · Decisione: D22 · Stima: 0,5
 giorni
 - *Cosa:*
   - comando `tenants:invite <email>`, che salva un invito (hash del token,
@@ -1391,7 +1421,7 @@ Dipende da: 9.1, 0.2, 6, 5.1 · Stima complessiva: 4 giorni
 
 ### 11 — Accesso per dispositivo e modalità postazione (ADR-008 8b, ADR-013 B)
 
-> Se D30 si chiude con "account dedicato nel 2027", questo blocco passa in
+> D30 si è chiusa con "account dedicato nel 2027": questo blocco passa in
 > traccia C.
 
 Dipende da: 9.1, 4.1, 4.4, 3.2 (e 10.1 se è stato fatto) · Decisione:
@@ -1492,7 +1522,7 @@ Dipende da: 0.12 · Stima: 2 giorni
 
 ```mermaid
 flowchart LR
-    S1[S.1 produzione al sicuro] --> S2[S.2 hotfix credenziali]
+    S1[S.1 produzione al sicuro] --> S2a[S.2a registrazione chiusa] --> S2[S.2b credenziali]
     S1 --> S3[S.3 volume e backup]
     O1[0.1 CI vera] --> O2[0.2 isolamento]
     O1 --> O3[0.3 matrice accesso]
@@ -1538,6 +1568,9 @@ flowchart LR
     D43 --> C32[3.2 strumentazione cassa]
     O12 --> C32
     D41 --> D47[4.7 stampa tagliandi]
+    D47 --> D48[4.8 schermo numeri]
+    O4 --> A19[1.9 responsabili con password]
+    S2 --> A19
     D42 --> D47
     D47 --> D45
     D42 --> D45[4.5 prova generale]
@@ -1602,7 +1635,7 @@ stessi file:
 - 1.2, poi 1.3, poi 5.4 (`EventController`);
 - 4.3 prima di 3.2 (`Cassa.vue` e il suo `localStorage`);
 - 7, poi 9.1, poi 11.1 (`HandleInertiaRequests`);
-- S.2, poi 1.4, poi 6 (`PersonController` e controller del profilo).
+- S.2b, poi 1.4, poi 6 (`PersonController` e controller del profilo).
 
 ---
 
@@ -1610,20 +1643,23 @@ stessi file:
 
 Stato al 16 ottobre 2026.
 
-**Deciso:** stagione pilota (D22); conservazione fino alla richiesta di
-cancellazione, più anonimizzazione dopo 5 anni di inattività (D39);
-numerazione e tagliandi secondo il flusso reale della sagra (D29); tutti gli
-altri default.
+**Deciso:**
+- stagione pilota (D22);
+- accesso per ruolo: password per responsabili e organizzatori, link magico
+  per i volontari, account dedicato sulle casse (D26, D30);
+- conservazione fino alla richiesta di cancellazione, più anonimizzazione dopo
+  5 anni di inattività (D39);
+- numerazione e tagliandi secondo il flusso reale della sagra (D29);
+- produzione su un server prima di maggio (D38);
+- tutti gli altri default.
+
+**Fatto:** registrazione chiusa (S.2a).
 
 **Ancora aperto:**
 
-1. **D32, il consulto con il commercialista entro novembre**, con le domande
-   di `04-fiscalita-cassa.md`. La vostra è una ODV iscritta al RUNTS: la
-   domanda chiave è se siete nel regime forfettario dell'art. 86.
-2. **D26 e D30, l'accesso:** responsabili con registrazione e password,
-   volontari con link magico, casse con un account dedicato.
-3. **Step 4.7, la stampa:** quali dispositivi e quali stampanti usano le
-   casse.
-4. **D38, il server:** spostare la produzione dal PC di casa a una VPS in UE
-   prima di maggio.
-5. **S.2:** l'ok a chiudere subito la registrazione pubblica.
+1. **D29: nel 2027 Fieste sostituisce la cassa a noleggio?** Se sì, servono
+   dispositivi, stampanti e un display propri, e la prova generale diventa
+   critica. Se no, la traccia della cassa può slittare dopo la stagione.
+2. **D32: il consulto con il commercialista entro novembre**, con le domande
+   di `04-fiscalita-cassa.md`. Utile chiedere anche al noleggiatore se gli
+   scontrini che stampa oggi sono fiscali.

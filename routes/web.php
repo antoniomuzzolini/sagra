@@ -14,11 +14,14 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplyAttachmentController;
 use App\Http\Controllers\SupplyController;
 use App\Http\Controllers\TillController;
+use App\Support\Registration;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    return Inertia::render('Welcome');
+    return Inertia::render('Welcome', [
+        'canRegister' => Registration::isOpen(),
+    ]);
 })->name('home');
 
 // PWA manifest, dynamic so the app name stays a single config value.
