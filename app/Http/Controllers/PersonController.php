@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Person;
+use App\Support\Credentials;
 use App\Support\PersonRoster;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -96,7 +98,9 @@ class PersonController extends Controller
      * person the organizer wants to give a password login) get a
      * set-password link. Like magic links, it's returned once for the
      * organizer to hand over by any channel — email, WhatsApp or copy.
-     * An account is keyed by email, so one is required.
+     * An account is keyed by email, so one is required, and it must not be
+     * used in any other association (D25): the set-password token carries
+     * only the email, so its reset could land on that other person.
      */
     public function accountInvite(Request $request, Person $person): RedirectResponse
     {
@@ -115,6 +119,11 @@ class PersonController extends Controller
             'email.email' => 'L\'indirizzo email non è valido.',
             'email.unique' => 'C\'è già una persona con questa email.',
         ]);
+
+        // The stored email counts too when the body has none.
+        if (Credentials::emailUsedElsewhere($data['email'] ?? $person->email, $person->tenant_id)) {
+            throw ValidationException::withMessages(['email' => Credentials::EMAIL_TAKEN]);
+        }
 
         if (! empty($data['email'])) {
             $person->update(['email' => $data['email']]);
@@ -158,6 +167,7 @@ class PersonController extends Controller
             'email' => [
                 'nullable', 'email', 'max:255', 'required_without:phone',
                 Rule::unique('people')->where('tenant_id', $tenantId)->ignore($person)->withoutTrashed(),
+                Credentials::emailRule($person),
             ],
         ], [
             'name.required' => 'Il nome è obbligatorio.',

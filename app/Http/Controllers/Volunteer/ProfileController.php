@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Volunteer;
 
 use App\Http\Controllers\Controller;
+use App\Support\Credentials;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -32,6 +33,7 @@ class ProfileController extends Controller
             'email' => [
                 'nullable', 'email', 'max:255', 'required_without:phone',
                 Rule::unique('people')->where('tenant_id', $person->tenant_id)->ignore($person)->withoutTrashed(),
+                Credentials::emailRule($person),
             ],
         ], [
             'phone.required_without' => 'Lascia almeno un recapito: telefono o email.',

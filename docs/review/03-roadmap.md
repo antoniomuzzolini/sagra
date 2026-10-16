@@ -45,7 +45,7 @@ dell'altra associazione.
 L'ADR-004 stimava "ore" per la sua raccomandazione D (indice unico parziale),
 ma D **non chiude** nessuna di queste strade. Il problema vale per il SaaS e
 anche per ogni istanza self-hosted, perché la registrazione è aperta ovunque.
-Sono gli step **S.2a** (registrazione chiusa, già fatto) e **S.2b** (credenziali, prima della seconda associazione).
+Sono gli step **S.2a** (registrazione chiusa, già fatto) e **S.2b** (credenziali, fatto il 16/10/2026, deploy da fare).
 
 ### 1.2 "Accetto tutto" non decide quello che gli ADR lasciavano condizionale
 
@@ -185,7 +185,7 @@ usa: cambiarne uno tocca solo gli step indicati. Lo step **D** le trascrive in
 | D22 | **Il 2027 è una stagione pilota** con 1-5 associazioni accompagnate. Registrazione pubblica **chiusa** (flag `REGISTRATION_ENABLED`, spento di default); le associazioni entrano con un invito monouso. **✔ confermata** (16/10/2026). Oggi non ci sono associazioni esterne. | ADR-003, ADR-006, ADR-010 (perimetro) | S.2a, 8.0, 8, §9 |
 | D23 | **Use-case-first** al posto di API-first. Ogni mutazione con effetti collaterali o con più ingressi passa da una Action, che riceve l'attore e verifica l'autorizzazione d'ingresso. D12 (MCP in Python) sospesa. | Regola 4, D5 (parte API), D12 | 1.4, 1.7, 4.1, 5.4, 9, 11 |
 | D24 | **I Turni sono un modulo di base.** Il flag per evento nasconde l'interfaccia **e** silenzia le notifiche automatiche. | D21 (parte Turni) | 1.6 |
-| D25 | **Credenziali globali.** Un'email associata a una password è unica su tutta l'istanza; l'anagrafica resta per tenant. Il **login** considera solo le righe con password, ordinate per id. **Recupero e reset preferiscono** la riga con password senza escludere le altre, perché l'invito imposta la prima password. L'**invito account** rifiuta un'email presente in qualunque altro tenant, con o senza password, finché il token resta legato all'email. **Limite noto:** un volontario presente in più associazioni con la stessa email non può ricevere un invito account (fino ad ADR-004 C). | ADR-004 D, corretta | S.2b, 6 |
+| D25 | **Credenziali globali.** Un'email associata a una password è unica su tutta l'istanza; l'anagrafica resta per tenant. Il **login** considera solo le righe con password, ordinate per id. **Recupero e reset preferiscono** la riga con password senza escludere le altre, perché l'invito imposta la prima password. L'**invito account** rifiuta un'email presente in qualunque altro tenant, con o senza password, finché il token resta legato all'email. Per lo stesso motivo **chi ha una password** non può passare a un'email presente in un altro tenant (S.2b). **Limite noto:** un volontario presente in più associazioni con la stessa email non può ricevere un invito account, e chi ha una password non può prendere un'email che altrove usa un omonimo senza password (fino ad ADR-004 C). | ADR-004 D, corretta | S.2b, 6 |
 | D26 | **Accesso per ruolo** (✔ confermato il 16/10/2026). **Responsabili e organizzatori** entrano con invito, completano la registrazione con una password e poi fanno login (il D19 originale; l'invito account esiste già). **I volontari** restano con il link magico. Per nominare un responsabile serve l'email; chi ha un ruolo o una password non riceve link magici. | D19 | 1.9, 7, 9.4 |
 | D27 | **Ruolo per edizione.** Dà accesso operativo finché l'edizione non è conclusa, più **30 giorni** (per le fatture che arrivano dopo la sagra). Dopo, l'edizione resta in **sola lettura** per chi vi ha avuto un ruolo: Panoramica, Calendario, Volontari dell'edizione (contatti mascherati), Gestione turni senza azioni, senza elenco di tutte le persone e senza link d'invito, Forniture senza scrittura. Cassa e Comande rispondono 403. `auth.role` resta `manager`. Le Policy controllano l'evento del **record**, non quello della sessione. Tabella completa in 9.4. | ADR-005, domanda 9 | 0.3, 9.4 |
 | D28 | **Reparto stabile per tenant** (`departments`) per appartenenza, notifiche e replica. Ruoli e roster restano per edizione. Il roster del responsabile mostra anche i **veterani del reparto delle ultime 3 edizioni**, con i contatti mascherati. | ADR-007, domanda 10 | 5 |
@@ -215,7 +215,7 @@ stagione.
 | Traguardo | Data | Cosa deve essere vero |
 |---|---|---|
 | **T0** | entro fine ottobre 2026 | S.1, S.2a e S.3 fatti: registrazione chiusa (✔), allegati e database al sicuro. Decisioni scritte (D). |
-| **T1** | fine gennaio 2027 | Credenziali tra associazioni (S.2b); step 0 completo; correzioni puntuali (1.1-1.8); rilascio affidabile (2.1, 2.2a, 2.2b); reparti e replica completa (5.1-5.4); ingresso su invito (8.0). Le associazioni replicano l'edizione tra febbraio e aprile: replica e reparti devono essere pronti prima. |
+| **T1** | fine gennaio 2027 | Credenziali tra associazioni (S.2b, ✔ codice); step 0 completo; correzioni puntuali (1.1-1.8); rilascio affidabile (2.1, 2.2a, 2.2b); reparti e replica completa (5.1-5.4); ingresso su invito (8.0). Le associazioni replicano l'edizione tra febbraio e aprile: replica e reparti devono essere pronti prima. |
 | **T2** | 15 aprile 2027 (**freeze strutturale**) | In produzione: strumentazione (3), freeze calcolato (2.3), credenziali (6), minimizzazione (7), roster dei veterani (5.5), requisiti legali (8) e trasloco sul server (8.1). Ogni blocco della traccia B si fa tutto o si rimanda tutto (§8). |
 | Stagione | maggio-settembre 2027 | Solo hotfix, con il freeze calcolato (2.3). Raccolta delle misure. Alla sagra la cassa è quella a noleggio (D29). |
 | Dopo | da ottobre 2027 | Traccia C (§9), decisa sulle misure. |
@@ -326,10 +326,69 @@ nuovi, che falliscono sul codice precedente). Con una sola associazione in
 produzione, questo basta a chiudere la presa di controllo di §1.1, perché
 nessuno può creare la seconda.
 
-### S.2b — Credenziali tra associazioni (prima della seconda associazione)
+### S.2b — Credenziali tra associazioni ✔ fatto (16/10/2026, deploy da fare)
 
 Va fatto **prima di 8.0**, cioè prima di far entrare la seconda associazione
 del pilota. Fino ad allora S.2a basta.
+
+**Esito.** Codice e test sono fatti, manca il deploy (vedi *Completato
+quando*). Le regole di D25 stanno in un solo punto,
+`App\Support\Credentials`, che lo step 6 estende:
+- la ricerca per il login e quella per il reset;
+- il controllo dell'email presente altrove;
+- la regola di validazione dei profili.
+
+I test sono in `tests/Feature/Security/CrossTenantTakeoverTest.php`, con 19
+casi. Sul codice precedente:
+- su PostgreSQL 16 ne fallivano 16;
+- su SQLite ne fallivano 10;
+- i 3 che passavano su entrambi sono i casi "email invariata". Proteggono da
+  un controllo troppo stretto, quindi devono passare anche prima.
+
+Dopo il fix la suite completa (299 test) passa su SQLite e su PostgreSQL 16 in
+locale, e su SQLite con PHP 8.4, la versione della CI.
+
+**Deviazioni dal piano**
+
+1. **Profilo e anagrafica rifiutano l'email anche se altrove non c'è una
+   password.** Il piano qui sotto rifiutava solo un'email che in un altro
+   tenant appartiene a una riga con password. Così resta aperta una presa di
+   controllo, in quattro passi:
+   1. l'attaccante crea un'esca con un'email che non esiste altrove;
+   2. emette l'invito account e tiene il link, valido 60 minuti;
+   3. nel frattempo chi ha una password in un'altra associazione passa a
+      quell'email, cosa che il piano permette perché l'esca non ha password;
+   4. il reset preferisce la riga con password, quindi il link dell'esca
+      imposta la password della vittima.
+
+   Ora chi ha una password non può passare a un'email presente in un altro
+   tenant, con o senza password: è la stessa regola dell'invito. Il controllo
+   scatta ancora solo se l'email cambia. Il test è
+   `test_a_pending_invite_cannot_reach_an_account_that_moves_to_its_email`,
+   rosso con la regola del piano. **Costo:** il limite noto di D25 si allarga.
+   Chi ha una password non può prendere un'email che in un'altra associazione
+   usa un omonimo senza password. D25 è aggiornata.
+2. **Una variante in più negli ultimi tre test.** Se l'omonimo viene creato
+   dopo la vittima, SQLite restituisce le righe in ordine di id e i test
+   passano anche sul codice vecchio: sono rossi solo su PostgreSQL. La
+   variante "omonimo presente prima della vittima" (id più basso) li rende
+   rossi anche su SQLite, l'unico motore in CI fino allo 0.1. È anche il caso
+   reale di chi fa già il volontario altrove. L'`UPDATE` sulla vittima gira su
+   entrambi i motori (su SQLite non cambia l'ordine) e usa il query builder:
+   un `touch()` nello stesso secondo non scrive nulla.
+3. **Test in più.** `test_a_password_holder_cannot_move_to_an_email_used_elsewhere`
+   copre i tre ingressi: settings, `/me/contact` e modifica da parte
+   dell'organizzatore. Sono le righe con il rifiuto che lo 0.4 assegna a S.2b.
+4. **PostgreSQL in locale** (siamo prima dello 0.1): PostgreSQL 16 con PHP
+   8.3. `composer.lock` richiede PHP ≥ 8.4.1, quindi le dipendenze sono
+   installate con `--ignore-platform-reqs`, come fa il Dockerfile (vedi 2.1).
+
+**Da fare (tuo)**
+- Prima del deploy, eseguire le query 1 e 3 di S.1. Se trovano email
+  condivise tra associazioni, gestirle a mano.
+- Fare il deploy con la procedura degli allegati di S.3 e verificare `/up`.
+
+**Il piano originale**
 
 
 ADR-004, ADR-003 · Dipende da: S.2a · Decisione: D22, D25 · Stima: 1 giorno
@@ -538,7 +597,8 @@ ADR-004 · Dipende da: 0.1 · Stima: 1 giorno
     `assign`, `/me/contact` e `update` di chi non ha password;
   - per l'invito account, per settings/profile e per l'`update` o
     `/me/contact` di chi ha una password, oggi l'email presente altrove viene
-    accettata: le righe con il rifiuto le aggiunge S.2b;
+    accettata: le righe con il rifiuto sono già in `CrossTenantTakeoverTest`
+    (S.2b, fatto);
   - `test_bug_adr004_readding_a_deleted_phone_is_a_500` (§4: ultima azione del
     test).
 - `PhoneFormatTest`:
@@ -1676,8 +1736,13 @@ Stato al 16 ottobre 2026.
 - produzione su un server prima di maggio (D38);
 - tutti gli altri default.
 
-**Fatto:** registrazione chiusa (S.2a, da portare in produzione con la
-procedura per gli allegati di §4).
+**Fatto:**
+- registrazione chiusa (S.2a);
+- credenziali tra associazioni (S.2b): prima del deploy, eseguire le query 1
+  e 3 di S.1.
+
+Entrambi sono da portare in produzione con la procedura per gli allegati
+di §4.
 
 **Ancora aperto:**
 

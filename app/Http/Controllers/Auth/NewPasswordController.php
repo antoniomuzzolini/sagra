@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Support\Credentials;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -43,8 +44,10 @@ class NewPasswordController extends Controller
         // Here we will attempt to reset the user's password. If it is successful we
         // will update the password on an actual user model and persist it to the
         // database. Otherwise we will parse the error and return the response.
+        // The token is keyed by the email alone: pick the person the way
+        // forgot password does, not the first row with that email (D25).
         $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
+            [...$request->only('email', 'password', 'password_confirmation', 'token'), Credentials::forReset()],
             function ($user) use ($request) {
                 $user->forceFill([
                     'password' => Hash::make($request->password),

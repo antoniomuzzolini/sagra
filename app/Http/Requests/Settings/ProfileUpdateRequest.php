@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Settings;
 
+use App\Support\Credentials;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -37,6 +38,7 @@ class ProfileUpdateRequest extends FormRequest
                 Rule::unique('people', 'email')
                     ->where('tenant_id', $this->user()->tenant_id)
                     ->ignore($this->user()->id),
+                Credentials::emailRule($this->user()),
             ],
         ];
     }
