@@ -239,9 +239,13 @@ precedenza sui blocchi B e sulla cassa.
 
 ## 4. Regole comuni a ogni step
 
-- **Uno step = una PR**, con la suite verde su SQLite **e** PostgreSQL in CI.
-  Prima dello step 0.1 (che porta PostgreSQL in CI), la variante PostgreSQL si
-  esegue in locale e l'output va nella descrizione della PR.
+- **Niente PR: un commit per ADR**, con push diretto sul branch di lavoro
+  (scelta del maintainer, 16/10/2026). Il commit di uno step contiene il
+  codice, i test e l'aggiornamento di questa roadmap. Uno step che non
+  riguarda un ADR (per esempio D) ha un commit suo. La suite deve essere
+  verde su SQLite **e** PostgreSQL. Prima dello step 0.1, che porta
+  PostgreSQL in CI, la variante PostgreSQL si esegue in locale. L'esito va
+  nel messaggio di commit e nella nota "Esito" dello step.
 - **Test "bug".**
   - Lo step 0 congela anche i comportamenti sbagliati, con test chiamati
     `test_bug_…`. Asseriscono lo **stato attuale** e hanno un docblock
@@ -500,7 +504,7 @@ elencati in 01-architettura §8.3.
 D36. Senza, il criterio comune non è verificabile in CI e i test di data su
 PostgreSQL dipendono dal fuso della macchina. Gli altri sotto-step dipendono
 solo da 0.1 e sono indipendenti tra loro; 0.13 dipende anche da S.3. Ogni
-sotto-step è una PR. Ogni step successivo dipende solo dai sotto-step della sua
+sotto-step è un commit (§4). Ogni step successivo dipende solo dai sotto-step della sua
 area (§10), non da tutto lo step 0: la traccia A può partire prima che lo
 step 0 sia finito.
 
@@ -644,7 +648,7 @@ ADR-002 · Dipende da: 0.1 · Stima: 1,5 giorni
   `ManagerPowersTest`, `ManagerPagesTest` e `ManageEventsTest` con date
   relative o `travelTo`.
 
-*Completato quando* la PR contiene la checklist dei 20 metodi originali,
+*Completato quando* il commit contiene la checklist dei 20 metodi originali,
 ognuno con il suo duplicato verde.
 
 ### 0.6 — Contratto con il frontend, moduli, architettura
@@ -765,7 +769,7 @@ ADR-011 · Dipende da: 0.1, S.3 · Stima: 1 giorno
 
 ### 1 — Correzioni puntuali
 
-Ognuna è una PR piccola che inverte test "bug" dello step 0.
+Ognuna è un commit piccolo che inverte test "bug" dello step 0.
 
 **1.1 — Autorizzazione su ordini e fornitori, cassa registrata** · ADR-005,
 ADR-008 · Dipende da: 0.3, 0.10 · Decisione: D29 · Stima: 1 giorno
